@@ -63,6 +63,7 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
   const cacheKey = getEventsCacheKey(babyId, events)
   const lastCacheKeyRef = useRef<string>('')
   const lastRefreshKeyRef = useRef<number>(refreshKey ?? 0)
+  const isSubmittingRef = useRef(false)
   // Initialize as null to avoid hydration mismatch - sessionStorage only exists on client
   const [cachedRecommendation, setCachedState] = useState<Recommendation | null>(null)
 
@@ -78,6 +79,7 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
   // Request recommendation when events change (and we have at least one event)
   useEffect(() => {
     if (events.length === 0) return
+    if (isSubmittingRef.current) return  // Prevent duplicate requests
 
     const cached = getCachedRecommendation(cacheKey)
     const refreshKeyChanged = refreshKey !== undefined && refreshKey !== lastRefreshKeyRef.current
@@ -99,6 +101,7 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
     // Fetch new recommendation
     lastCacheKeyRef.current = cacheKey
     lastRefreshKeyRef.current = refreshKey ?? 0
+    isSubmittingRef.current = true
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     submit({ babyId, events, baby, timezone })
   }, [cacheKey, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -110,8 +113,16 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
       setCachedRecommendation(cacheKey, recommendation)
       // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing streaming result to local state
       setCachedState(recommendation)
+      isSubmittingRef.current = false
     }
   }, [object, cacheKey])
+
+  // Reset submitting flag on error
+  useEffect(() => {
+    if (error) {
+      isSubmittingRef.current = false
+    }
+  }, [error])
 
   // No events yet
   if (events.length === 0) {
