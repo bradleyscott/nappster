@@ -359,7 +359,7 @@ export function DashboardContent({ baby, initialEvents }: DashboardContentProps)
 
         {/* Quick Entry Buttons */}
         <div className="grid grid-cols-2 gap-3">
-          {!hasWoken && (
+          {!hasWoken && !isBedtimeInProgress && (
             <SleepEventButton
               eventType="wake"
               label="Woke Up"
@@ -390,14 +390,22 @@ export function DashboardContent({ baby, initialEvents }: DashboardContentProps)
           )}
 
           {isBedtimeInProgress && (
-            <SleepEventButton
-              eventType="wake"
-              label="Woke Up"
-              icon="☀️"
-              onClick={() => handleLogEvent('wake')}
-              disabled={loading}
-              className="col-span-2"
-            />
+            <>
+              <SleepEventButton
+                eventType="night_wake"
+                label="Night Wake"
+                icon="👀"
+                onClick={() => handleLogEvent('night_wake')}
+                disabled={loading}
+              />
+              <SleepEventButton
+                eventType="wake"
+                label="Woke Up"
+                icon="☀️"
+                onClick={() => handleLogEvent('wake')}
+                disabled={loading}
+              />
+            </>
           )}
 
           {isNapInProgress && (

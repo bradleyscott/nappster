@@ -84,31 +84,44 @@ export default async function Home() {
   const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)
   const { start: yesterdayStart, end: yesterdayEnd } = getYesterdayBoundsForTimezone(timezone)
 
-  // Fetch today's events
-  const { data: todayEvents } = await supabase
+  // Step 1: Find yesterday's last bedtime (start of overnight sleep)
+  const { data: lastBedtime } = await supabase
     .from("sleep_events")
     .select("*")
     .eq("baby_id", babyId)
-    .gte("event_time", todayStart)
-    .lt("event_time", todayEnd)
-    .order("event_time", { ascending: true });
-
-  // Fetch yesterday's last bedtime/night_wake to show overnight sleep that ends today
-  const { data: overnightStart } = await supabase
-    .from("sleep_events")
-    .select("*")
-    .eq("baby_id", babyId)
+    .eq("event_type", "bedtime")
     .gte("event_time", yesterdayStart)
     .lt("event_time", yesterdayEnd)
-    .in("event_type", ["bedtime", "night_wake"])
     .order("event_time", { ascending: false })
     .limit(1);
 
-  // Combine overnight start (if exists) with today's events
-  const events = [
-    ...(overnightStart || []),
-    ...(todayEvents || [])
-  ];
+  // Step 2: Fetch all events from bedtime onward (includes night wakes and today's events)
+  const overnightStartTime = lastBedtime?.[0]?.event_time;
+  let events;
+
+  if (overnightStartTime) {
+    // Fetch all events from bedtime through today's end
+    const { data: allEvents } = await supabase
+      .from("sleep_events")
+      .select("*")
+      .eq("baby_id", babyId)
+      .gte("event_time", overnightStartTime)
+      .lt("event_time", todayEnd)
+      .order("event_time", { ascending: true });
+
+    events = allEvents || [];
+  } else {
+    // No bedtime yesterday, just fetch today's events
+    const { data: todayEvents } = await supabase
+      .from("sleep_events")
+      .select("*")
+      .eq("baby_id", babyId)
+      .gte("event_time", todayStart)
+      .lt("event_time", todayEnd)
+      .order("event_time", { ascending: true });
+
+    events = todayEvents || [];
+  }
 
   return <DashboardContent baby={baby} initialEvents={events} />;
 }

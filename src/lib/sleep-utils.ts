@@ -118,10 +118,42 @@ ${formatted}
 }
 
 /**
+ * Format event time with relative date prefix if not from today
+ */
+function formatEventWithDate(eventTime: string): string {
+  const eventDate = new Date(eventTime)
+  const now = new Date()
+
+  // Compare dates in local timezone
+  const eventLocal = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
+  const nowLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffDays = Math.floor((nowLocal.getTime() - eventLocal.getTime()) / (1000 * 60 * 60 * 24))
+
+  const time = formatTime(eventTime)
+
+  if (diffDays === 0) {
+    return time // Today, just show time
+  } else if (diffDays === 1) {
+    return `Yesterday ${time}`
+  } else if (diffDays === -1) {
+    return `Tomorrow ${time}` // Shouldn't happen but handle edge case
+  } else {
+    return `${eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${time}`
+  }
+}
+
+/**
  * Build system prompt for AI with baby context
  */
 export function buildSystemPrompt(baby: Baby, events: SleepEvent[], recentHistory?: SleepEvent[], chatHistory?: ChatHistoryMessage[]): string {
   const age = formatAge(baby.birth_date)
+
+  // Check if events span multiple days
+  const hasMultipleDays = events.length > 0 && events.some(e => {
+    const eventDate = new Date(e.event_time)
+    const now = new Date()
+    return eventDate.toDateString() !== now.toDateString()
+  })
 
   let prompt = `You are an expert baby sleep consultant. You provide helpful, evidence-based advice about baby sleep.
 
@@ -133,9 +165,9 @@ ${baby.pattern_notes ? `- Known patterns: ${baby.pattern_notes}` : ''}
 
 ## Today's Sleep Events
 ${events.length === 0 ? 'No events logged yet today.' : events.map(e => {
-  const time = formatTime(e.event_time)
+  const timeStr = hasMultipleDays ? formatEventWithDate(e.event_time) : formatTime(e.event_time)
   const type = e.event_type.replace('_', ' ')
-  return `- ${time}: ${type}${e.context ? ` (${e.context})` : ''}${e.notes ? ` - ${e.notes}` : ''}`
+  return `- ${timeStr}: ${type}${e.context ? ` (${e.context})` : ''}${e.notes ? ` - ${e.notes}` : ''}`
 }).join('\n')}
 
 ## Guidelines

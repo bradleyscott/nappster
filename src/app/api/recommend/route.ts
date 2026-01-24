@@ -1,7 +1,9 @@
 import { openai } from '@ai-sdk/openai'
 import { streamObject } from 'ai'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
 import { buildSystemPrompt } from '@/lib/sleep-utils'
+import { getTodayBoundsForTimezone } from '@/lib/timezone'
 import { Baby, SleepEvent } from '@/types/database'
 
 const recommendationSchema = z.object({
@@ -18,13 +20,30 @@ const recommendationSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const { events, baby } = await req.json() as {
+    const { events, baby, babyId, timezone = 'UTC' } = await req.json() as {
       babyId: string
       events: SleepEvent[]
       baby: Baby
+      timezone?: string
     }
 
-    const systemPrompt = buildSystemPrompt(baby, events)
+    // Fetch recent history (last 7 days before today) for context
+    const supabase = await createClient()
+    const { start: todayStart } = getTodayBoundsForTimezone(timezone)
+
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+
+    const { data: recentHistory } = await supabase
+      .from('sleep_events')
+      .select('*')
+      .eq('baby_id', babyId)
+      .gte('event_time', weekAgo.toISOString())
+      .lt('event_time', todayStart)
+      .order('event_time', { ascending: false })
+      .limit(50)
+
+    const systemPrompt = buildSystemPrompt(baby, events, recentHistory || [])
 
     // Determine what to ask for based on current state
     const lastEvent = events[events.length - 1]

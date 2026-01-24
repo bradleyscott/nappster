@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { z } from 'zod'
 import { Baby, SleepEvent } from '@/types/database'
@@ -13,11 +13,44 @@ const recommendationSchema = z.object({
   explanation: z.string(),
 })
 
+type Recommendation = z.infer<typeof recommendationSchema>
+
 interface RecommendationCardProps {
   babyId: string
   events: SleepEvent[]
   baby: Baby
   refreshKey?: number
+}
+
+// Generate a cache key based on events (using IDs and times)
+function getEventsCacheKey(babyId: string, events: SleepEvent[]): string {
+  const eventsHash = events
+    .map(e => `${e.id}:${e.event_time}:${e.event_type}`)
+    .join('|')
+  return `recommendation:${babyId}:${eventsHash}`
+}
+
+// Cache helpers
+function getCachedRecommendation(key: string): Recommendation | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const cached = sessionStorage.getItem(key)
+    if (cached) {
+      return JSON.parse(cached)
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null
+}
+
+function setCachedRecommendation(key: string, recommendation: Recommendation): void {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(key, JSON.stringify(recommendation))
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 export function RecommendationCard({ babyId, events, baby, refreshKey }: RecommendationCardProps) {
@@ -26,12 +59,49 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
     schema: recommendationSchema,
   })
 
+  // Track the cache key to detect when events actually change
+  const cacheKey = getEventsCacheKey(babyId, events)
+  const lastCacheKeyRef = useRef<string>('')
+  // Initialize as null to avoid hydration mismatch - sessionStorage only exists on client
+  const [cachedRecommendation, setCachedState] = useState<Recommendation | null>(null)
+
+  // Load cached recommendation after hydration to avoid SSR mismatch
+  useEffect(() => {
+    const cached = getCachedRecommendation(cacheKey)
+    if (cached) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external sessionStorage
+      setCachedState(cached)
+    }
+  }, [cacheKey])
+
   // Request recommendation when events change (and we have at least one event)
   useEffect(() => {
-    if (events.length > 0) {
-      submit({ babyId, events, baby })
+    if (events.length === 0) return
+
+    // Check if we already have a cached result for these exact events
+    const cached = getCachedRecommendation(cacheKey)
+    if (cached && cacheKey === lastCacheKeyRef.current && refreshKey === undefined) {
+      // Same events, use cache
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external sessionStorage
+      setCachedState(cached)
+      return
     }
-  }, [events.length, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps -- Intentional: only re-run on event count or refreshKey changes
+
+    // Events changed or explicit refresh requested - fetch new recommendation
+    lastCacheKeyRef.current = cacheKey
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    submit({ babyId, events, baby, timezone })
+  }, [cacheKey, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update cache when we get a new result
+  useEffect(() => {
+    if (object?.type && object?.timeWindow && object?.explanation) {
+      const recommendation = object as Recommendation
+      setCachedRecommendation(cacheKey, recommendation)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing streaming result to local state
+      setCachedState(recommendation)
+    }
+  }, [object, cacheKey])
 
   // No events yet
   if (events.length === 0) {
@@ -52,8 +122,11 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
     )
   }
 
-  // Loading state
-  if (isLoading || !object) {
+  // Use cached recommendation or streaming result
+  const displayRecommendation = (object?.type ? object : cachedRecommendation) as Recommendation | null
+
+  // Loading state - only show if no cached recommendation available
+  if ((isLoading || !displayRecommendation) && !cachedRecommendation) {
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -70,8 +143,8 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
     )
   }
 
-  // Error state
-  if (error) {
+  // Error state - only show if no cached recommendation to fall back on
+  if (error && !displayRecommendation) {
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -102,16 +175,17 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
         <CardTitle className="text-base flex items-center gap-2">
           <span>💡</span>
           <span>Recommendation</span>
+          {isLoading && <span className="text-xs text-muted-foreground">(updating...)</span>}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {object && object.type ? (
+        {displayRecommendation ? (
           <div>
             <p className="text-xl font-semibold">
-              {typeLabels[object.type] || object.type}: {object.timeWindow}
+              {typeLabels[displayRecommendation.type] || displayRecommendation.type}: {displayRecommendation.timeWindow}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {object.explanation}
+              {displayRecommendation.explanation}
             </p>
           </div>
         ) : (
