@@ -1,0 +1,21 @@
+{
+  "name": "Nappster",
+  "short_name": "Nappster",
+  "description": "Track your baby's sleep and get AI-powered recommendations",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f6f0",
+  "theme_color": "#4a7c59",
+  "icons": [
+    {
+      "src": "/nappster.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/nappster.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
