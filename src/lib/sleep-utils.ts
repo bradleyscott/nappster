@@ -143,6 +143,88 @@ function formatEventWithDate(eventTime: string): string {
 }
 
 /**
+ * Format recent history events grouped by day with nap durations calculated
+ */
+function formatRecentHistory(events: SleepEvent[]): string {
+  if (events.length === 0) return ''
+
+  // Sort events chronologically (they come in reverse order)
+  const sorted = [...events].sort((a, b) =>
+    new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+  )
+
+  // Group events by day
+  const byDay = new Map<string, SleepEvent[]>()
+  for (const event of sorted) {
+    const date = new Date(event.event_time)
+    const dayKey = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    if (!byDay.has(dayKey)) {
+      byDay.set(dayKey, [])
+    }
+    byDay.get(dayKey)!.push(event)
+  }
+
+  const lines: string[] = []
+
+  for (const [day, dayEvents] of byDay) {
+    const dayLines: string[] = []
+    const consumed = new Set<string>()
+
+    for (let i = 0; i < dayEvents.length; i++) {
+      const event = dayEvents[i]
+      if (consumed.has(event.id)) continue
+
+      if (event.event_type === 'nap_start') {
+        // Look for matching nap_end
+        let endEvent: SleepEvent | null = null
+        for (let j = i + 1; j < dayEvents.length; j++) {
+          if (dayEvents[j].event_type === 'nap_end' && !consumed.has(dayEvents[j].id)) {
+            endEvent = dayEvents[j]
+            consumed.add(dayEvents[j].id)
+            break
+          }
+          if (dayEvents[j].event_type === 'nap_start') break
+        }
+        consumed.add(event.id)
+
+        const startTime = formatTime(event.event_time)
+        if (endEvent) {
+          const endTime = formatTime(endEvent.event_time)
+          const duration = calculateDurationMinutes(event.event_time, endEvent.event_time)
+          let line = `Nap ${startTime}-${endTime} (${formatDuration(duration)})`
+          if (event.context) line += ` [${event.context}]`
+          dayLines.push(line)
+        } else {
+          dayLines.push(`Nap started ${startTime} (no end logged)`)
+        }
+      } else if (event.event_type === 'nap_end' && !consumed.has(event.id)) {
+        // Orphaned nap_end (no matching start)
+        dayLines.push(`Nap ended ${formatTime(event.event_time)}`)
+        consumed.add(event.id)
+      } else if (event.event_type === 'wake') {
+        let line = `Wake ${formatTime(event.event_time)}`
+        if (event.notes) line += ` - ${event.notes}`
+        dayLines.push(line)
+      } else if (event.event_type === 'bedtime') {
+        let line = `Bedtime ${formatTime(event.event_time)}`
+        if (event.notes) line += ` - ${event.notes}`
+        dayLines.push(line)
+      } else if (event.event_type === 'night_wake') {
+        let line = `Night wake ${formatTime(event.event_time)}`
+        if (event.notes) line += ` - ${event.notes}`
+        dayLines.push(line)
+      }
+    }
+
+    if (dayLines.length > 0) {
+      lines.push(`**${day}:** ${dayLines.join(', ')}`)
+    }
+  }
+
+  return lines.join('\n')
+}
+
+/**
  * Build system prompt for AI with baby context
  */
 export function buildSystemPrompt(baby: Baby, events: SleepEvent[], recentHistory?: SleepEvent[], chatHistory?: ChatHistoryMessage[]): string {
@@ -241,12 +323,7 @@ When saving a pattern, briefly confirm what you noted.
   if (recentHistory && recentHistory.length > 0) {
     prompt += `
 ## Recent History (last 7 days)
-${recentHistory.slice(0, 20).map(e => {
-  const eventDate = new Date(e.event_time)
-  const date = eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  const time = formatTime(e.event_time)
-  return `- ${date} ${time}: ${e.event_type.replace('_', ' ')}`
-}).join('\n')}
+${formatRecentHistory(recentHistory)}
 `
   }
 
