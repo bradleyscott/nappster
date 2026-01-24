@@ -62,6 +62,7 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
   // Track the cache key to detect when events actually change
   const cacheKey = getEventsCacheKey(babyId, events)
   const lastCacheKeyRef = useRef<string>('')
+  const lastRefreshKeyRef = useRef<number>(refreshKey ?? 0)
   // Initialize as null to avoid hydration mismatch - sessionStorage only exists on client
   const [cachedRecommendation, setCachedState] = useState<Recommendation | null>(null)
 
@@ -78,17 +79,26 @@ export function RecommendationCard({ babyId, events, baby, refreshKey }: Recomme
   useEffect(() => {
     if (events.length === 0) return
 
-    // Check if we already have a cached result for these exact events
     const cached = getCachedRecommendation(cacheKey)
-    if (cached && cacheKey === lastCacheKeyRef.current && refreshKey === undefined) {
-      // Same events, use cache
+    const refreshKeyChanged = refreshKey !== undefined && refreshKey !== lastRefreshKeyRef.current
+
+    // Use cache if: we have cached data AND cache key hasn't changed AND no explicit refresh requested
+    if (cached && cacheKey === lastCacheKeyRef.current && !refreshKeyChanged) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external sessionStorage
       setCachedState(cached)
       return
     }
 
-    // Events changed or explicit refresh requested - fetch new recommendation
+    // On initial mount with valid cache, use it without fetching
+    if (cached && lastCacheKeyRef.current === '' && !refreshKeyChanged) {
+      lastCacheKeyRef.current = cacheKey
+      setCachedState(cached)
+      return
+    }
+
+    // Fetch new recommendation
     lastCacheKeyRef.current = cacheKey
+    lastRefreshKeyRef.current = refreshKey ?? 0
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     submit({ babyId, events, baby, timezone })
   }, [cacheKey, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
