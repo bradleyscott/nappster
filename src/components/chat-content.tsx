@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import { Baby, Json, SleepEvent } from '@/types/database'
 import { formatAge, formatTime } from '@/lib/sleep-utils'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 
 // Message type for chat history (compatible with useChat messages)
@@ -95,6 +95,7 @@ export function ChatContent({
 }: ChatContentProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [input, setInput] = useState('')
 
   // History state for loading older messages
@@ -286,6 +287,10 @@ export function ChatContent({
 
     const message = input.trim()
     setInput('')
+    // Reset textarea height after clearing
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
     await sendMessage({ text: message })
   }
 
@@ -533,13 +538,29 @@ export function ChatContent({
       {/* Input */}
       <div className="sticky bottom-0 bg-background border-t">
         <form onSubmit={handleSubmit} className="container max-w-lg mx-auto px-4 py-3">
-          <div className="flex gap-2">
-            <Input
+          <div className="flex gap-2 items-end">
+            <Textarea
+              ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                setInput(e.target.value)
+                // Auto-resize: reset height to auto to get the correct scrollHeight
+                e.target.style.height = 'auto'
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`
+              }}
+              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                // Submit on Enter (without Shift), allow Shift+Enter for new lines
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  if (input.trim() && !isLoading) {
+                    handleSubmit(e as unknown as React.FormEvent)
+                  }
+                }
+              }}
               placeholder="Ask about sleep..."
-              className="flex-1"
+              className="flex-1 min-h-9 max-h-[150px]"
               disabled={isLoading}
+              rows={1}
             />
             <Button type="submit" disabled={isLoading || !input.trim()}>
               Send
