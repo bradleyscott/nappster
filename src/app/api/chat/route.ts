@@ -182,7 +182,7 @@ Do NOT use this for:
           },
         }),
       },
-      stopWhen: stepCountIs(2),
+      stopWhen: stepCountIs(3),
     });
 
     // Save messages to database after stream completes
