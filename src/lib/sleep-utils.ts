@@ -24,14 +24,15 @@ export function formatAge(birthDate: string): string {
 
 /**
  * Format time for display (e.g., "8:30am")
- * Uses toLocaleTimeString to ensure proper UTC to local time conversion
+ * Uses toLocaleTimeString with optional timezone for server-side rendering
  */
-export function formatTime(date: Date | string): string {
+export function formatTime(date: Date | string, timezone?: string): string {
   const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
+    ...(timezone && { timeZone: timezone })
   }).toLowerCase()
 }
 
@@ -77,9 +78,9 @@ export function getTodayEnd(): string {
 
 /**
  * Format relative date for chat history display
- * Uses native Date methods for proper local time conversion
+ * Uses native Date methods with optional timezone for server-side rendering
  */
-function formatRelativeDate(dateStr: string): string {
+function formatRelativeDate(dateStr: string, timezone?: string): string {
   const date = new Date(dateStr)
   const now = new Date()
 
@@ -91,18 +92,22 @@ function formatRelativeDate(dateStr: string): string {
   if (diffDays === 0) return 'Today'
   if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7) return `${diffDays} days ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(timezone && { timeZone: timezone })
+  })
 }
 
 /**
  * Format chat history messages for inclusion in system prompt
  */
-export function formatChatHistoryForPrompt(messages: ChatHistoryMessage[]): string {
+export function formatChatHistoryForPrompt(messages: ChatHistoryMessage[], timezone?: string): string {
   if (messages.length === 0) return ''
 
   const formatted = messages.map(msg => {
-    const relDate = formatRelativeDate(msg.created_at)
-    const time = formatTime(msg.created_at)
+    const relDate = formatRelativeDate(msg.created_at, timezone)
+    const time = formatTime(msg.created_at, timezone)
     const role = msg.role === 'user' ? 'User' : 'Assistant'
     // Truncate long messages for token efficiency
     const text = msg.text.length > 500 ? msg.text.slice(0, 497) + '...' : msg.text
@@ -120,7 +125,7 @@ ${formatted}
 /**
  * Format event time with relative date prefix if not from today
  */
-function formatEventWithDate(eventTime: string): string {
+function formatEventWithDate(eventTime: string, timezone?: string): string {
   const eventDate = new Date(eventTime)
   const now = new Date()
 
@@ -129,7 +134,7 @@ function formatEventWithDate(eventTime: string): string {
   const nowLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const diffDays = Math.floor((nowLocal.getTime() - eventLocal.getTime()) / (1000 * 60 * 60 * 24))
 
-  const time = formatTime(eventTime)
+  const time = formatTime(eventTime, timezone)
 
   if (diffDays === 0) {
     return time // Today, just show time
@@ -138,14 +143,14 @@ function formatEventWithDate(eventTime: string): string {
   } else if (diffDays === -1) {
     return `Tomorrow ${time}` // Shouldn't happen but handle edge case
   } else {
-    return `${eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${time}`
+    return `${eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(timezone && { timeZone: timezone }) })} ${time}`
   }
 }
 
 /**
  * Format recent history events grouped by day with nap durations calculated
  */
-function formatRecentHistory(events: SleepEvent[]): string {
+function formatRecentHistory(events: SleepEvent[], timezone?: string): string {
   if (events.length === 0) return ''
 
   // Sort events chronologically (they come in reverse order)
@@ -157,7 +162,7 @@ function formatRecentHistory(events: SleepEvent[]): string {
   const byDay = new Map<string, SleepEvent[]>()
   for (const event of sorted) {
     const date = new Date(event.event_time)
-    const dayKey = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    const dayKey = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', ...(timezone && { timeZone: timezone }) })
     if (!byDay.has(dayKey)) {
       byDay.set(dayKey, [])
     }
@@ -187,9 +192,9 @@ function formatRecentHistory(events: SleepEvent[]): string {
         }
         consumed.add(event.id)
 
-        const startTime = formatTime(event.event_time)
+        const startTime = formatTime(event.event_time, timezone)
         if (endEvent) {
-          const endTime = formatTime(endEvent.event_time)
+          const endTime = formatTime(endEvent.event_time, timezone)
           const duration = calculateDurationMinutes(event.event_time, endEvent.event_time)
           let line = `Nap ${startTime}-${endTime} (${formatDuration(duration)})`
           if (event.context) line += ` [${event.context}]`
@@ -199,18 +204,18 @@ function formatRecentHistory(events: SleepEvent[]): string {
         }
       } else if (event.event_type === 'nap_end' && !consumed.has(event.id)) {
         // Orphaned nap_end (no matching start)
-        dayLines.push(`Nap ended ${formatTime(event.event_time)}`)
+        dayLines.push(`Nap ended ${formatTime(event.event_time, timezone)}`)
         consumed.add(event.id)
       } else if (event.event_type === 'wake') {
-        let line = `Wake ${formatTime(event.event_time)}`
+        let line = `Wake ${formatTime(event.event_time, timezone)}`
         if (event.notes) line += ` - ${event.notes}`
         dayLines.push(line)
       } else if (event.event_type === 'bedtime') {
-        let line = `Bedtime ${formatTime(event.event_time)}`
+        let line = `Bedtime ${formatTime(event.event_time, timezone)}`
         if (event.notes) line += ` - ${event.notes}`
         dayLines.push(line)
       } else if (event.event_type === 'night_wake') {
-        let line = `Night wake ${formatTime(event.event_time)}`
+        let line = `Night wake ${formatTime(event.event_time, timezone)}`
         if (event.notes) line += ` - ${event.notes}`
         dayLines.push(line)
       }
@@ -227,7 +232,7 @@ function formatRecentHistory(events: SleepEvent[]): string {
 /**
  * Build system prompt for AI with baby context
  */
-export function buildSystemPrompt(baby: Baby, events: SleepEvent[], recentHistory?: SleepEvent[], chatHistory?: ChatHistoryMessage[]): string {
+export function buildSystemPrompt(baby: Baby, events: SleepEvent[], recentHistory?: SleepEvent[], chatHistory?: ChatHistoryMessage[], timezone?: string): string {
   const age = formatAge(baby.birth_date)
 
   // Check if events span multiple days
@@ -258,12 +263,12 @@ ${baby.pattern_notes}
 
 ## Today's Sleep Events
 ${events.length === 0 ? 'No events logged yet today.' : events.map(e => {
-  const timeStr = hasMultipleDays ? formatEventWithDate(e.event_time) : formatTime(e.event_time)
+  const timeStr = hasMultipleDays ? formatEventWithDate(e.event_time, timezone) : formatTime(e.event_time, timezone)
   const type = e.event_type.replace('_', ' ')
   let line = `- ${timeStr}: ${type}`
   if (e.context) line += ` (${e.context})`
   if (e.end_time && e.event_type === 'night_wake') {
-    const endTimeStr = hasMultipleDays ? formatEventWithDate(e.end_time) : formatTime(e.end_time)
+    const endTimeStr = hasMultipleDays ? formatEventWithDate(e.end_time, timezone) : formatTime(e.end_time, timezone)
     const duration = calculateDurationMinutes(e.event_time, e.end_time)
     line += ` → back to sleep ${endTimeStr} (${formatDuration(duration)} awake)`
   }
@@ -351,12 +356,12 @@ When saving a pattern, briefly confirm what you noted.
   if (recentHistory && recentHistory.length > 0) {
     prompt += `
 ## Recent History (last 7 days)
-${formatRecentHistory(recentHistory)}
+${formatRecentHistory(recentHistory, timezone)}
 `
   }
 
   if (chatHistory && chatHistory.length > 0) {
-    prompt += formatChatHistoryForPrompt(chatHistory)
+    prompt += formatChatHistoryForPrompt(chatHistory, timezone)
   }
 
   return prompt

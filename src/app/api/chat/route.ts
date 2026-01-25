@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       }))
       .filter(msg => msg.text.trim().length > 0)
 
-    const systemPrompt = buildSystemPrompt(baby, events || [], recentHistory || [], chatHistory)
+    const systemPrompt = buildSystemPrompt(baby, events || [], recentHistory || [], chatHistory, timezone)
 
     const result = streamText({
       model: openai("gpt-5.2"),

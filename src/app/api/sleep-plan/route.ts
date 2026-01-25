@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       .order("event_time", { ascending: false })
       .limit(50);
 
-    const systemPrompt = buildSystemPrompt(baby, events, recentHistory || []);
+    const systemPrompt = buildSystemPrompt(baby, events, recentHistory || [], undefined, timezone);
 
     // Calculate baby's age for nap count guidance
     const ageMonths = calculateAgeInMonths(baby.birth_date);

@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       .order("event_time", { ascending: false })
       .limit(50);
 
-    const systemPrompt = buildSystemPrompt(baby, events, recentHistory || []);
+    const systemPrompt = buildSystemPrompt(baby, events, recentHistory || [], undefined, timezone);
 
     // Determine what to ask for based on current state
     const lastEvent = events[events.length - 1];
