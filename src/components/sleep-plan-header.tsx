@@ -202,7 +202,11 @@ export function SleepPlanHeader({
     )
   }
 
-  const displayPlan = (object?.currentState ? object : cachedPlan) as SleepPlan | null
+  const displayPlan = (
+    object?.currentState && object?.nextAction && object?.schedule && object?.targetBedtime
+      ? object
+      : cachedPlan
+  ) as SleepPlan | null
 
   // Loading state
   if ((isLoading || !displayPlan) && !cachedPlan) {
