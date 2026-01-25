@@ -649,7 +649,7 @@ export function ChatContent({
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-dvh flex flex-col overflow-hidden">
       {/* Sticky Header Container */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         {/* Main Header */}
@@ -869,7 +869,7 @@ export function ChatContent({
       </Conversation>
 
       {/* Chat Input */}
-      <div className="sticky bottom-0 border-t py-1 sm:py-3 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 chat-input-container">
+      <div className="sticky bottom-0 border-t py-1 sm:py-3 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 chat-input-container">
         <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
           <ChatInput
             babyId={baby.id}
