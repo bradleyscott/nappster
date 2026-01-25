@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamObject } from "ai";
+import { streamText, Output } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { buildSystemPrompt } from "@/lib/sleep-utils";
@@ -78,9 +78,9 @@ export async function POST(req: Request) {
       }
     }
 
-    const result = streamObject({
+    const result = streamText({
       model: openai("gpt-5.2"),
-      schema: recommendationSchema,
+      output: Output.object({ schema: recommendationSchema }),
       system: systemPrompt,
       prompt: userPrompt,
     });

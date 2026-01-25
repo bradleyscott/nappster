@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamObject } from "ai";
+import { streamText, Output } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { buildSystemPrompt, calculateAgeInMonths } from "@/lib/sleep-utils";
@@ -132,8 +132,8 @@ Current state: Baby hasn't woken for the day yet.
 Set currentState to "not_awake_yet" and nextAction to waiting for wake.`;
     } else if (lastEvent?.event_type === "bedtime") {
       userPrompt += `
-Current state: Bedtime has been logged - day is complete.
-Set currentState to "day_complete" and nextAction to indicate the day is done.`;
+Current state: Baby is in overnight sleep after bedtime.
+Set currentState to "overnight" and nextAction to waking up in the morning.`;
     } else if (isNapInProgress) {
       userPrompt += `
 Current state: A nap is in progress.
@@ -144,9 +144,9 @@ Current state: Baby is awake. ${napCount} nap(s) completed today.
 Set currentState to "awake" and recommend the next nap or bedtime based on wake windows.`;
     }
 
-    const result = streamObject({
+    const result = streamText({
       model: openai("gpt-5.2"),
-      schema: sleepPlanSchema,
+      output: Output.object({ schema: sleepPlanSchema }),
       system: systemPrompt,
       prompt: userPrompt,
     });
