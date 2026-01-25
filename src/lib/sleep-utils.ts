@@ -59,24 +59,6 @@ export function calculateDurationMinutes(start: string, end: string): number {
 }
 
 /**
- * Get today's date at midnight in ISO format
- */
-export function getTodayStart(): string {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return today.toISOString()
-}
-
-/**
- * Get today's date at 11:59pm in ISO format
- */
-export function getTodayEnd(): string {
-  const today = new Date()
-  today.setHours(23, 59, 59, 999)
-  return today.toISOString()
-}
-
-/**
  * Format relative date for chat history display
  * Uses native Date methods with optional timezone for server-side rendering
  */
@@ -365,33 +347,6 @@ ${formatRecentHistory(recentHistory, timezone)}
   }
 
   return prompt
-}
-
-/**
- * Determine what the next expected event should be based on current events
- */
-export function getNextExpectedEvent(events: SleepEvent[]): 'wake' | 'nap_start' | 'nap_end' | 'bedtime' | null {
-  if (events.length === 0) {
-    return 'wake'
-  }
-
-  const lastEvent = events[events.length - 1]
-
-  switch (lastEvent.event_type) {
-    case 'wake':
-      return 'nap_start'
-    case 'nap_start':
-      return 'nap_end'
-    case 'nap_end':
-      // Could be another nap or bedtime depending on time
-      return 'nap_start' // Default to nap, UI will show both options
-    case 'bedtime':
-      return null // Day is complete
-    case 'night_wake':
-      return null
-    default:
-      return null
-  }
 }
 
 /**

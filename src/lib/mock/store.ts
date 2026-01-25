@@ -214,22 +214,3 @@ export function insertRecord<T>(
   ;(mockStore[table] as T[]).push(newRecord)
   return newRecord
 }
-
-export function getRecords<T>(
-  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages'
-): T[] {
-  return mockStore[table] as T[]
-}
-
-export function updateRecord<T>(
-  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages',
-  id: string,
-  updates: Partial<T>
-): T | null {
-  const records = mockStore[table] as unknown as Array<T & { id: string }>
-  const index = records.findIndex((r) => r.id === id)
-  if (index === -1) return null
-
-  records[index] = { ...records[index], ...updates }
-  return records[index]
-}

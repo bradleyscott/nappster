@@ -3,7 +3,7 @@ import { streamText, Output } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { buildSystemPrompt, calculateAgeInMonths } from "@/lib/sleep-utils";
-import { getTodayBoundsForTimezone } from "@/lib/timezone";
+import { getTodayBoundsForTimezone, getWeekAgoDate } from "@/lib/timezone";
 import { Baby, SleepEvent } from "@/types/database";
 
 // Schema for individual schedule items
@@ -77,14 +77,11 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const { start: todayStart } = getTodayBoundsForTimezone(timezone);
 
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
     const { data: recentHistory } = await supabase
       .from("sleep_events")
       .select("*")
       .eq("baby_id", babyId)
-      .gte("event_time", weekAgo.toISOString())
+      .gte("event_time", getWeekAgoDate().toISOString())
       .lt("event_time", todayStart)
       .order("event_time", { ascending: false })
       .limit(50);

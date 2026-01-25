@@ -162,10 +162,8 @@ export type Database = {
 
 // Convenience types
 export type Baby = Database['public']['Tables']['babies']['Row']
-export type BabyInsert = Database['public']['Tables']['babies']['Insert']
 export type FamilyMember = Database['public']['Tables']['family_members']['Row']
 export type SleepEvent = Database['public']['Tables']['sleep_events']['Row']
-export type SleepEventInsert = Database['public']['Tables']['sleep_events']['Insert']
 export type EventType = 'wake' | 'nap_start' | 'nap_end' | 'bedtime' | 'night_wake'
 export type Context = 'home' | 'daycare' | 'travel' | null
 
@@ -185,8 +183,6 @@ export type TimelineItem =
 
 // Chat message types
 export type ChatMessage = Database['public']['Tables']['chat_messages']['Row']
-export type ChatMessageInsert = Database['public']['Tables']['chat_messages']['Insert']
-export type ChatRole = 'user' | 'assistant'
 
 // Chat history for AI context
 export interface ChatHistoryMessage {

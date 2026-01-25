@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { buildSystemPrompt } from '@/lib/sleep-utils'
-import { getTodayBoundsForTimezone, formatTimeInTimezone } from '@/lib/timezone'
+import { getTodayBoundsForTimezone, formatTimeInTimezone, getWeekAgoDate } from '@/lib/timezone'
 
 function extractTextFromParts(parts: unknown): string {
   if (!Array.isArray(parts)) return ''
@@ -44,14 +44,11 @@ export async function POST(req: Request) {
       .order('event_time', { ascending: true })
 
     // Get recent history (last 7 days)
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
-
     const { data: recentHistory } = await supabase
       .from('sleep_events')
       .select('*')
       .eq('baby_id', babyId)
-      .gte('event_time', weekAgo.toISOString())
+      .gte('event_time', getWeekAgoDate().toISOString())
       .lt('event_time', todayStart)
       .order('event_time', { ascending: false })
       .limit(50)

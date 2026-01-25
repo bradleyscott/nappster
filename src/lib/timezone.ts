@@ -2,6 +2,15 @@ import { startOfDay, endOfDay, subDays } from 'date-fns'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 
 /**
+ * Get a date 7 days ago for fetching recent history.
+ */
+export function getWeekAgoDate(): Date {
+  const weekAgo = new Date()
+  weekAgo.setDate(weekAgo.getDate() - 7)
+  return weekAgo
+}
+
+/**
  * Get the start and end of "today" in the user's timezone, returned as UTC ISO strings
  * for database queries.
  */
