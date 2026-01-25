@@ -820,7 +820,7 @@ export function ChatContent({
                 )}
                 <Message from={message.role}>
                   <MessageContent
-                    className={message.role === 'user' ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted shadow-sm'}
+                    className={message.role === 'user' ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'}
                   >
                     {message.role === 'user' ? (
                       <p className="whitespace-pre-wrap">{text}</p>
@@ -855,8 +855,8 @@ export function ChatContent({
               className="flex items-center gap-3"
             >
               <Message from="assistant">
-                <MessageContent className="bg-muted shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                <MessageContent className="bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm">
+                  <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                     <Loader size={16} />
                     <span className="text-sm">Thinking...</span>
                   </div>
