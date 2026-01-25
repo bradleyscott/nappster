@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
 import { Baby as BabyIcon, Loader2 } from 'lucide-react'
@@ -19,11 +20,19 @@ interface AppHeaderProps {
  * Used by the main chat interface.
  */
 export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
+  const router = useRouter()
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false)
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
     await onSignOut()
+  }
+
+  const handleSettingsClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsNavigatingToSettings(true)
+    router.push('/settings')
   }
 
   return (
@@ -43,9 +52,13 @@ export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon" asChild disabled={isSigningOut}>
-            <Link href="/settings">
-              <BabyIcon className="h-4 w-4" />
+          <Button variant="ghost" size="icon" asChild disabled={isSigningOut || isNavigatingToSettings}>
+            <Link href="/settings" onClick={handleSettingsClick}>
+              {isNavigatingToSettings ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <BabyIcon className="h-4 w-4" />
+              )}
             </Link>
           </Button>
           <Button variant="ghost" size="sm" onClick={handleSignOut} disabled={isSigningOut}>

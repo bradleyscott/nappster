@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Baby } from '@/types/database'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,7 @@ export function SettingsForm({ baby }: SettingsFormProps) {
   const [patternNotes, setPatternNotes] = useState(baby.pattern_notes || '')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isNavigatingBack, setIsNavigatingBack] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -61,24 +62,35 @@ export function SettingsForm({ baby }: SettingsFormProps) {
     router.refresh()
   }
 
+  const handleBackClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsNavigatingBack(true)
+    router.push('/')
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col p-4 pt-safe-area-inset-top pb-safe-area-inset-bottom">
+      <Card className="w-full max-w-md mx-auto flex flex-col flex-1">
         <CardHeader className="text-center">
           <Link
             href="/"
+            onClick={handleBackClick}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to dashboard
+            {isNavigatingBack ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <ArrowLeft className="h-4 w-4 mr-1" />
+            )}
+            {isNavigatingBack ? 'Loading...' : 'Back to dashboard'}
           </Link>
           <CardTitle className="text-2xl">Edit {baby.name}&apos;s profile</CardTitle>
           <CardDescription>
             Update sleep training details and patterns
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+          <CardContent className="space-y-4 flex-1 flex flex-col">
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
                 {error}
@@ -124,14 +136,14 @@ export function SettingsForm({ baby }: SettingsFormProps) {
               </select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 flex-1 flex flex-col">
               <Label htmlFor="patternNotes">Known patterns</Label>
               <textarea
                 id="patternNotes"
                 placeholder="e.g., 30-minute naps are normal for this baby, doesn't do well with early bedtime"
                 value={patternNotes}
                 onChange={(e) => setPatternNotes(e.target.value)}
-                className="flex min-h-60 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="flex-1 min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
               />
               <p className="text-xs text-muted-foreground">
                 Include any patterns the AI should know about
