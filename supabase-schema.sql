@@ -27,6 +27,7 @@ create table if not exists public.sleep_events (
   baby_id uuid references public.babies(id) on delete cascade not null,
   event_type text not null check (event_type in ('wake', 'nap_start', 'nap_end', 'bedtime', 'night_wake')),
   event_time timestamp with time zone not null,
+  end_time timestamp with time zone,
   context text check (context is null or context in ('home', 'daycare', 'travel')),
   notes text,
   created_at timestamp with time zone default now()

@@ -74,6 +74,7 @@ export type Database = {
           baby_id: string
           event_type: string
           event_time: string
+          end_time: string | null
           context: string | null
           notes: string | null
           created_at: string
@@ -83,6 +84,7 @@ export type Database = {
           baby_id: string
           event_type: string
           event_time: string
+          end_time?: string | null
           context?: string | null
           notes?: string | null
           created_at?: string
@@ -92,6 +94,7 @@ export type Database = {
           baby_id?: string
           event_type?: string
           event_time?: string
+          end_time?: string | null
           context?: string | null
           notes?: string | null
           created_at?: string

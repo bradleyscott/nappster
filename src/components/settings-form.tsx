@@ -125,7 +125,7 @@ export function SettingsForm({ baby }: SettingsFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="patternNotes">Known patterns (optional)</Label>
+              <Label htmlFor="patternNotes">Known patterns</Label>
               <textarea
                 id="patternNotes"
                 placeholder="e.g., 30-minute naps are normal for this baby, doesn't do well with early bedtime"

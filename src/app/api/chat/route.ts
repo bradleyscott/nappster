@@ -95,6 +95,7 @@ Use this when the user mentions:
 - Going to bed for the night (event_type: 'bedtime')
 - Waking during the night (event_type: 'night_wake')
 
+For night_wake events, if the user mentions when the baby went back to sleep, include the end_time.
 Parse times like "at 2pm", "at 14:30", "just now", "30 minutes ago".
 Infer context from mentions of "at daycare", "at home", "while traveling".
 Do NOT use this tool for questions or hypothetical scenarios.`,
@@ -103,18 +104,21 @@ Do NOT use this tool for questions or hypothetical scenarios.`,
               .describe('The type of sleep event'),
             event_time: z.string()
               .describe('ISO 8601 timestamp for when the event occurred'),
+            end_time: z.string().nullable().optional()
+              .describe('ISO 8601 timestamp for when a night_wake ended (when baby went back to sleep). Only applicable for night_wake events.'),
             context: z.enum(['home', 'daycare', 'travel']).nullable()
               .describe('Where the event occurred, if mentioned'),
             notes: z.string().nullable()
               .describe('Any additional details mentioned by the user'),
           }),
-          execute: async ({ event_type, event_time, context, notes }) => {
+          execute: async ({ event_type, event_time, end_time, context, notes }) => {
             const { data, error } = await supabase
               .from('sleep_events')
               .insert({
                 baby_id: babyId,
                 event_type,
                 event_time,
+                end_time: event_type === 'night_wake' ? end_time : null,
                 context,
                 notes,
               })
@@ -125,10 +129,18 @@ Do NOT use this tool for questions or hypothetical scenarios.`,
               return { success: false, error: error.message }
             }
 
+            let message = `Logged ${event_type.replace('_', ' ')} at ${formatTimeInTimezone(event_time, timezone)}`
+            if (event_type === 'night_wake' && end_time) {
+              message += ` - ${formatTimeInTimezone(end_time, timezone)}`
+            }
+            if (context) {
+              message += ` (${context})`
+            }
+
             return {
               success: true,
               event: data,
-              message: `Logged ${event_type.replace('_', ' ')} at ${formatTimeInTimezone(event_time, timezone)}${context ? ` (${context})` : ''}`
+              message
             }
           },
         }),
@@ -178,6 +190,111 @@ Do NOT use this for:
               success: true,
               message: `Noted: "${pattern_info}"`,
               current_notes: updatedNotes
+            }
+          },
+        }),
+        getSleepHistory: tool({
+          description: `Retrieve sleep history for up to 30 days. Use this when the user asks about sleep patterns, trends, or needs data beyond the recent 7-day history already provided.
+
+Examples of when to use:
+- "How has her sleep been this month?"
+- "Has she been sleeping longer recently?"
+- "What's her typical bedtime been?"
+- "Show me her nap patterns over the past few weeks"`,
+          inputSchema: z.object({
+            days: z.number().min(1).max(30).default(14)
+              .describe('Number of days of history to retrieve (1-30, default 14)'),
+          }),
+          execute: async ({ days }) => {
+            const startDate = new Date()
+            startDate.setDate(startDate.getDate() - days)
+
+            const { data: historyEvents, error } = await supabase
+              .from('sleep_events')
+              .select('*')
+              .eq('baby_id', babyId)
+              .gte('event_time', startDate.toISOString())
+              .order('event_time', { ascending: true })
+
+            if (error) {
+              return { success: false, error: error.message }
+            }
+
+            // Group events by day for easier analysis
+            const byDay = new Map<string, Array<{ type: string; time: string; notes?: string | null }>>()
+            for (const event of historyEvents || []) {
+              const date = new Date(event.event_time)
+              const dayKey = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+              if (!byDay.has(dayKey)) {
+                byDay.set(dayKey, [])
+              }
+              byDay.get(dayKey)!.push({
+                type: event.event_type,
+                time: formatTimeInTimezone(event.event_time, timezone),
+                notes: event.notes
+              })
+            }
+
+            const formattedHistory = Array.from(byDay.entries()).map(([day, dayEvents]) => ({
+              day,
+              events: dayEvents
+            }))
+
+            return {
+              success: true,
+              days_retrieved: days,
+              total_events: historyEvents?.length || 0,
+              history: formattedHistory
+            }
+          },
+        }),
+        getChatHistory: tool({
+          description: `Retrieve older chat messages beyond the recent history already provided. Use this when you need to recall past conversations or the user references something discussed earlier.
+
+Examples of when to use:
+- "What did we talk about last week?"
+- "You mentioned something about sleep training before..."
+- "What advice did you give me about naps?"`,
+          inputSchema: z.object({
+            days: z.number().min(1).max(30).default(7)
+              .describe('Number of days of chat history to retrieve (1-30, default 7)'),
+            limit: z.number().min(10).max(100).default(50)
+              .describe('Maximum number of messages to retrieve (10-100, default 50)'),
+          }),
+          execute: async ({ days, limit }) => {
+            const startDate = new Date()
+            startDate.setDate(startDate.getDate() - days)
+
+            const { data: messages, error } = await supabase
+              .from('chat_messages')
+              .select('message_id, role, parts, created_at')
+              .eq('baby_id', babyId)
+              .gte('created_at', startDate.toISOString())
+              .order('created_at', { ascending: true })
+              .limit(limit)
+
+            if (error) {
+              return { success: false, error: error.message }
+            }
+
+            // Extract text content from messages
+            const formattedMessages = (messages || []).map(msg => ({
+              role: msg.role,
+              text: extractTextFromParts(msg.parts),
+              date: new Date(msg.created_at).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+              })
+            })).filter(msg => msg.text.trim().length > 0)
+
+            return {
+              success: true,
+              days_retrieved: days,
+              message_count: formattedMessages.length,
+              messages: formattedMessages
             }
           },
         }),

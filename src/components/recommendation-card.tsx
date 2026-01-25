@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component has been replaced by SleepPlanHeader which provides a
+ * collapsible sleep schedule in the unified chat interface.
+ * This file is kept for reference only and will be removed in a future release.
+ */
 'use client'
 
 import { useEffect, useState, useRef } from 'react'

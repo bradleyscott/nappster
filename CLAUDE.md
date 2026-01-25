@@ -17,7 +17,7 @@ Nappster is a PWA for tracking baby sleep with AI-powered recommendations. Built
 
 ### Data Flow
 
-1. **Authentication**: Supabase Auth with middleware session refresh in [middleware.ts](src/middleware.ts). Unauthenticated users are redirected to `/auth/login`.
+1. **Authentication**: Supabase Auth with proxy session refresh in [proxy.ts](src/proxy.ts). Unauthenticated users are redirected to `/auth/login`.
 
 2. **Database**: Supabase PostgreSQL with Row Level Security. Schema in [supabase-schema.sql](supabase-schema.sql).
    - `babies` - Baby profiles with birth date and sleep training notes

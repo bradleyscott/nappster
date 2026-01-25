@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     if (isNapInProgress) {
       userPrompt =
         'A nap is currently in progress. Return type "waiting" with timeWindow "Nap in progress" and a brief reassuring message with guidance about when the nap should end to prevent interrupting todays bedtime schedule';
-    } else if (events.some((e) => e.event_type === "bedtime")) {
+    } else if (lastEvent?.event_type === "bedtime") {
       userPrompt =
         'Bedtime has been logged. Return type "waiting" with timeWindow "Day complete" and a brief goodnight message. Give any final tips if relevant from the context';
     } else {

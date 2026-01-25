@@ -23,6 +23,7 @@ interface SleepEventDialogProps {
     id?: string
     event_type: EventType
     event_time: string
+    end_time?: string | null
     context: Context
     notes: string | null
   }) => void
@@ -73,6 +74,9 @@ function SleepEventForm({ event, onSave, onDelete, onClose }: SleepEventFormProp
   const [context, setContext] = useState<Context>(
     event ? (event.context as Context) : 'home'
   )
+  const [endTime, setEndTime] = useState(
+    event?.end_time ? toLocalDateTimeString(new Date(event.end_time)) : ''
+  )
   const [notes, setNotes] = useState(event?.notes || '')
 
   const handleSave = () => {
@@ -81,6 +85,7 @@ function SleepEventForm({ event, onSave, onDelete, onClose }: SleepEventFormProp
       id: event?.id,
       event_type: eventType,
       event_time: eventTime,
+      end_time: eventType === 'night_wake' && endTime ? new Date(endTime).toISOString() : null,
       context,
       notes: notes || null,
     })
@@ -124,7 +129,7 @@ function SleepEventForm({ event, onSave, onDelete, onClose }: SleepEventFormProp
 
         {/* Date/Time Picker */}
         <div className="space-y-2">
-          <Label htmlFor="datetime">Date & Time</Label>
+          <Label htmlFor="datetime">{eventType === 'night_wake' ? 'Start Time' : 'Date & Time'}</Label>
           <Input
             id="datetime"
             type="datetime-local"
@@ -133,6 +138,24 @@ function SleepEventForm({ event, onSave, onDelete, onClose }: SleepEventFormProp
             className="h-12"
           />
         </div>
+
+        {/* End Time Picker - only for night_wake events */}
+        {eventType === 'night_wake' && (
+          <div className="space-y-2">
+            <Label htmlFor="endtime">End Time (optional)</Label>
+            <Input
+              id="endtime"
+              type="datetime-local"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="h-12"
+              placeholder="When they went back to sleep"
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank if still awake or unknown
+            </p>
+          </div>
+        )}
 
         {/* Context Selector */}
         <div className="space-y-2">

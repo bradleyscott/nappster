@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Bypass auth entirely in mock mode
   if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
     return NextResponse.next({ request })

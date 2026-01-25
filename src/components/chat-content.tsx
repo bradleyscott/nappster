@@ -3,13 +3,20 @@
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import { Baby, Json, SleepEvent } from '@/types/database'
-import { formatAge, formatTime } from '@/lib/sleep-utils'
+import { Baby, Json, SleepEvent, SleepSession, EventType, Context } from '@/types/database'
+import { formatTime, calculateDurationMinutes } from '@/lib/sleep-utils'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
+import { AppHeader } from '@/components/app-header'
+import { SleepPlanHeader } from '@/components/sleep-plan-header'
+import { ChatInput } from '@/components/chat-input'
+import { SleepEventDialog } from '@/components/sleep-event-dialog'
+import { SleepSessionDialog } from '@/components/sleep-session-dialog'
+import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog'
+import type { SleepPlan } from '@/app/api/sleep-plan/route'
 
 // Message type for chat history (compatible with useChat messages)
 interface ChatMessageData {
@@ -86,6 +93,83 @@ const eventConfig: Record<string, { icon: string; label: string; color: string }
   night_wake: { icon: '👀', label: 'Night wake', color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800' },
 }
 
+// Helper to pair nap_start with nap_end (or bedtime with wake) for session editing
+function findSessionForEvent(event: SleepEvent, allEvents: SleepEvent[]): SleepSession | null {
+  const sortedEvents = [...allEvents].sort(
+    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+  )
+  const eventIndex = sortedEvents.findIndex((e) => e.id === event.id)
+  if (eventIndex === -1) return null
+
+  if (event.event_type === 'nap_start') {
+    // Find the next nap_end
+    const endEvent = sortedEvents
+      .slice(eventIndex + 1)
+      .find((e) => e.event_type === 'nap_end')
+    const duration = endEvent
+      ? calculateDurationMinutes(event.event_time, endEvent.event_time)
+      : null
+    return {
+      type: 'nap',
+      startEvent: event,
+      endEvent: endEvent || null,
+      durationMinutes: duration,
+    }
+  }
+
+  if (event.event_type === 'nap_end') {
+    // Find the previous nap_start
+    const startEvent = sortedEvents
+      .slice(0, eventIndex)
+      .reverse()
+      .find((e) => e.event_type === 'nap_start')
+    if (startEvent) {
+      const duration = calculateDurationMinutes(startEvent.event_time, event.event_time)
+      return {
+        type: 'nap',
+        startEvent,
+        endEvent: event,
+        durationMinutes: duration,
+      }
+    }
+  }
+
+  if (event.event_type === 'bedtime') {
+    // Bedtime starts overnight - find next wake
+    const endEvent = sortedEvents
+      .slice(eventIndex + 1)
+      .find((e) => e.event_type === 'wake')
+    const duration = endEvent
+      ? calculateDurationMinutes(event.event_time, endEvent.event_time)
+      : null
+    return {
+      type: 'overnight',
+      startEvent: event,
+      endEvent: endEvent || null,
+      durationMinutes: duration,
+    }
+  }
+
+  if (event.event_type === 'wake') {
+    // Find the previous bedtime to pair with this wake
+    const startEvent = sortedEvents
+      .slice(0, eventIndex)
+      .reverse()
+      .find((e) => e.event_type === 'bedtime')
+    if (startEvent) {
+      const duration = calculateDurationMinutes(startEvent.event_time, event.event_time)
+      return {
+        type: 'overnight',
+        startEvent,
+        endEvent: event,
+        durationMinutes: duration,
+      }
+    }
+  }
+
+  return null
+}
+
 export function ChatContent({
   baby,
   initialMessages = [],
@@ -93,10 +177,14 @@ export function ChatContent({
   initialCursor = null,
   hasMoreHistory: initialHasMore = false
 }: ChatContentProps) {
+  const router = useRouter()
+  const supabase = createClient()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [input, setInput] = useState('')
+  const hasScrolledRef = useRef(false)
+
+  // Local events state for realtime updates
+  const [localEvents, setLocalEvents] = useState<SleepEvent[]>([])
 
   // History state for loading older messages
   const [historyMessages, setHistoryMessages] = useState<ChatMessageData[]>([])
@@ -104,6 +192,17 @@ export function ChatContent({
   const [historyCursor, setHistoryCursor] = useState<string | null>(initialCursor)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [hasMoreHistory, setHasMoreHistory] = useState(initialHasMore)
+
+  // Event editing state
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<SleepEvent | null>(null)
+  const [sessionDialogOpen, setSessionDialogOpen] = useState(false)
+  const [selectedSession, setSelectedSession] = useState<SleepSession | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  // Sleep plan state for ChatInput quick actions
+  const [sleepPlan, setSleepPlan] = useState<SleepPlan | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Get user's timezone for the AI to correctly parse times
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
@@ -117,9 +216,6 @@ export function ChatContent({
   const { messages: liveMessages, sendMessage, status } = useChat({
     transport,
   })
-
-  // Include initial messages in the combined messages
-  // (useChat doesn't support initialMessages with DefaultChatTransport)
 
   const isLoading = status === 'streaming' || status === 'submitted'
 
@@ -145,8 +241,6 @@ export function ChatContent({
     }
 
     // Add live messages (new messages from current session)
-    // Live messages don't have createdAt, so we use the current time
-    // They're always the newest, so this ensures correct ordering
     for (let i = 0; i < liveMessages.length; i++) {
       const msg = liveMessages[i]
       if (!seen.has(msg.id)) {
@@ -155,7 +249,6 @@ export function ChatContent({
           id: msg.id,
           role: msg.role as 'user' | 'assistant',
           parts: msg.parts as Json,
-          // Offset each message slightly to preserve order within live messages
           createdAt: new Date(Date.now() + i).toISOString(),
         })
       }
@@ -164,7 +257,7 @@ export function ChatContent({
     return combined
   }, [historyMessages, initialMessages, liveMessages])
 
-  // Combine all sleep events (history + initial), deduplicating by id
+  // Combine all sleep events (history + initial + local), deduplicating by id
   const allSleepEvents = useMemo(() => {
     const seen = new Set<string>()
     const combined: SleepEvent[] = []
@@ -183,8 +276,18 @@ export function ChatContent({
       }
     }
 
-    return combined
-  }, [historySleepEvents, initialSleepEvents])
+    for (const event of localEvents) {
+      if (!seen.has(event.id)) {
+        seen.add(event.id)
+        combined.push(event)
+      }
+    }
+
+    // Sort by event_time
+    return combined.sort(
+      (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+    )
+  }, [historySleepEvents, initialSleepEvents, localEvents])
 
   // Create interleaved timeline of messages and sleep events
   const timelineItems = useMemo(() => {
@@ -209,7 +312,6 @@ export function ChatContent({
         ? normalizeTimestamp(b.message.createdAt)
         : b.event.event_time
 
-      // Items without timestamps sort to the end
       if (!timeA && !timeB) return 0
       if (!timeA) return 1
       if (!timeB) return -1
@@ -232,12 +334,10 @@ export function ChatContent({
       const data = await res.json()
 
       if (data.messages && data.messages.length > 0) {
-        // Prepend older messages
         setHistoryMessages(prev => [...data.messages, ...prev])
         setHistoryCursor(data.cursor)
         setHasMoreHistory(data.hasMore)
 
-        // Also prepend sleep events from this time range
         if (data.sleepEvents && data.sleepEvents.length > 0) {
           setHistorySleepEvents(prev => [...data.sleepEvents, ...prev])
         }
@@ -251,17 +351,15 @@ export function ChatContent({
     }
   }, [baby.id, historyCursor, hasMoreHistory, isLoadingHistory])
 
-  // Scroll handler for infinite scroll (load more when near top)
+  // Scroll handler for infinite scroll
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
 
     const handleScroll = () => {
-      // Load more when scrolled near top (within 100px)
       if (container.scrollTop < 100 && hasMoreHistory && !isLoadingHistory) {
         const scrollHeight = container.scrollHeight
         loadMoreHistory().then(() => {
-          // Restore scroll position after new content is added
           requestAnimationFrame(() => {
             if (messagesContainerRef.current) {
               messagesContainerRef.current.scrollTop =
@@ -276,27 +374,234 @@ export function ChatContent({
     return () => container.removeEventListener('scroll', handleScroll)
   }, [loadMoreHistory, hasMoreHistory, isLoadingHistory])
 
-  // Scroll to bottom when new live messages arrive
+  // Scroll to bottom on mount and when new live messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!hasScrolledRef.current) {
+      // Initial scroll - use instant to avoid race with layout changes
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+      hasScrolledRef.current = true
+    } else if (liveMessages.length > 0) {
+      // New messages - use smooth scroll
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [liveMessages])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  // Handle sending chat messages
+  const handleSendMessage = useCallback(async (text: string) => {
+    await sendMessage({ text })
+  }, [sendMessage])
 
-    const message = input.trim()
-    setInput('')
-    // Reset textarea height after clearing
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
+  // Handle creating events (from ChatInput quick actions or dialog)
+  const handleCreateEvent = useCallback(async (eventData: {
+    event_type: EventType
+    event_time: string
+    context: Context
+    notes: string | null
+  }) => {
+    const { data, error } = await supabase
+      .from('sleep_events')
+      .insert({
+        baby_id: baby.id,
+        event_type: eventData.event_type,
+        event_time: eventData.event_time,
+        context: eventData.context,
+        notes: eventData.notes,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating event:', error)
+      return
     }
-    await sendMessage({ text: message })
-  }
 
-  const handleSuggestionClick = (text: string) => {
-    setInput(text)
-  }
+    setLocalEvents(prev => [...prev, data])
+    setRefreshKey(k => k + 1)
+  }, [baby.id, supabase])
+
+  // Handle saving events (edit from dialog)
+  const handleSaveEvent = useCallback(async (eventData: {
+    id?: string
+    event_type: EventType
+    event_time: string
+    end_time?: string | null
+    context: Context
+    notes: string | null
+  }) => {
+    if (eventData.id) {
+      // Update existing event
+      const { data, error } = await supabase
+        .from('sleep_events')
+        .update({
+          event_type: eventData.event_type,
+          event_time: eventData.event_time,
+          end_time: eventData.end_time,
+          context: eventData.context,
+          notes: eventData.notes,
+        })
+        .eq('id', eventData.id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating event:', error)
+        return
+      }
+
+      // Update in local state
+      setLocalEvents(prev => {
+        const existing = prev.find(e => e.id === data.id)
+        if (existing) {
+          return prev.map(e => e.id === data.id ? data : e)
+        }
+        return [...prev, data]
+      })
+    } else {
+      // Create new event
+      await handleCreateEvent(eventData)
+    }
+
+    setRefreshKey(k => k + 1)
+    setEditDialogOpen(false)
+    setSelectedEvent(null)
+  }, [supabase, handleCreateEvent])
+
+  // Handle deleting events
+  const handleDeleteEvent = useCallback(async () => {
+    if (!selectedEvent) return
+
+    const { error } = await supabase
+      .from('sleep_events')
+      .delete()
+      .eq('id', selectedEvent.id)
+
+    if (error) {
+      console.error('Error deleting event:', error)
+      return
+    }
+
+    setLocalEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
+    setRefreshKey(k => k + 1)
+    setDeleteDialogOpen(false)
+    setEditDialogOpen(false)
+    setSelectedEvent(null)
+  }, [selectedEvent, supabase])
+
+  // Handle saving session (paired events)
+  const handleSaveSession = useCallback(async (sessionData: {
+    startEvent: {
+      id: string
+      event_time: string
+      context: Context
+      notes: string | null
+    }
+    endEvent?: {
+      id: string
+      event_time: string
+      context: Context
+      notes: string | null
+    }
+  }) => {
+    // Update start event
+    const { data: startData, error: startError } = await supabase
+      .from('sleep_events')
+      .update({
+        event_time: sessionData.startEvent.event_time,
+        context: sessionData.startEvent.context,
+        notes: sessionData.startEvent.notes,
+      })
+      .eq('id', sessionData.startEvent.id)
+      .select()
+      .single()
+
+    if (startError) {
+      console.error('Error updating start event:', startError)
+      return
+    }
+
+    setLocalEvents(prev => {
+      const updated = prev.filter(e => e.id !== startData.id)
+      return [...updated, startData]
+    })
+
+    // Update end event if present
+    if (sessionData.endEvent) {
+      const { data: endData, error: endError } = await supabase
+        .from('sleep_events')
+        .update({
+          event_time: sessionData.endEvent.event_time,
+          context: sessionData.endEvent.context,
+          notes: sessionData.endEvent.notes,
+        })
+        .eq('id', sessionData.endEvent.id)
+        .select()
+        .single()
+
+      if (endError) {
+        console.error('Error updating end event:', endError)
+        return
+      }
+
+      setLocalEvents(prev => {
+        const updated = prev.filter(e => e.id !== endData.id)
+        return [...updated, endData]
+      })
+    }
+
+    setRefreshKey(k => k + 1)
+    setSessionDialogOpen(false)
+    setSelectedSession(null)
+  }, [supabase])
+
+  // Handle deleting session
+  const handleDeleteSession = useCallback(async (startId: string, endId: string | null) => {
+    const { error: startError } = await supabase
+      .from('sleep_events')
+      .delete()
+      .eq('id', startId)
+
+    if (startError) {
+      console.error('Error deleting start event:', startError)
+      return
+    }
+
+    if (endId) {
+      const { error: endError } = await supabase
+        .from('sleep_events')
+        .delete()
+        .eq('id', endId)
+
+      if (endError) {
+        console.error('Error deleting end event:', endError)
+      }
+    }
+
+    setLocalEvents(prev => prev.filter(e => e.id !== startId && e.id !== endId))
+    setRefreshKey(k => k + 1)
+    setSessionDialogOpen(false)
+    setSelectedSession(null)
+  }, [supabase])
+
+  // Handle clicking on a sleep event in the timeline
+  const handleEventClick = useCallback((event: SleepEvent) => {
+    // Check if this event is part of a session (nap_start, nap_end, bedtime)
+    const session = findSessionForEvent(event, allSleepEvents)
+    if (session) {
+      setSelectedSession(session)
+      setSessionDialogOpen(true)
+    } else {
+      // Standalone event (wake, night_wake without pairing)
+      setSelectedEvent(event)
+      setEditDialogOpen(true)
+    }
+  }, [allSleepEvents])
+
+  // Handle sign out
+  const handleSignOut = useCallback(async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }, [supabase, router])
 
   // Extract text content from message parts
   const getMessageText = (message: { parts: unknown }) => {
@@ -324,10 +629,14 @@ export function ChatContent({
         )
       }
 
-      // Handle tool-createSleepEvent parts (AI SDK v6 uses tool-{toolName} as type)
+      // Handle tool-createSleepEvent parts
       if (part.type === 'tool-createSleepEvent') {
-        const toolPart = part as unknown as { input?: { event_type?: string }; state?: string; output?: { success: boolean; message?: string; error?: string } }
-        const input = toolPart.input
+        const toolPart = part as unknown as {
+          input?: { event_type?: string }
+          state?: string
+          output?: { success: boolean; message?: string; error?: string }
+        }
+        const toolInput = toolPart.input
         const state = toolPart.state
         const output = toolPart.output
 
@@ -335,7 +644,7 @@ export function ChatContent({
           return (
             <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground py-2">
               <span className="animate-pulse">...</span>
-              Logging {input?.event_type?.replace('_', ' ') || 'event'}...
+              Logging {toolInput?.event_type?.replace('_', ' ') || 'event'}...
             </div>
           )
         }
@@ -365,18 +674,20 @@ export function ChatContent({
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/">← Back</Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">Sleep Consultant</h1>
-            <p className="text-xs text-muted-foreground">{baby.name} · {formatAge(baby.birth_date)}</p>
-          </div>
-        </div>
-      </header>
+      {/* Sticky Header Container */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        {/* Main Header */}
+        <AppHeader baby={baby} onSignOut={handleSignOut} />
+
+        {/* Sleep Plan Header */}
+        <SleepPlanHeader
+          babyId={baby.id}
+          events={allSleepEvents}
+          baby={baby}
+          refreshKey={refreshKey}
+          onPlanChange={setSleepPlan}
+        />
+      </div>
 
       {/* Messages */}
       <main ref={messagesContainerRef} className="flex-1 overflow-y-auto">
@@ -388,7 +699,7 @@ export function ChatContent({
             </div>
           )}
 
-          {/* Load more button (visible when there's more history) */}
+          {/* Load more button */}
           {hasMoreHistory && !isLoadingHistory && (
             <div className="text-center py-2">
               <Button variant="ghost" size="sm" onClick={loadMoreHistory}>
@@ -397,27 +708,23 @@ export function ChatContent({
             </div>
           )}
 
-          {allMessages.length === 0 && (
+          {allMessages.length === 0 && allSleepEvents.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
-                Ask me anything about {baby.name}&apos;s sleep!
+                Log {baby.name}&apos;s sleep or ask a question!
               </p>
               <div className="space-y-2">
                 <SuggestionChip
                   text="She woke up at 7am this morning"
-                  onClick={handleSuggestionClick}
+                  onClick={handleSendMessage}
                 />
                 <SuggestionChip
                   text="Just put her down for a nap"
-                  onClick={handleSuggestionClick}
+                  onClick={handleSendMessage}
                 />
                 <SuggestionChip
                   text="What should bedtime be tonight?"
-                  onClick={handleSuggestionClick}
-                />
-                <SuggestionChip
-                  text="Is she ready for 1 nap?"
-                  onClick={handleSuggestionClick}
+                  onClick={handleSendMessage}
                 />
               </div>
             </div>
@@ -457,14 +764,28 @@ export function ChatContent({
                     </div>
                   )}
                   <div className="flex justify-center">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border ${config.color}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleEventClick(event)}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border ${config.color} hover:opacity-80 transition-opacity cursor-pointer`}
+                    >
                       <span>{config.icon}</span>
                       <span className="font-medium">{config.label}</span>
-                      <span className="text-muted-foreground">{formatTime(event.event_time)}</span>
+                      <span className="text-muted-foreground">
+                        {formatTime(event.event_time)}
+                        {event.event_type === 'night_wake' && event.end_time && (
+                          <> - {formatTime(event.end_time)}</>
+                        )}
+                      </span>
+                      {event.event_type === 'night_wake' && event.end_time && (
+                        <span className="text-muted-foreground">
+                          ({Math.round(calculateDurationMinutes(event.event_time, event.end_time))}m)
+                        </span>
+                      )}
                       {event.context && (
                         <span className="text-muted-foreground">· {event.context}</span>
                       )}
-                    </div>
+                    </button>
                   </div>
                 </div>
               )
@@ -535,39 +856,45 @@ export function ChatContent({
         </div>
       </main>
 
-      {/* Input */}
-      <div className="sticky bottom-0 bg-background border-t">
-        <form onSubmit={handleSubmit} className="container max-w-lg mx-auto px-4 py-3">
-          <div className="flex gap-2 items-end">
-            <Textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                setInput(e.target.value)
-                // Auto-resize: reset height to auto to get the correct scrollHeight
-                e.target.style.height = 'auto'
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`
-              }}
-              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                // Submit on Enter (without Shift), allow Shift+Enter for new lines
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  if (input.trim() && !isLoading) {
-                    handleSubmit(e as unknown as React.FormEvent)
-                  }
-                }
-              }}
-              placeholder="Ask about sleep..."
-              className="flex-1 min-h-9 max-h-[150px]"
-              disabled={isLoading}
-              rows={1}
-            />
-            <Button type="submit" disabled={isLoading || !input.trim()}>
-              Send
-            </Button>
-          </div>
-        </form>
+      {/* Chat Input */}
+      <div className="sticky bottom-0 border-t py-2 bg-background">
+        <div className="container max-w-lg mx-auto">
+          <ChatInput
+            babyId={baby.id}
+            onSendMessage={handleSendMessage}
+            onCreateEvent={handleCreateEvent}
+            status={status}
+            sleepPlan={sleepPlan}
+            disabled={isLoading}
+          />
+        </div>
       </div>
+
+      {/* Edit Event Dialog */}
+      <SleepEventDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        babyId={baby.id}
+        event={selectedEvent}
+        onSave={handleSaveEvent}
+        onDelete={() => setDeleteDialogOpen(true)}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteEvent}
+      />
+
+      {/* Session Edit Dialog */}
+      <SleepSessionDialog
+        open={sessionDialogOpen}
+        onOpenChange={setSessionDialogOpen}
+        session={selectedSession}
+        onSave={handleSaveSession}
+        onDelete={handleDeleteSession}
+      />
     </div>
   )
 }

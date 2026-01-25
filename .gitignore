@@ -40,6 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Seed data
+# Seed data and AI co-pilot prompts
 seed-data.sql
 chat-history.md
+supabase/migrations/*
+requirements.md

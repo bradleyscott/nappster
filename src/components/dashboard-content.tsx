@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component has been replaced by the unified chat experience in chat-content.tsx.
+ * The dashboard functionality has been merged into the main chat interface with SleepPlanHeader.
+ * This file is kept for reference only and will be removed in a future release.
+ */
 'use client'
 
 import { useState } from 'react'

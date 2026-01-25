@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DashboardContent } from '@/components/dashboard-content'
+import { ChatContent } from '@/components/chat-content'
 import { getTodayBoundsForTimezone, getYesterdayBoundsForTimezone } from '@/lib/timezone'
 
 export default async function Home() {
@@ -97,7 +97,7 @@ export default async function Home() {
 
   // Step 2: Fetch all events from bedtime onward (includes night wakes and today's events)
   const overnightStartTime = lastBedtime?.[0]?.event_time;
-  let events;
+  let sleepEvents;
 
   if (overnightStartTime) {
     // Fetch all events from bedtime through today's end
@@ -109,7 +109,7 @@ export default async function Home() {
       .lt("event_time", todayEnd)
       .order("event_time", { ascending: true });
 
-    events = allEvents || [];
+    sleepEvents = allEvents || [];
   } else {
     // No bedtime yesterday, just fetch today's events
     const { data: todayEvents } = await supabase
@@ -120,8 +120,39 @@ export default async function Home() {
       .lt("event_time", todayEnd)
       .order("event_time", { ascending: true });
 
-    events = todayEvents || [];
+    sleepEvents = todayEvents || [];
   }
 
-  return <DashboardContent baby={baby} initialEvents={events} />;
+  // Fetch initial chat messages (most recent 50)
+  const { data: chatMessages } = await supabase
+    .from('chat_messages')
+    .select('*')
+    .eq('baby_id', babyId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  // Convert to AI SDK format and reverse for chronological order
+  const initialMessages = (chatMessages || [])
+    .reverse()
+    .map(msg => ({
+      id: msg.message_id,
+      role: msg.role as 'user' | 'assistant',
+      parts: msg.parts,
+      createdAt: msg.created_at,
+    }))
+
+  // Get cursor for loading more history (oldest message's timestamp)
+  const oldestTimestamp = chatMessages && chatMessages.length > 0
+    ? chatMessages[chatMessages.length - 1].created_at
+    : null
+
+  return (
+    <ChatContent
+      baby={baby}
+      initialMessages={initialMessages}
+      initialSleepEvents={sleepEvents}
+      initialCursor={oldestTimestamp}
+      hasMoreHistory={chatMessages?.length === 50}
+    />
+  );
 }

@@ -2,7 +2,7 @@
 
 import { ChevronRight } from 'lucide-react'
 import { SleepEvent, SleepSession } from '@/types/database'
-import { formatTime, formatDuration, groupEventsIntoSessions } from '@/lib/sleep-utils'
+import { formatTime, formatDuration, calculateDurationMinutes, groupEventsIntoSessions } from '@/lib/sleep-utils'
 
 interface TimelineProps {
   events: SleepEvent[]
@@ -95,11 +95,19 @@ export function Timeline({ events, onSessionClick, onStandaloneEventClick }: Tim
               }}
             >
               <span className="text-xl w-8">{config.icon}</span>
-              <span className="text-sm text-muted-foreground w-16">
+              <span className="text-sm text-muted-foreground min-w-16">
                 {formatTime(event.event_time)}
+                {event.event_type === 'night_wake' && event.end_time && (
+                  <> - {formatTime(event.end_time)}</>
+                )}
               </span>
               <span className="text-sm flex-1">
                 {config.label}
+                {event.event_type === 'night_wake' && event.end_time && (
+                  <span className="text-muted-foreground ml-1">
+                    ({formatDuration(calculateDurationMinutes(event.event_time, event.end_time))})
+                  </span>
+                )}
               </span>
               {event.context && (
                 <span className="text-xs bg-muted px-2 py-0.5 rounded">

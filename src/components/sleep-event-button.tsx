@@ -11,6 +11,7 @@ interface SleepEventButtonProps {
   onClick: () => void
   disabled?: boolean
   className?: string
+  size?: 'default' | 'compact'
 }
 
 export function SleepEventButton({
@@ -20,18 +21,24 @@ export function SleepEventButton({
   onClick,
   disabled,
   className,
+  size = 'default',
 }: SleepEventButtonProps) {
   return (
     <Button
       variant="outline"
       className={cn(
-        "h-20 flex flex-col gap-1 text-base font-medium",
+        "flex font-medium",
+        size === 'default' && "h-20 flex-col gap-1 text-base",
+        size === 'compact' && "h-8 flex-row gap-1.5 text-sm px-2.5",
         className
       )}
       onClick={onClick}
       disabled={disabled}
     >
-      <span className="text-2xl">{icon}</span>
+      <span className={cn(
+        size === 'default' && "text-2xl",
+        size === 'compact' && "text-base"
+      )}>{icon}</span>
       <span>{label}</span>
     </Button>
   )
