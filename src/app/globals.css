@@ -137,3 +137,51 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* AI Elements theme overrides */
+@layer components {
+  /* Message styling - user messages */
+  .group.is-user [data-slot="message-content"] {
+    @apply bg-primary text-primary-foreground rounded-2xl;
+  }
+
+  /* Message styling - assistant messages */
+  .group.is-assistant [data-slot="message-content"] {
+    @apply bg-muted rounded-2xl;
+  }
+
+  /* Suggestions styling */
+  [data-slot="suggestion"] {
+    @apply border-border hover:bg-accent hover:border-accent transition-all;
+  }
+
+  /* Loader styling */
+  [data-slot="loader"] {
+    @apply text-primary;
+  }
+
+  /* Scroll button styling */
+  [data-slot="scroll-button"] {
+    @apply bg-primary text-primary-foreground shadow-lg hover:bg-primary/90;
+  }
+
+  /* Sleep event chips - enhanced styling */
+  .sleep-event-chip {
+    @apply transition-all duration-200 hover:scale-[1.02] active:scale-95;
+  }
+
+  /* Conversation content - tighter gap for chat feel */
+  [data-slot="conversation-content"] {
+    @apply gap-3;
+  }
+
+  /* MessageResponse prose styling */
+  [data-slot="message-response"] {
+    @apply prose-sm prose-neutral dark:prose-invert max-w-none;
+  }
+
+  /* Input area shadow */
+  .chat-input-container {
+    @apply shadow-[0_-2px_10px_rgba(0,0,0,0.03)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.2)];
+  }
+}

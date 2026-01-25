@@ -113,6 +113,12 @@ export async function POST(req: Request) {
     const hasWake = events.some((e) => e.event_type === "wake");
     const napCount = events.filter((e) => e.event_type === "nap_end").length;
 
+    // Check for overnight state: bedtime exists and is more recent than last wake
+    const lastBedtime = [...events].reverse().find((e) => e.event_type === "bedtime");
+    const lastWake = [...events].reverse().find((e) => e.event_type === "wake");
+    const isOvernight = lastBedtime && (!lastWake ||
+      new Date(lastBedtime.event_time) > new Date(lastWake.event_time));
+
     let userPrompt = `Create a sleep plan for today. Age-appropriate nap count: ${expectedNaps}.
 
 Guidelines:
@@ -127,7 +133,7 @@ Guidelines:
       userPrompt += `
 Current state: Baby hasn't woken for the day yet.
 Set currentState to "not_awake_yet" and nextAction to waiting for wake.`;
-    } else if (lastEvent?.event_type === "bedtime") {
+    } else if (isOvernight) {
       userPrompt += `
 Current state: Baby is in overnight sleep after bedtime.
 Set currentState to "overnight" and nextAction to waking up in the morning.`;

@@ -2,20 +2,32 @@
 
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import ReactMarkdown from 'react-markdown'
+import { motion } from 'motion/react'
+import Image from 'next/image'
 import { Baby, Json, SleepEvent, SleepSession, EventType, Context } from '@/types/database'
 import { formatTime, calculateDurationMinutes } from '@/lib/sleep-utils'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { AppHeader } from '@/components/app-header'
 import { SleepPlanHeader } from '@/components/sleep-plan-header'
 import { ChatInput } from '@/components/chat-input'
 import { SleepEventDialog } from '@/components/sleep-event-dialog'
 import { SleepSessionDialog } from '@/components/sleep-session-dialog'
 import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog'
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation'
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from '@/components/ai-elements/message'
+import { Loader } from '@/components/ai-elements/loader'
+import { Suggestions, Suggestion } from '@/components/ai-elements/suggestion'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
 
 // Message type for chat history (compatible with useChat messages)
@@ -179,9 +191,6 @@ export function ChatContent({
 }: ChatContentProps) {
   const router = useRouter()
   const supabase = createClient()
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const hasScrolledRef = useRef(false)
 
   // Local events state for realtime updates
   const [localEvents, setLocalEvents] = useState<SleepEvent[]>([])
@@ -351,40 +360,6 @@ export function ChatContent({
     }
   }, [baby.id, historyCursor, hasMoreHistory, isLoadingHistory])
 
-  // Scroll handler for infinite scroll
-  useEffect(() => {
-    const container = messagesContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      if (container.scrollTop < 100 && hasMoreHistory && !isLoadingHistory) {
-        const scrollHeight = container.scrollHeight
-        loadMoreHistory().then(() => {
-          requestAnimationFrame(() => {
-            if (messagesContainerRef.current) {
-              messagesContainerRef.current.scrollTop =
-                messagesContainerRef.current.scrollHeight - scrollHeight
-            }
-          })
-        })
-      }
-    }
-
-    container.addEventListener('scroll', handleScroll)
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [loadMoreHistory, hasMoreHistory, isLoadingHistory])
-
-  // Scroll to bottom on mount and when new live messages arrive
-  useEffect(() => {
-    if (!hasScrolledRef.current) {
-      // Initial scroll - use instant to avoid race with layout changes
-      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
-      hasScrolledRef.current = true
-    } else if (liveMessages.length > 0) {
-      // New messages - use smooth scroll
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [liveMessages])
 
   // Handle sending chat messages
   const handleSendMessage = useCallback(async (text: string) => {
@@ -616,15 +591,16 @@ export function ChatContent({
   }
 
   // Render all message parts including tool invocations
-  const renderMessageParts = (message: { parts: unknown }) => {
+  const renderMessageParts = (message: { parts: unknown }, isStreaming: boolean) => {
     const parts = message.parts as Array<{ type: string; text?: string; [key: string]: unknown }> | undefined
     if (!parts || parts.length === 0) return null
 
     return parts.map((part, index) => {
       if (part.type === 'text') {
         return (
-          <div key={index} className="prose prose-sm prose-neutral dark:prose-invert max-w-none">
-            <ReactMarkdown>{part.text}</ReactMarkdown>
+          <div key={index}>
+            <MessageResponse>{part.text || ''}</MessageResponse>
+            {isStreaming && index === parts.length - 1 && <span className="animate-pulse ml-0.5">▊</span>}
           </div>
         )
       }
@@ -643,8 +619,8 @@ export function ChatContent({
         if (state === 'input-streaming' || state === 'input-available') {
           return (
             <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-              <span className="animate-pulse">...</span>
-              Logging {toolInput?.event_type?.replace('_', ' ') || 'event'}...
+              <Loader size={14} />
+              <span>Logging {toolInput?.event_type?.replace('_', ' ') || 'event'}...</span>
             </div>
           )
         }
@@ -652,14 +628,14 @@ export function ChatContent({
         if (state === 'output-available' && output) {
           if (output.success) {
             return (
-              <div key={index} className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 py-2 px-3 bg-green-50 dark:bg-green-950 rounded-md my-2">
+              <div key={index} className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 py-2 px-3 bg-green-50 dark:bg-green-950 rounded-lg my-2">
                 <span>✓</span>
                 {output.message || 'Event logged'}
               </div>
             )
           } else {
             return (
-              <div key={index} className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 py-2 px-3 bg-red-50 dark:bg-red-950 rounded-md my-2">
+              <div key={index} className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 py-2 px-3 bg-red-50 dark:bg-red-950 rounded-lg my-2">
                 <span>✗</span>
                 Failed to log event: {output.error}
               </div>
@@ -673,7 +649,7 @@ export function ChatContent({
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       {/* Sticky Header Container */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         {/* Main Header */}
@@ -690,12 +666,15 @@ export function ChatContent({
       </div>
 
       {/* Messages */}
-      <main ref={messagesContainerRef} className="flex-1 overflow-y-auto">
-        <div className="container max-w-lg mx-auto px-4 py-6 space-y-4">
+      <Conversation className="flex-1">
+        <ConversationContent className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6 gap-4">
           {/* Load more history indicator */}
           {isLoadingHistory && (
             <div className="text-center py-2">
-              <span className="text-sm text-muted-foreground">Loading history...</span>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader size={14} />
+                <span>Loading history...</span>
+              </div>
             </div>
           )}
 
@@ -708,26 +687,45 @@ export function ChatContent({
             </div>
           )}
 
+          {/* Empty state */}
           {allMessages.length === 0 && allSleepEvents.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">
-                Log {baby.name}&apos;s sleep or ask a question!
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center py-12 text-center"
+            >
+              <Image
+                src="/nappster.png"
+                alt="Nappster"
+                width={64}
+                height={64}
+                className="rounded-full mb-4 shadow-md"
+              />
+              <h2 className="text-lg font-semibold mb-1">Hi there!</h2>
+              <p className="text-muted-foreground mb-6">
+                Log {baby.name}&apos;s sleep or ask me anything
               </p>
-              <div className="space-y-2">
-                <SuggestionChip
-                  text="She woke up at 7am this morning"
-                  onClick={handleSendMessage}
-                />
-                <SuggestionChip
-                  text="Just put her down for a nap"
-                  onClick={handleSendMessage}
-                />
-                <SuggestionChip
-                  text="What should bedtime be tonight?"
-                  onClick={handleSendMessage}
-                />
+              <div className="flex flex-col gap-2 w-full max-w-sm">
+                <Suggestions className="flex-wrap justify-center">
+                  <Suggestion
+                    suggestion="She woke up at 7am this morning"
+                    onClick={handleSendMessage}
+                    className="whitespace-normal h-auto py-2"
+                  />
+                  <Suggestion
+                    suggestion="Just put her down for a nap"
+                    onClick={handleSendMessage}
+                    className="whitespace-normal h-auto py-2"
+                  />
+                  <Suggestion
+                    suggestion="What should bedtime be tonight?"
+                    onClick={handleSendMessage}
+                    className="whitespace-normal h-auto py-2"
+                  />
+                </Suggestions>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {timelineItems.map((item, index) => {
@@ -755,21 +753,28 @@ export function ChatContent({
               }
 
               return (
-                <div key={`event-${event.id}`}>
+                <motion.div
+                  key={`event-${event.id}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
                   {showDateHeader && (
-                    <div className="flex justify-center my-4">
-                      <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                    <div className="flex items-center gap-3 my-6">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground">
                         {formatDateHeader(currentTimestamp!)}
                       </span>
+                      <div className="flex-1 h-px bg-border" />
                     </div>
                   )}
                   <div className="flex justify-center">
                     <button
                       type="button"
                       onClick={() => handleEventClick(event)}
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border ${config.color} hover:opacity-80 transition-opacity cursor-pointer`}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs border shadow-sm ${config.color} hover:shadow-md active:scale-95 transition-all duration-200 cursor-pointer`}
                     >
-                      <span>{config.icon}</span>
+                      <span className="text-base">{config.icon}</span>
                       <span className="font-medium">{config.label}</span>
                       <span className="text-muted-foreground">
                         {formatTime(event.event_time)}
@@ -787,7 +792,7 @@ export function ChatContent({
                       )}
                     </button>
                   </div>
-                </div>
+                </motion.div>
               )
             }
 
@@ -798,41 +803,44 @@ export function ChatContent({
             const messageTime = message.createdAt ? formatMessageTime(message.createdAt) : null
 
             return (
-              <div key={message.id}>
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
                 {showDateHeader && (
-                  <div className="flex justify-center my-4">
-                    <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                  <div className="flex items-center gap-3 my-6">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">
                       {formatDateHeader(currentTimestamp!)}
                     </span>
+                    <div className="flex-1 h-px bg-border" />
                   </div>
                 )}
-                <div className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
-                  <Card
-                    className={`max-w-[85%] px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
+                <Message from={message.role}>
+                  <MessageContent
+                    className={message.role === 'user' ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted shadow-sm'}
                   >
                     {message.role === 'user' ? (
-                      <p className="text-sm whitespace-pre-wrap">{text}</p>
+                      <p className="whitespace-pre-wrap">{text}</p>
                     ) : (
-                      <div className="text-sm space-y-2">
-                        {renderMessageParts(message)}
-                        {isStreaming && <span className="animate-pulse">▊</span>}
+                      <div className="space-y-2">
+                        {renderMessageParts(message, isStreaming)}
                       </div>
                     )}
-                  </Card>
+                  </MessageContent>
                   {messageTime && (
-                    <span className="text-[10px] text-muted-foreground mt-1 px-1">
+                    <span className="text-[10px] text-muted-foreground px-1 group-[.is-user]:self-end">
                       {messageTime}
                     </span>
                   )}
-                </div>
-              </div>
+                </Message>
+              </motion.div>
             )
           })}
 
+          {/* Loading indicator */}
           {isLoading && (() => {
             const lastItem = timelineItems[timelineItems.length - 1]
             const showLoading = timelineItems.length === 0 ||
@@ -841,24 +849,28 @@ export function ChatContent({
               (lastItem?.kind === 'message' && !getMessageText(lastItem.message))
             return showLoading
           })() && (
-            <div className="flex justify-start">
-              <Card className="max-w-[85%] px-4 py-3 bg-muted">
-                <div className="flex gap-1">
-                  <span className="animate-bounce">●</span>
-                  <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>●</span>
-                  <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>●</span>
-                </div>
-              </Card>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3"
+            >
+              <Message from="assistant">
+                <MessageContent className="bg-muted shadow-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader size={16} />
+                    <span className="text-sm">Thinking...</span>
+                  </div>
+                </MessageContent>
+              </Message>
+            </motion.div>
           )}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </main>
+        </ConversationContent>
+        <ConversationScrollButton className="shadow-lg" />
+      </Conversation>
 
       {/* Chat Input */}
-      <div className="sticky bottom-0 border-t py-2 bg-background">
-        <div className="container max-w-lg mx-auto">
+      <div className="sticky bottom-0 border-t py-1 sm:py-3 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 chat-input-container">
+        <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
           <ChatInput
             babyId={baby.id}
             onSendMessage={handleSendMessage}
@@ -896,17 +908,5 @@ export function ChatContent({
         onDelete={handleDeleteSession}
       />
     </div>
-  )
-}
-
-function SuggestionChip({ text, onClick }: { text: string; onClick: (text: string) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(text)}
-      className="block w-full text-left px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
-    >
-      {text}
-    </button>
   )
 }

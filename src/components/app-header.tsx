@@ -1,16 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { format } from 'date-fns'
-import { Baby as BabyIcon } from 'lucide-react'
+import { Baby as BabyIcon, Loader2 } from 'lucide-react'
 import { Baby } from '@/types/database'
 import { formatAge } from '@/lib/sleep-utils'
 import { Button } from '@/components/ui/button'
 
 interface AppHeaderProps {
   baby: Baby
-  onSignOut: () => void
+  onSignOut: () => void | Promise<void>
 }
 
 /**
@@ -18,9 +19,16 @@ interface AppHeaderProps {
  * Used by the main chat interface.
  */
 export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    await onSignOut()
+  }
+
   return (
     <header className="border-b">
-      <div className="container max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <Image
             src="/nappster.png"
@@ -35,13 +43,20 @@ export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild disabled={isSigningOut}>
             <Link href="/settings">
               <BabyIcon className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="sm" onClick={onSignOut}>
-            Sign out
+          <Button variant="ghost" size="sm" onClick={handleSignOut} disabled={isSigningOut}>
+            {isSigningOut ? (
+              <>
+                <Loader2 className="size-4 animate-spin mr-2" />
+                Signing out...
+              </>
+            ) : (
+              'Sign out'
+            )}
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -26,8 +27,8 @@ interface SleepEventDialogProps {
     end_time?: string | null
     context: Context
     notes: string | null
-  }) => void
-  onDelete?: (eventId: string) => void
+  }) => void | Promise<void>
+  onDelete?: (eventId: string) => void | Promise<void>
 }
 
 const eventTypes: { type: EventType; icon: string; label: string }[] = [
@@ -78,23 +79,36 @@ function SleepEventForm({ event, onSave, onDelete, onClose }: SleepEventFormProp
     event?.end_time ? toLocalDateTimeString(new Date(event.end_time)) : ''
   )
   const [notes, setNotes] = useState(event?.notes || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const isLoading = isSaving || isDeleting
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const eventTime = new Date(dateTime).toISOString()
-    onSave({
-      id: event?.id,
-      event_type: eventType,
-      event_time: eventTime,
-      end_time: eventType === 'night_wake' && endTime ? new Date(endTime).toISOString() : null,
-      context,
-      notes: notes || null,
-    })
-    onClose()
+    setIsSaving(true)
+    try {
+      await onSave({
+        id: event?.id,
+        event_type: eventType,
+        event_time: eventTime,
+        end_time: eventType === 'night_wake' && endTime ? new Date(endTime).toISOString() : null,
+        context,
+        notes: notes || null,
+      })
+      onClose()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (event && onDelete) {
-      onDelete(event.id)
+      setIsDeleting(true)
+      try {
+        await onDelete(event.id)
+      } finally {
+        setIsDeleting(false)
+      }
     }
   }
 
@@ -195,8 +209,16 @@ function SleepEventForm({ event, onSave, onDelete, onClose }: SleepEventFormProp
             variant="destructive"
             onClick={handleDelete}
             className="w-full"
+            disabled={isLoading}
           >
-            Delete Event
+            {isDeleting ? (
+              <>
+                <Loader2 className="size-4 animate-spin mr-2" />
+                Deleting...
+              </>
+            ) : (
+              'Delete Event'
+            )}
           </Button>
         )}
         <div className="flex gap-2 w-full">
@@ -205,11 +227,19 @@ function SleepEventForm({ event, onSave, onDelete, onClose }: SleepEventFormProp
             variant="outline"
             onClick={onClose}
             className="flex-1"
+            disabled={isLoading}
           >
             Cancel
           </Button>
-          <Button type="button" onClick={handleSave} className="flex-1">
-            {isEditMode ? 'Save Changes' : 'Add Event'}
+          <Button type="button" onClick={handleSave} className="flex-1" disabled={isLoading}>
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin mr-2" />
+                {isEditMode ? 'Saving...' : 'Adding...'}
+              </>
+            ) : (
+              isEditMode ? 'Save Changes' : 'Add Event'
+            )}
           </Button>
         </div>
       </DialogFooter>

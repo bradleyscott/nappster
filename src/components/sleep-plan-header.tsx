@@ -208,7 +208,7 @@ export function SleepPlanHeader({
   if ((isLoading || !displayPlan) && !cachedPlan) {
     return (
       <div className="border-b px-4 py-3">
-        <div className="container max-w-lg mx-auto">
+        <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="space-y-1.5 flex-1">
               <Skeleton className="h-5 w-32" />
@@ -239,7 +239,7 @@ export function SleepPlanHeader({
   return (
     <div className="border-b">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="container max-w-lg mx-auto px-4">
+        <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4">
           <CollapsibleTrigger asChild>
             <button
               className="w-full py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors -mx-4 px-4"

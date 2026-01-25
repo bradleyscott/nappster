@@ -86,14 +86,12 @@ export function ChatInput({
         ]
 
       case 'overnight':
+      case 'day_complete':
+        // Both overnight and day_complete mean baby is sleeping after bedtime
         return [
           { eventType: 'wake' as EventType, label: 'End Night', icon: '☀️' },
           { eventType: 'night_wake' as EventType, label: 'Night Wake', icon: '👀' },
         ]
-
-      case 'day_complete':
-        // Day is done, no quick actions needed
-        return []
 
       case 'awake':
       default:

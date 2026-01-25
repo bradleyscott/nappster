@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -31,8 +32,8 @@ interface SleepSessionDialogProps {
       context: Context
       notes: string | null
     }
-  }) => void
-  onDelete: (startId: string, endId: string | null) => void
+  }) => void | Promise<void>
+  onDelete: (startId: string, endId: string | null) => void | Promise<void>
 }
 
 const contextOptions: { value: Context; label: string }[] = [
@@ -74,6 +75,9 @@ function SessionForm({ session, onSave, onDelete, onClose }: SessionFormProps) {
     (session.startEvent.context as Context) || null
   )
   const [notes, setNotes] = useState(session.startEvent.notes || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const isLoading = isSaving || isDeleting
 
   // Calculate duration for display
   const durationMinutes = useMemo(() => {
@@ -92,7 +96,7 @@ function SessionForm({ session, onSave, onDelete, onClose }: SessionFormProps) {
     return null
   }, [durationMinutes])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validationError) return
 
     const startEventTime = new Date(startTime).toISOString()
@@ -116,12 +120,22 @@ function SessionForm({ session, onSave, onDelete, onClose }: SessionFormProps) {
       }
     }
 
-    onSave(saveData)
-    onClose()
+    setIsSaving(true)
+    try {
+      await onSave(saveData)
+      onClose()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleDelete = () => {
-    onDelete(session.startEvent.id, session.endEvent?.id || null)
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await onDelete(session.startEvent.id, session.endEvent?.id || null)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const title = isNap ? 'Edit Nap' : 'Edit Overnight Sleep'
@@ -225,8 +239,16 @@ function SessionForm({ session, onSave, onDelete, onClose }: SessionFormProps) {
           variant="destructive"
           onClick={handleDelete}
           className="w-full"
+          disabled={isLoading}
         >
-          Delete {isNap ? 'Nap' : 'Overnight Sleep'}
+          {isDeleting ? (
+            <>
+              <Loader2 className="size-4 animate-spin mr-2" />
+              Deleting...
+            </>
+          ) : (
+            `Delete ${isNap ? 'Nap' : 'Overnight Sleep'}`
+          )}
         </Button>
         <div className="flex gap-2 w-full">
           <Button
@@ -234,6 +256,7 @@ function SessionForm({ session, onSave, onDelete, onClose }: SessionFormProps) {
             variant="outline"
             onClick={onClose}
             className="flex-1"
+            disabled={isLoading}
           >
             Cancel
           </Button>
@@ -241,9 +264,16 @@ function SessionForm({ session, onSave, onDelete, onClose }: SessionFormProps) {
             type="button"
             onClick={handleSave}
             className="flex-1"
-            disabled={!!validationError}
+            disabled={!!validationError || isLoading}
           >
-            Save Changes
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin mr-2" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </Button>
         </div>
       </DialogFooter>
