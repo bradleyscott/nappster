@@ -13,7 +13,7 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import { SleepEventButton } from '@/components/sleep-event-button'
 import { SleepEventDialog } from '@/components/sleep-event-dialog'
-import { EventType, Context, SleepEvent } from '@/types/database'
+import { EventType, Context, } from '@/types/database'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
 
 interface ChatInputProps {
@@ -71,31 +71,31 @@ export function ChatInput({
   }
 
   // Determine which quick action buttons to show based on current state
+  // See requirements.md "Quick Entry Buttons" section for logic
   const getQuickActions = () => {
     const currentState = sleepPlan?.currentState
 
     switch (currentState) {
-      case 'not_awake_yet':
-        return [
-          { eventType: 'wake' as EventType, label: 'Woke Up', icon: '☀️' },
-        ]
-
-      case 'nap_in_progress':
-        return [
-          { eventType: 'nap_end' as EventType, label: 'End Nap', icon: '🌤️' },
-        ]
-
-      case 'overnight':
-      case 'day_complete':
-        // Both overnight and day_complete mean baby is sleeping after bedtime
+      case 'overnight_sleep':
+        // Nighttime sleep is in progress - show buttons for ending night or recording night wake
         return [
           { eventType: 'wake' as EventType, label: 'End Night', icon: '☀️' },
           { eventType: 'night_wake' as EventType, label: 'Night Wake', icon: '👀' },
         ]
 
-      case 'awake':
+      case 'nighttime_wake':
+        // Baby is awake during the night - no quick actions, use dialog to set end_time on night_wake
+        return []
+
+      case 'daytime_napping':
+        // Nap is in progress - show button for ending the nap
+        return [
+          { eventType: 'nap_end' as EventType, label: 'End Nap', icon: '🌤️' },
+        ]
+
+      case 'daytime_awake':
       default:
-        // Determine if next action is nap or bedtime
+        // Baby is awake during the day - show nap or bedtime based on sleep plan recommendation
         const nextLabel = sleepPlan?.nextAction?.label?.toLowerCase() || ''
         if (nextLabel.includes('bedtime') || nextLabel.includes('bed')) {
           return [

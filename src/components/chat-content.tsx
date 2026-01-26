@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import Image from 'next/image'
 import { Baby, Json, SleepEvent, SleepSession, EventType, Context } from '@/types/database'
-import { formatTime, calculateDurationMinutes } from '@/lib/sleep-utils'
+import { formatTime, calculateDurationMinutes, findSessionForEvent } from '@/lib/sleep-utils'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { AppHeader } from '@/components/app-header'
@@ -67,15 +67,6 @@ function formatDateHeader(dateStr: string | Date): string {
   })
 }
 
-// Format time for message timestamps (9:45 am)
-function formatMessageTime(dateStr: string | Date): string {
-  const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }).toLowerCase()
-}
 
 // Get date key for grouping (YYYY-MM-DD)
 function getDateKey(dateStr: string | Date): string {
@@ -105,82 +96,6 @@ const eventConfig: Record<string, { icon: string; label: string; color: string }
   night_wake: { icon: '👀', label: 'Night wake', color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800' },
 }
 
-// Helper to pair nap_start with nap_end (or bedtime with wake) for session editing
-function findSessionForEvent(event: SleepEvent, allEvents: SleepEvent[]): SleepSession | null {
-  const sortedEvents = [...allEvents].sort(
-    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
-  )
-  const eventIndex = sortedEvents.findIndex((e) => e.id === event.id)
-  if (eventIndex === -1) return null
-
-  if (event.event_type === 'nap_start') {
-    // Find the next nap_end
-    const endEvent = sortedEvents
-      .slice(eventIndex + 1)
-      .find((e) => e.event_type === 'nap_end')
-    const duration = endEvent
-      ? calculateDurationMinutes(event.event_time, endEvent.event_time)
-      : null
-    return {
-      type: 'nap',
-      startEvent: event,
-      endEvent: endEvent || null,
-      durationMinutes: duration,
-    }
-  }
-
-  if (event.event_type === 'nap_end') {
-    // Find the previous nap_start
-    const startEvent = sortedEvents
-      .slice(0, eventIndex)
-      .reverse()
-      .find((e) => e.event_type === 'nap_start')
-    if (startEvent) {
-      const duration = calculateDurationMinutes(startEvent.event_time, event.event_time)
-      return {
-        type: 'nap',
-        startEvent,
-        endEvent: event,
-        durationMinutes: duration,
-      }
-    }
-  }
-
-  if (event.event_type === 'bedtime') {
-    // Bedtime starts overnight - find next wake
-    const endEvent = sortedEvents
-      .slice(eventIndex + 1)
-      .find((e) => e.event_type === 'wake')
-    const duration = endEvent
-      ? calculateDurationMinutes(event.event_time, endEvent.event_time)
-      : null
-    return {
-      type: 'overnight',
-      startEvent: event,
-      endEvent: endEvent || null,
-      durationMinutes: duration,
-    }
-  }
-
-  if (event.event_type === 'wake') {
-    // Find the previous bedtime to pair with this wake
-    const startEvent = sortedEvents
-      .slice(0, eventIndex)
-      .reverse()
-      .find((e) => e.event_type === 'bedtime')
-    if (startEvent) {
-      const duration = calculateDurationMinutes(startEvent.event_time, event.event_time)
-      return {
-        type: 'overnight',
-        startEvent,
-        endEvent: event,
-        durationMinutes: duration,
-      }
-    }
-  }
-
-  return null
-}
 
 export function ChatContent({
   baby,
@@ -800,7 +715,7 @@ export function ChatContent({
             const isLastItem = index === timelineItems.length - 1
             const isStreaming = isLastItem && status === 'streaming' && message.role === 'assistant'
             const text = getMessageText(message)
-            const messageTime = message.createdAt ? formatMessageTime(message.createdAt) : null
+            const messageTime = message.createdAt ? formatTime(message.createdAt) : null
 
             return (
               <motion.div

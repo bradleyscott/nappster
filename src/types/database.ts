@@ -170,6 +170,16 @@ export type Context = 'home' | 'daycare' | 'travel' | null
 // Session types for paired event editing
 export type SessionType = 'nap' | 'overnight'
 
+// Sleep plan current state values
+export const CURRENT_STATE_VALUES = [
+  'overnight_sleep',
+  'nighttime_wake',
+  'daytime_napping',
+  'daytime_awake',
+] as const
+
+export type CurrentState = typeof CURRENT_STATE_VALUES[number]
+
 export interface SleepSession {
   type: SessionType
   startEvent: SleepEvent           // nap_start or bedtime

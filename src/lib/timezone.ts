@@ -51,14 +51,3 @@ export function getYesterdayBoundsForTimezone(timezone: string): { start: string
   }
 }
 
-/**
- * Format a date/time in a specific timezone for display.
- */
-export function formatTimeInTimezone(date: Date | string, timezone: string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: timezone
-  }).toLowerCase()
-}

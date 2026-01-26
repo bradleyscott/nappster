@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { z } from 'zod'
-import { Baby, SleepEvent } from '@/types/database'
+import { Baby, SleepEvent, CURRENT_STATE_VALUES } from '@/types/database'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Collapsible,
@@ -22,13 +22,7 @@ const scheduleItemSchema = z.object({
 })
 
 const sleepPlanSchema = z.object({
-  currentState: z.enum([
-    'not_awake_yet',
-    'awake',
-    'nap_in_progress',
-    'day_complete',
-    'overnight',
-  ]),
+  currentState: z.enum(CURRENT_STATE_VALUES),
   nextAction: z.object({
     label: z.string(),
     timeWindow: z.string(),
