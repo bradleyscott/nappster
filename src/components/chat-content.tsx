@@ -588,13 +588,21 @@ export function ChatContent({
     // Check if this is the last part for streaming indicator
     const lastTextPartIndex = parts.map((p, i) => p.type === 'text' ? i : -1).filter(i => i >= 0).pop()
 
-    // Render chain-of-thought section for tool calls (always visible, collapsed by default)
+    // Render chain-of-thought section for tool calls
     const renderChainOfThought = () => {
       // Show when we have tool calls
       if (!hasToolCalls) return null
 
+      // Force open while streaming and no text yet, then collapse and let user control
+      const forceOpen = isStreaming && !hasTextContent
+
       return (
-        <ChainOfThought key="chain-of-thought" className="mb-3" defaultOpen={false}>
+        <ChainOfThought
+          key="chain-of-thought"
+          className="mb-3"
+          defaultOpen={false}
+          {...(forceOpen ? { open: true } : {})}
+        >
           <ChainOfThoughtHeader isStreaming={isStreaming} />
           <ChainOfThoughtContent>
             {toolParts.length > 0 ? (
