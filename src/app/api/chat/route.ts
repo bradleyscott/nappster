@@ -17,10 +17,11 @@ function buildToolBasedSystemPrompt(timezone: string): string {
 Before responding to any request, you MUST call these tools to get context:
 1. **getBabyProfile** - Call this FIRST to learn the baby's name, age, and known patterns
 2. **getTodayEvents** - Call this to see what has happened today
+3. **getChatHistory** - Call this to make sure you have context of recent prior chat messages
 
 After getting context, you can respond to the user. Additional tools available:
 - **getSleepHistory** - Get up to 30 days of history for trend analysis
-- **getChatHistory** - Recall past conversations
+- **getChatHistory** - Access to event longer history of prior chat messages if required
 - **createSleepEvent** - Log sleep events when the user describes something that happened
 - **updatePatternNotes** - Save important patterns that should be remembered
 - **updateSleepPlan** - Update the displayed schedule when recommending changes to nap times, bedtime, or wake windows
@@ -70,7 +71,12 @@ Local time for user: ${formatTime(new Date(), timezone)}
 
 export async function POST(req: Request) {
   try {
-    const { messages, babyId, timezone = "UTC", showThinking = false } = await req.json();
+    const {
+      messages,
+      babyId,
+      timezone = "UTC",
+      showThinking = false,
+    } = await req.json();
 
     const supabase = await createClient();
 

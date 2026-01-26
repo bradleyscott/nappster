@@ -79,6 +79,7 @@ After gathering the data, generate a complete sleep plan for the day.
 ## Guidelines for the Sleep Plan
 - Base wake window recommendations on the baby's age
 - Use 12-hour format for all times (e.g., "9:30am", "7:15pm")
+- Try to keep suggested time windows within 30 minutes, but ideally within 15 minutes
 - If it's too late for a scheduled nap mark that nap as "skipped"
 
 Current time: ${new Date().toISOString()}
