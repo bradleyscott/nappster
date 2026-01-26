@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import Image from 'next/image'
@@ -142,6 +142,33 @@ export function ChatContent({
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
+
+  // Track which tool-created events we've already added to avoid duplicates
+  const processedToolEventIds = useRef(new Set<string>())
+
+  // Extract events created by AI tools and add them to localEvents
+  useEffect(() => {
+    for (const msg of liveMessages) {
+      if (msg.role !== 'assistant') continue
+      const parts = msg.parts as Array<{ type: string; state?: string; output?: { success?: boolean; event?: SleepEvent } }> | undefined
+      if (!parts) continue
+
+      for (const part of parts) {
+        if (part.type === 'tool-createSleepEvent' && part.state === 'output-available' && part.output?.success && part.output?.event) {
+          const event = part.output.event
+          if (!processedToolEventIds.current.has(event.id)) {
+            processedToolEventIds.current.add(event.id)
+            setLocalEvents(prev => {
+              // Double-check it's not already in the list
+              if (prev.some(e => e.id === event.id)) return prev
+              return [...prev, event]
+            })
+            setRefreshKey(k => k + 1)
+          }
+        }
+      }
+    }
+  }, [liveMessages])
 
   // Combine all messages (history, initial, live) deduplicating by id
   const allMessages = useMemo(() => {
