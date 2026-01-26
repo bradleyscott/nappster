@@ -70,7 +70,7 @@ Local time for user: ${formatTime(new Date(), timezone)}
 
 export async function POST(req: Request) {
   try {
-    const { messages, babyId, timezone = "UTC" } = await req.json();
+    const { messages, babyId, timezone = "UTC", showThinking = false } = await req.json();
 
     const supabase = await createClient();
 
@@ -86,6 +86,13 @@ export async function POST(req: Request) {
       tools: createChatTools(toolContext),
       // Increase step count to allow for data fetching tools + action tools
       stopWhen: stepCountIs(6),
+      // Always enable reasoning for quality - showThinking only controls
+      // whether reasoning tokens are streamed to the client via sendReasoning
+      providerOptions: {
+        openai: {
+          reasoningEffort: "medium",
+        },
+      },
     });
 
     // Save messages to database after stream completes
@@ -107,6 +114,7 @@ export async function POST(req: Request) {
         const text = await result.text;
         const toolCalls = await result.toolCalls;
         const toolResults = await result.toolResults;
+        const reasoning = await result.reasoning;
 
         // Build assistant message parts
         const assistantParts: Array<{
@@ -116,6 +124,16 @@ export async function POST(req: Request) {
           input?: unknown;
           output?: unknown;
         }> = [];
+
+        // Include reasoning parts if available
+        if (reasoning && reasoning.length > 0) {
+          for (const reasoningBlock of reasoning) {
+            assistantParts.push({
+              type: "reasoning",
+              text: reasoningBlock.text,
+            });
+          }
+        }
 
         if (text) {
           assistantParts.push({ type: "text", text });
@@ -153,7 +171,9 @@ export async function POST(req: Request) {
       }
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      sendReasoning: showThinking,
+    });
   } catch (error) {
     console.error("Error in chat API:", error);
     return new Response("Error processing chat", { status: 500 });

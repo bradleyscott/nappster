@@ -28,6 +28,13 @@ import {
 } from '@/components/ai-elements/message'
 import { Loader } from '@/components/ai-elements/loader'
 import { Suggestions, Suggestion } from '@/components/ai-elements/suggestion'
+import {
+  ChainOfThought,
+  ChainOfThoughtHeader,
+  ChainOfThoughtContent,
+  ChainOfThoughtStep,
+} from '@/components/ai-elements/chain-of-thought'
+import { Search, Database, History, MessageSquare, FileEdit, Calendar, Moon } from 'lucide-react'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
 
 // Message type for chat history (compatible with useChat messages)
@@ -545,17 +552,92 @@ export function ChatContent({
     return ''
   }
 
+  // Tool descriptions for chain-of-thought display
+  const toolInfo: Record<string, { label: string; icon: typeof Search }> = {
+    'getBabyProfile': { label: 'Getting baby profile', icon: Database },
+    'getTodayEvents': { label: 'Checking today\'s events', icon: Search },
+    'getSleepHistory': { label: 'Analyzing sleep history', icon: History },
+    'getChatHistory': { label: 'Recalling past conversations', icon: MessageSquare },
+    'createSleepEvent': { label: 'Recording sleep event', icon: Moon },
+    'updatePatternNotes': { label: 'Saving pattern notes', icon: FileEdit },
+    'updateSleepPlan': { label: 'Updating schedule', icon: Calendar },
+  }
+
   // Render all message parts including tool invocations
   const renderMessageParts = (message: { parts: unknown }, isStreaming: boolean) => {
     const parts = message.parts as Array<{ type: string; text?: string; [key: string]: unknown }> | undefined
+
+    // Collect tool call parts for chain-of-thought display
+    const toolParts = parts?.filter(p => p.type.startsWith('tool-')) || []
+    const hasToolCalls = toolParts.length > 0
+    const textParts = parts?.filter(p => p.type === 'text' && p.text) || []
+    const hasTextContent = textParts.length > 0
+
+    // Show thinking indicator when streaming but no content yet
+    if (isStreaming && !hasToolCalls && !hasTextContent) {
+      return (
+        <div className="flex items-center gap-2 text-muted-foreground/70 text-xs">
+          <Loader size={12} />
+          <span>Thinking...</span>
+        </div>
+      )
+    }
+
     if (!parts || parts.length === 0) return null
 
-    return parts.map((part, index) => {
+    // Check if this is the last part for streaming indicator
+    const lastTextPartIndex = parts.map((p, i) => p.type === 'text' ? i : -1).filter(i => i >= 0).pop()
+
+    // Render chain-of-thought section for tool calls (always visible, collapsed by default)
+    const renderChainOfThought = () => {
+      // Show when we have tool calls
+      if (!hasToolCalls) return null
+
+      return (
+        <ChainOfThought key="chain-of-thought" className="mb-3" defaultOpen={false}>
+          <ChainOfThoughtHeader isStreaming={isStreaming} />
+          <ChainOfThoughtContent>
+            {toolParts.length > 0 ? (
+              toolParts.map((toolPart, idx) => {
+                const toolName = toolPart.type.replace('tool-', '')
+                const info = toolInfo[toolName]
+                const state = toolPart.state as string
+                const isComplete = state === 'output-available'
+                const Icon = info?.icon || Search
+
+                return (
+                  <ChainOfThoughtStep
+                    key={idx}
+                    icon={Icon}
+                    label={info?.label || toolName}
+                    status={isComplete ? 'complete' : 'active'}
+                  />
+                )
+              })
+            ) : (
+              <ChainOfThoughtStep
+                icon={Search}
+                label="Starting..."
+                status="active"
+              />
+            )}
+          </ChainOfThoughtContent>
+        </ChainOfThought>
+      )
+    }
+
+    const renderedParts = parts.map((part, index) => {
+      // Skip reasoning parts (OpenAI doesn't expose reasoning text)
+      if (part.type === 'reasoning') {
+        return null
+      }
+
       if (part.type === 'text') {
+        const isLastTextPart = index === lastTextPartIndex
         return (
           <div key={index}>
             <MessageResponse>{part.text || ''}</MessageResponse>
-            {isStreaming && index === parts.length - 1 && <span className="animate-pulse ml-0.5">▊</span>}
+            {isStreaming && isLastTextPart && <span className="animate-pulse ml-0.5">▊</span>}
           </div>
         )
       }
@@ -629,6 +711,14 @@ export function ChatContent({
 
       return null
     })
+
+    // Return chain-of-thought followed by rendered parts
+    return (
+      <>
+        {renderChainOfThought()}
+        {renderedParts}
+      </>
+    )
   }
 
   return (
@@ -636,7 +726,10 @@ export function ChatContent({
       {/* Sticky Header Container */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         {/* Main Header */}
-        <AppHeader baby={baby} onSignOut={handleSignOut} />
+        <AppHeader
+          baby={baby}
+          onSignOut={handleSignOut}
+        />
 
         {/* Sleep Plan Header */}
         <SleepPlanHeader
@@ -823,30 +916,6 @@ export function ChatContent({
             )
           })}
 
-          {/* Loading indicator */}
-          {isLoading && (() => {
-            const lastItem = timelineItems[timelineItems.length - 1]
-            const showLoading = timelineItems.length === 0 ||
-              lastItem?.kind === 'sleep_event' ||
-              (lastItem?.kind === 'message' && lastItem.message.role !== 'assistant') ||
-              (lastItem?.kind === 'message' && !getMessageText(lastItem.message))
-            return showLoading
-          })() && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3"
-            >
-              <Message from="assistant">
-                <MessageContent className="bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm">
-                  <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
-                    <Loader size={16} />
-                    <span className="text-sm">Thinking...</span>
-                  </div>
-                </MessageContent>
-              </Message>
-            </motion.div>
-          )}
         </ConversationContent>
         <ConversationScrollButton className="shadow-lg" />
       </Conversation>
