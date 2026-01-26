@@ -146,11 +146,15 @@ export function ChatContent({
   // Track which tool-created events we've already added to avoid duplicates
   const processedToolEventIds = useRef(new Set<string>())
 
+  // Track which tool-created sleep plans we've already processed
+  const processedSleepPlanMsgIds = useRef(new Set<string>())
+
   // Extract events created by AI tools and add them to localEvents
+  // Also handle sleep plan updates from the updateSleepPlan tool
   useEffect(() => {
     for (const msg of liveMessages) {
       if (msg.role !== 'assistant') continue
-      const parts = msg.parts as Array<{ type: string; state?: string; output?: { success?: boolean; event?: SleepEvent } }> | undefined
+      const parts = msg.parts as Array<{ type: string; state?: string; output?: { success?: boolean; event?: SleepEvent; plan?: SleepPlan } }> | undefined
       if (!parts) continue
 
       for (const part of parts) {
@@ -164,6 +168,15 @@ export function ChatContent({
               return [...prev, event]
             })
             setRefreshKey(k => k + 1)
+          }
+        }
+
+        // Handle updateSleepPlan tool results
+        if (part.type === 'tool-updateSleepPlan' && part.state === 'output-available' && part.output?.success && part.output?.plan) {
+          // Use message id to avoid processing the same update multiple times
+          if (!processedSleepPlanMsgIds.current.has(msg.id)) {
+            processedSleepPlanMsgIds.current.add(msg.id)
+            setSleepPlan(part.output.plan)
           }
         }
       }
@@ -583,6 +596,34 @@ export function ChatContent({
               </div>
             )
           }
+        }
+      }
+
+      // Handle tool-updateSleepPlan parts
+      if (part.type === 'tool-updateSleepPlan') {
+        const toolPart = part as unknown as {
+          state?: string
+          output?: { success: boolean; message?: string }
+        }
+        const state = toolPart.state
+        const output = toolPart.output
+
+        if (state === 'input-streaming' || state === 'input-available') {
+          return (
+            <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+              <Loader size={14} />
+              <span>Updating schedule...</span>
+            </div>
+          )
+        }
+
+        if (state === 'output-available' && output?.success) {
+          return (
+            <div key={index} className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 py-2 px-3 bg-blue-50 dark:bg-blue-950 rounded-lg my-2">
+              <span>📅</span>
+              {output.message || 'Schedule updated'}
+            </div>
+          )
         }
       }
 

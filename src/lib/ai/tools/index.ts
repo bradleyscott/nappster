@@ -5,6 +5,7 @@ import { createGetSleepHistoryTool } from './get-sleep-history'
 import { createGetChatHistoryTool } from './get-chat-history'
 import { createCreateSleepEventTool } from './create-event'
 import { createUpdatePatternNotesTool } from './update-notes'
+import { createUpdateSleepPlanTool } from './update-sleep-plan'
 
 /**
  * Creates the full set of tools for the chat route.
@@ -18,6 +19,7 @@ export function createChatTools(context: ToolContext) {
     getChatHistory: createGetChatHistoryTool(context),
     createSleepEvent: createCreateSleepEventTool(context),
     updatePatternNotes: createUpdatePatternNotesTool(context),
+    updateSleepPlan: createUpdateSleepPlanTool(context),
   }
 }
 
@@ -40,6 +42,7 @@ export { createGetSleepHistoryTool } from './get-sleep-history'
 export { createGetChatHistoryTool } from './get-chat-history'
 export { createCreateSleepEventTool } from './create-event'
 export { createUpdatePatternNotesTool } from './update-notes'
+export { createUpdateSleepPlanTool } from './update-sleep-plan'
 
 // Re-export types
 export type { ToolContext } from './types'
