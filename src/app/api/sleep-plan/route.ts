@@ -15,7 +15,7 @@ const scheduleItemSchema = z.object({
   timeWindow: z
     .string()
     .describe(
-      'Recommended time window, e.g., "9:30 - 10:00am" or "7:00 - 7:30pm"',
+      'Actual time of event or recommended time window (if in the future), e.g., "9:30 - 10:00am" or "7:00 - 7:30pm"',
     ),
   status: z
     .enum(["completed", "in_progress", "upcoming", "skipped"])
@@ -41,7 +41,7 @@ const sleepPlanSchema = z.object({
     timeWindow: z
       .string()
       .describe(
-        'When it should happen, e.g., "9:30 - 10:00am" or "Nap in progress"',
+        'When it should happen e.g., "9:30 - 10:00am" or "Nap in progress and should end 245pm"',
       ),
     isUrgent: z
       .boolean()
@@ -52,7 +52,9 @@ const sleepPlanSchema = z.object({
     .describe("Full schedule of naps and bedtime for today"),
   targetBedtime: z
     .string()
-    .describe('Target bedtime window, e.g., "7:00 - 7:30pm"'),
+    .describe(
+      'Target bedtime window, e.g., "7:00 - 7:30pm". Or actual bedtime start if already asleep',
+    ),
   summary: z.string().describe("Brief paragraph summarising the day's plan"),
 });
 
@@ -79,8 +81,9 @@ After gathering the data, generate a complete sleep plan for the day.
 ## Guidelines for the Sleep Plan
 - Base wake window recommendations on the baby's age
 - Use 12-hour format for all times (e.g., "9:30am", "7:15pm")
-- Try to keep suggested time windows within 30 minutes, but ideally within 15 minutes
+- Try to keep suggested time window range no longer than 30 minutes. Ideally within 15 minutes
 - If it's too late for a scheduled nap mark that nap as "skipped"
+- If 
 
 Current time: ${new Date().toISOString()}
 User timezone: ${timezone}
