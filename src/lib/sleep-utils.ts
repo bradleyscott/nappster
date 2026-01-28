@@ -26,7 +26,8 @@ export function formatAge(birthDate: string): string {
  * Format time for display (e.g., "8:30am")
  * Uses toLocaleTimeString with optional timezone for server-side rendering
  */
-export function formatTime(date: Date | string, timezone?: string): string {
+export function formatTime(date: Date | string | undefined | null, timezone?: string): string {
+  if (!date) return '--:--'
   const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleTimeString('en-US', {
     hour: 'numeric',

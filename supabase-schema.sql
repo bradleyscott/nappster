@@ -200,3 +200,10 @@ create policy "Users can update sleep plans for their babies"
       where user_id = auth.uid()
     )
   );
+
+-- Enable Realtime for multi-family member synchronization
+-- This allows changes made by one family member to appear in realtime for others
+-- Note: Can also be enabled via Supabase Dashboard > Database > Replication
+alter publication supabase_realtime add table public.sleep_events;
+alter publication supabase_realtime add table public.chat_messages;
+alter publication supabase_realtime add table public.sleep_plans;
