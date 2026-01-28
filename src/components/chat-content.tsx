@@ -6,9 +6,10 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import Image from 'next/image'
-import { Baby, Json, SleepEvent, SleepSession, EventType, Context } from '@/types/database'
+import { Baby, Json, SleepEvent, SleepSession, EventType, Context, SleepPlanRow, ChatMessage } from '@/types/database'
 import { formatTime, calculateDurationMinutes, findSessionForEvent } from '@/lib/sleep-utils'
 import { createClient } from '@/lib/supabase/client'
+import { useRealtimeSync } from '@/lib/hooks/use-realtime-sync'
 import { Button } from '@/components/ui/button'
 import { AppHeader } from '@/components/app-header'
 import { SleepPlanHeader } from '@/components/sleep-plan-header'
@@ -117,6 +118,9 @@ export function ChatContent({
   // Local events state for realtime updates
   const [localEvents, setLocalEvents] = useState<SleepEvent[]>([])
 
+  // Track deleted event IDs (needed for realtime deletes of events in initial/history arrays)
+  const [deletedEventIds, setDeletedEventIds] = useState<Set<string>>(new Set())
+
   // History state for loading older messages
   const [historyMessages, setHistoryMessages] = useState<ChatMessageData[]>([])
   const [historySleepEvents, setHistorySleepEvents] = useState<SleepEvent[]>([])
@@ -155,6 +159,74 @@ export function ChatContent({
 
   // Track which tool-created sleep plans we've already processed
   const processedSleepPlanMsgIds = useRef(new Set<string>())
+
+  // Track locally created events to avoid duplicates from realtime
+  const locallyCreatedEventIds = useRef(new Set<string>())
+
+  // Realtime sync for multi-family member updates
+  const { broadcastDelete } = useRealtimeSync({
+    babyId: baby.id,
+    enabled: process.env.NEXT_PUBLIC_USE_MOCK_DATA !== 'true',
+    onSleepEventChange: useCallback((event: SleepEvent, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+      // Skip events we created ourselves (already in state)
+      if (locallyCreatedEventIds.current.has(event.id) || processedToolEventIds.current.has(event.id)) {
+        return
+      }
+
+      if (changeType === 'DELETE') {
+        // Track deleted IDs to filter from initial/history arrays
+        setDeletedEventIds(prev => new Set(prev).add(event.id))
+        setLocalEvents(prev => prev.filter(e => e.id !== event.id))
+      } else {
+        setLocalEvents(prev => {
+          switch (changeType) {
+            case 'INSERT':
+              if (prev.some(e => e.id === event.id)) return prev
+              return [...prev, event]
+            case 'UPDATE':
+              // Merge update with existing event - realtime may only send changed columns
+              return prev.map(e => e.id === event.id ? { ...e, ...event } : e)
+            default:
+              return prev
+          }
+        })
+      }
+
+      // Trigger plan refresh on event changes
+      setRefreshKey(k => k + 1)
+    }, []),
+    onChatMessageChange: useCallback((message: ChatMessage, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+      // Skip messages from current session (already handled by useChat)
+      if (liveMessages.some(m => m.id === message.message_id)) {
+        return
+      }
+
+      if (changeType === 'INSERT') {
+        setHistoryMessages(prev => {
+          if (prev.some(m => m.id === message.message_id)) return prev
+          return [...prev, {
+            id: message.message_id,
+            role: message.role as 'user' | 'assistant',
+            parts: message.parts,
+            createdAt: message.created_at,
+          }]
+        })
+      }
+    }, [liveMessages]),
+    onSleepPlanChange: useCallback((plan: SleepPlanRow, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+      if (changeType === 'DELETE') {
+        setSleepPlan(null)
+      } else if (plan.is_active) {
+        setSleepPlan({
+          currentState: plan.current_state as SleepPlan['currentState'],
+          nextAction: plan.next_action as SleepPlan['nextAction'],
+          schedule: plan.schedule as SleepPlan['schedule'],
+          targetBedtime: plan.target_bedtime,
+          summary: plan.summary,
+        })
+      }
+    }, []),
+  })
 
   // Extract events created by AI tools and add them to localEvents
   // Also handle sleep plan updates from the updateSleepPlan tool
@@ -234,21 +306,21 @@ export function ChatContent({
     const combined: SleepEvent[] = []
 
     for (const event of historySleepEvents) {
-      if (!seen.has(event.id)) {
+      if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
         seen.add(event.id)
         combined.push(event)
       }
     }
 
     for (const event of initialSleepEvents) {
-      if (!seen.has(event.id)) {
+      if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
         seen.add(event.id)
         combined.push(event)
       }
     }
 
     for (const event of localEvents) {
-      if (!seen.has(event.id)) {
+      if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
         seen.add(event.id)
         combined.push(event)
       }
@@ -258,7 +330,7 @@ export function ChatContent({
     return combined.sort(
       (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
     )
-  }, [historySleepEvents, initialSleepEvents, localEvents])
+  }, [historySleepEvents, initialSleepEvents, localEvents, deletedEventIds])
 
   // Create interleaved timeline of messages and sleep events
   const timelineItems = useMemo(() => {
@@ -352,6 +424,8 @@ export function ChatContent({
       return
     }
 
+    // Track locally created event to avoid duplicate from realtime
+    locallyCreatedEventIds.current.add(data.id)
     setLocalEvents(prev => [...prev, data])
     setRefreshKey(k => k + 1)
   }, [baby.id, supabase])
@@ -417,12 +491,17 @@ export function ChatContent({
       return
     }
 
+    // Broadcast delete to other family members (RLS blocks postgres_changes for DELETE)
+    await broadcastDelete('sleep_events', selectedEvent)
+
+    // Track deleted ID to filter from initial/history arrays
+    setDeletedEventIds(prev => new Set(prev).add(selectedEvent.id))
     setLocalEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
     setRefreshKey(k => k + 1)
     setDeleteDialogOpen(false)
     setEditDialogOpen(false)
     setSelectedEvent(null)
-  }, [selectedEvent, supabase])
+  }, [selectedEvent, supabase, broadcastDelete])
 
   // Handle saving session (paired events)
   const handleSaveSession = useCallback(async (sessionData: {
@@ -492,6 +571,10 @@ export function ChatContent({
 
   // Handle deleting session
   const handleDeleteSession = useCallback(async (startId: string, endId: string | null) => {
+    // Find the events before deleting so we can broadcast them (search all events, not just local)
+    const startEvent = allSleepEvents.find(e => e.id === startId)
+    const endEvent = endId ? allSleepEvents.find(e => e.id === endId) : null
+
     const { error: startError } = await supabase
       .from('sleep_events')
       .delete()
@@ -502,6 +585,11 @@ export function ChatContent({
       return
     }
 
+    // Broadcast delete to other family members (RLS blocks postgres_changes for DELETE)
+    if (startEvent) {
+      await broadcastDelete('sleep_events', startEvent)
+    }
+
     if (endId) {
       const { error: endError } = await supabase
         .from('sleep_events')
@@ -510,14 +598,23 @@ export function ChatContent({
 
       if (endError) {
         console.error('Error deleting end event:', endError)
+      } else if (endEvent) {
+        await broadcastDelete('sleep_events', endEvent)
       }
     }
 
+    // Track deleted IDs to filter from initial/history arrays
+    setDeletedEventIds(prev => {
+      const next = new Set(prev)
+      next.add(startId)
+      if (endId) next.add(endId)
+      return next
+    })
     setLocalEvents(prev => prev.filter(e => e.id !== startId && e.id !== endId))
     setRefreshKey(k => k + 1)
     setSessionDialogOpen(false)
     setSelectedSession(null)
-  }, [supabase])
+  }, [supabase, allSleepEvents, broadcastDelete])
 
   // Handle clicking on a sleep event in the timeline
   const handleEventClick = useCallback((event: SleepEvent) => {
