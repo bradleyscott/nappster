@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { RealtimeChannel, RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { SleepEvent, ChatMessage, SleepPlanRow } from '@/types/database'
 
@@ -157,16 +157,17 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
         }
       })
       .subscribe((status, error) => {
-        if (status === 'SUBSCRIBING') {
-          updateConnectionStatus('connecting')
-        } else if (status === 'SUBSCRIBED') {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
           updateConnectionStatus('connected')
           reconnectAttempts.current = 0
-        } else if (status === 'CHANNEL_ERROR') {
+        } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
           updateConnectionStatus('error', error ?? undefined)
           scheduleReconnect()
-        } else if (status === 'CLOSED') {
+        } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
           updateConnectionStatus('disconnected')
+        } else if (status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT) {
+          updateConnectionStatus('error', new Error('Connection timed out'))
+          scheduleReconnect()
         }
       })
 
