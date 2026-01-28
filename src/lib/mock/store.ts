@@ -1,4 +1,5 @@
-import { Baby, FamilyMember, SleepEvent, ChatMessage } from '@/types/database'
+import { Baby, FamilyMember, SleepEvent, ChatMessage, SleepPlan } from '@/types/database'
+import { computeEventsHash } from '@/lib/sleep-utils'
 
 // Mock user matching Supabase auth user structure
 export const MOCK_USER = {
@@ -44,7 +45,71 @@ export const mockStore = {
   sleep_events: generateTodayEvents(),
 
   chat_messages: generateSampleChatHistory(),
+
+  sleep_plans: [] as SleepPlan[],
 }
+
+// Generate initial sleep plan based on today's events
+function generateInitialSleepPlan(): void {
+  const events = mockStore.sleep_events
+  if (events.length === 0) return
+
+  const today = new Date().toISOString().split('T')[0]
+  const eventsHash = computeEventsHash(events)
+
+  const plan: SleepPlan = {
+    id: 'mock-plan-001',
+    baby_id: MOCK_BABY_ID,
+    current_state: 'daytime_awake',
+    next_action: {
+      label: 'Nap 2',
+      timeWindow: '1:00 - 1:30pm',
+      isUrgent: false,
+    },
+    schedule: [
+      {
+        type: 'nap',
+        label: 'Nap 1',
+        timeWindow: '9:30am',
+        status: 'completed',
+        notes: 'First nap of the day',
+      },
+      {
+        type: 'nap',
+        label: 'Nap 2',
+        timeWindow: '1:00 - 1:30pm',
+        status: 'upcoming',
+        notes: 'Aim for a longer nap',
+      },
+      {
+        type: 'nap',
+        label: 'Nap 3',
+        timeWindow: '4:00 - 4:30pm',
+        status: 'upcoming',
+        notes: 'Short catnap if needed',
+      },
+      {
+        type: 'bedtime',
+        label: 'Bedtime',
+        timeWindow: '7:00 - 7:30pm',
+        status: 'upcoming',
+        notes: 'Target bedtime',
+      },
+    ],
+    target_bedtime: '7:00 - 7:30pm',
+    summary: "Luna had a 30-minute morning nap. Aim for a longer afternoon nap around 1pm. If she takes a third nap, keep it short and before 5pm to protect bedtime.",
+    events_hash: eventsHash,
+    plan_date: today,
+    is_active: true,
+    created_by: MOCK_USER_ID,
+    created_at: new Date().toISOString(),
+  }
+
+  mockStore.sleep_plans.push(plan)
+}
+
+// Initialize sleep plan after events are generated
+generateInitialSleepPlan()
 
 function generateSampleChatHistory(): ChatMessage[] {
   const messages: ChatMessage[] = []
@@ -202,7 +267,7 @@ function generateTodayEvents(): SleepEvent[] {
 let eventIdCounter = 100
 
 export function insertRecord<T>(
-  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages',
+  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans',
   record: Record<string, unknown>
 ): T {
   const newRecord = {
@@ -213,4 +278,29 @@ export function insertRecord<T>(
 
   ;(mockStore[table] as T[]).push(newRecord)
   return newRecord
+}
+
+export function updateRecord<T>(
+  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans',
+  filter: Record<string, unknown>,
+  updates: Record<string, unknown>
+): T[] {
+  const records = mockStore[table] as Record<string, unknown>[]
+  const updated: T[] = []
+
+  for (const record of records) {
+    let matches = true
+    for (const [key, value] of Object.entries(filter)) {
+      if (record[key] !== value) {
+        matches = false
+        break
+      }
+    }
+    if (matches) {
+      Object.assign(record, updates)
+      updated.push(record as T)
+    }
+  }
+
+  return updated
 }
