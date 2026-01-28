@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { computeEventsHash } from '@/lib/sleep-utils'
-import { SleepPlanRow, NextAction, ScheduleItem, CurrentState } from '@/types/database'
+import { SleepPlanRow } from '@/types/database'
+import { CURRENT_STATE_VALUES } from '@/types/database'
+import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
+
+// Schemas for validating JSON fields from database
+const nextActionSchema = sleepPlanSchema.shape.nextAction
+const scheduleSchema = sleepPlanSchema.shape.schedule
+const currentStateSchema = z.enum(CURRENT_STATE_VALUES)
 
 type RouteParams = Promise<{ babyId: string }>
 
 /**
- * Convert database row to client-friendly camelCase format
+ * Convert database row to client-friendly camelCase format.
+ * Uses Zod validation for JSON fields to ensure type safety.
  */
 function rowToClientPlan(row: SleepPlanRow) {
+  const currentState = currentStateSchema.parse(row.current_state)
+  const nextAction = nextActionSchema.parse(row.next_action)
+  const schedule = scheduleSchema.parse(row.schedule)
+
   return {
-    currentState: row.current_state as CurrentState,
-    nextAction: row.next_action as unknown as NextAction,
-    schedule: row.schedule as unknown as ScheduleItem[],
+    currentState,
+    nextAction,
+    schedule,
     targetBedtime: row.target_bedtime,
     summary: row.summary,
     eventsHash: row.events_hash,

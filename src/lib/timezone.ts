@@ -51,3 +51,16 @@ export function getYesterdayBoundsForTimezone(timezone: string): { start: string
   }
 }
 
+/**
+ * Get the start of a day N days ago in the user's timezone, returned as UTC ISO string
+ * for database queries.
+ */
+export function getStartOfDaysAgoForTimezone(timezone: string, days: number): string {
+  const now = new Date()
+  const zonedNow = toZonedTime(now, timezone)
+  const zonedPast = subDays(zonedNow, days)
+  const zonedStart = startOfDay(zonedPast)
+  const utcStart = fromZonedTime(zonedStart, timezone)
+  return utcStart.toISOString()
+}
+

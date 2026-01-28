@@ -4,112 +4,66 @@ import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createReadOnlyTools } from "@/lib/ai/tools";
-import { formatTime, computeEventsHash } from "@/lib/sleep-utils";
-import { CURRENT_STATE_VALUES } from "@/types/database";
+import { computeEventsHash } from "@/lib/sleep-utils";
+import { sleepPlanSchema } from "@/lib/ai/schemas/sleep-plan";
+import { buildSleepPlanSystemPrompt } from "@/lib/ai/prompts";
 
-// Schema for individual schedule items
-const scheduleItemSchema = z.object({
-  type: z.enum(["nap", "bedtime"]).describe("Type of sleep event"),
-  label: z
-    .string()
-    .describe('Display label, e.g., "Nap 1", "Nap 2", "Bedtime"'),
-  timeWindow: z
-    .string()
-    .describe(
-      'Actual time of event or recommended time window (if in the future), e.g., "9:30 - 10:00am" or "7:00 - 7:30pm"',
-    ),
-  status: z
-    .enum(["completed", "in_progress", "upcoming", "skipped"])
-    .describe(
-      "Whether this item is completed, in progress, upcoming, or should be skipped",
-    ),
-  notes: z
-    .string()
-    .describe(
-      "Notes describing the rationale for this timing of this schedule item and any special instructions",
-    ),
+export type { SleepPlan, ScheduleItem } from "@/lib/ai/schemas/sleep-plan";
+
+// Schema for sleep plan request validation
+const sleepPlanRequestSchema = z.object({
+  babyId: z.string().uuid(),
+  timezone: z.string().default("UTC"),
 });
-
-// Main sleep plan schema
-const sleepPlanSchema = z.object({
-  currentState: z
-    .enum(CURRENT_STATE_VALUES)
-    .describe("Current state of the baby's day"),
-  nextAction: z.object({
-    label: z
-      .string()
-      .describe('What should happen next, e.g., "Nap 1", "Bedtime", "Wake up"'),
-    timeWindow: z
-      .string()
-      .describe(
-        'When it should happen e.g., "9:30 - 10:00am" or "Nap in progress and should end 245pm"',
-      ),
-    isUrgent: z
-      .boolean()
-      .describe("True if the recommended time is within 30 minutes"),
-  }),
-  schedule: z
-    .array(scheduleItemSchema)
-    .describe("Full schedule of naps and bedtime for today"),
-  targetBedtime: z
-    .string()
-    .describe(
-      'Target bedtime window, e.g., "7:00 - 7:30pm". Or actual bedtime start if already asleep',
-    ),
-  summary: z.string().describe("Brief paragraph summarising the day's plan"),
-});
-
-export type SleepPlan = z.infer<typeof sleepPlanSchema>;
-export type ScheduleItem = z.infer<typeof scheduleItemSchema>;
-
-/**
- * Build a system prompt that instructs the AI to use tools before generating the plan.
- */
-function buildToolBasedSystemPrompt(timezone: string): string {
-  return `You are an expert baby sleep consultant. Your task is to create a detailed sleep plan for today.
-
-## IMPORTANT: Tool Usage Required
-
-Before generating the sleep plan, you MUST call these tools to get context:
-1. **getBabyProfile** - Call this FIRST to learn the baby's name, age, and known patterns
-2. **getTodayEvents** - Call this to see what has happened today
-
-Optionally, you may also call:
-- **getSleepHistory** - Get up to 30 days of history for trend analysis (7 days by default)
-
-After gathering the data, generate a complete sleep plan for the day.
-
-## Guidelines for the Sleep Plan
-- Base wake window recommendations on the baby's age
-- Use 12-hour format for all times (e.g., "9:30am", "7:15pm")
-- Try to keep suggested time window range no longer than 30 minutes. Ideally within 15 minutes
-- If it's too late for a scheduled nap mark that nap as "skipped"
-- If 
-
-Current time: ${new Date().toISOString()}
-User timezone: ${timezone}
-Local time for user: ${formatTime(new Date(), timezone)}
-`;
-}
 
 export async function POST(req: Request) {
   try {
-    const { babyId, timezone = "UTC" } = (await req.json()) as {
-      babyId: string;
-      timezone?: string;
-    };
+    const parseResult = sleepPlanRequestSchema.safeParse(await req.json());
+    if (!parseResult.success) {
+      return new Response(
+        JSON.stringify({
+          error: "Invalid request body",
+          details: parseResult.error.flatten(),
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const { babyId, timezone } = parseResult.data;
 
     const supabase = await createClient();
 
-    // Get current user for created_by field
+    // Verify user is authenticated
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify user has access to this baby
+    const { data: membership } = await supabase
+      .from("family_members")
+      .select("id")
+      .eq("baby_id", babyId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Create tool context - no upfront data fetching, AI will use tools
     const toolContext = { supabase, babyId, timezone };
 
-    const systemPrompt = buildToolBasedSystemPrompt(timezone);
+    const systemPrompt = buildSleepPlanSystemPrompt(timezone);
 
     const result = streamText({
       model: openai("gpt-5.2"),
