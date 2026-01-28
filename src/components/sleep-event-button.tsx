@@ -15,7 +15,6 @@ interface SleepEventButtonProps {
 }
 
 export function SleepEventButton({
-  eventType,
   label,
   icon,
   onClick,
