@@ -1,29 +1,7 @@
 import { tool } from 'ai'
-import { z } from 'zod'
 import { ToolContext } from './types'
-import { CURRENT_STATE_VALUES } from '@/types/database'
 import { computeEventsHash } from '@/lib/sleep-utils'
-
-const scheduleItemSchema = z.object({
-  type: z.enum(['nap', 'bedtime']),
-  label: z.string().describe('Display label (e.g., "Nap 1", "Bedtime")'),
-  timeWindow: z.string().describe('Time range in 12-hour format (e.g., "9:30 - 10:00am")'),
-  status: z.enum(['completed', 'in_progress', 'upcoming', 'skipped']),
-  notes: z.string().describe('Brief rationale for this timing'),
-})
-
-const sleepPlanSchema = z.object({
-  currentState: z.enum(CURRENT_STATE_VALUES)
-    .describe("Current state of the baby's day"),
-  nextAction: z.object({
-    label: z.string().describe('What should happen next (e.g., "Nap 1", "Bedtime")'),
-    timeWindow: z.string().describe('When it should happen (e.g., "9:30 - 10:00am")'),
-    isUrgent: z.boolean().describe('True if within 30 minutes'),
-  }),
-  schedule: z.array(scheduleItemSchema).describe('Full schedule for the rest of the day'),
-  targetBedtime: z.string().describe('Target bedtime (e.g., "7:00 - 7:30pm")'),
-  summary: z.string().describe('Brief summary of the recommended plan'),
-})
+import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
 
 /**
  * Creates a tool that updates the displayed sleep plan and persists it to the database.

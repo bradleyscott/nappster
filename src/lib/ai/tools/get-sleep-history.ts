@@ -2,6 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
 import { formatTime } from '@/lib/sleep-utils'
+import { getStartOfDaysAgoForTimezone } from '@/lib/timezone'
 
 /**
  * Creates a tool that retrieves sleep history for up to 30 days.
@@ -24,14 +25,13 @@ Examples of when to use:
         .describe('Number of days of history to retrieve (1-30, default 7)'),
     }),
     execute: async ({ days }) => {
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - days)
+      const startDate = getStartOfDaysAgoForTimezone(timezone, days)
 
       const { data: historyEvents, error } = await supabase
         .from('sleep_events')
         .select('*')
         .eq('baby_id', babyId)
-        .gte('event_time', startDate.toISOString())
+        .gte('event_time', startDate)
         .order('event_time', { ascending: true })
 
       if (error) {

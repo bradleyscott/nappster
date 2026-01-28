@@ -14,6 +14,23 @@ export async function GET(req: NextRequest) {
 
     const supabase = await createClient()
 
+    // Get current user and verify they have access to this baby
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: familyMember } = await supabase
+      .from('family_members')
+      .select('id')
+      .eq('baby_id', babyId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (!familyMember) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Build query - fetch in descending order, then reverse for chronological
     let query = supabase
       .from('chat_messages')

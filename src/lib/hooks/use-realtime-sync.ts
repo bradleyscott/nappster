@@ -2,10 +2,47 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { RealtimeChannel, RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { SleepEvent, ChatMessage, SleepPlanRow } from '@/types/database'
 
 type ChangeEvent = 'INSERT' | 'UPDATE' | 'DELETE'
+
+// Zod schemas for runtime validation of realtime payloads
+const sleepEventSchema = z.object({
+  id: z.string(),
+  baby_id: z.string(),
+  event_type: z.string(),
+  event_time: z.string(),
+  end_time: z.string().nullable(),
+  context: z.string().nullable(),
+  notes: z.string().nullable(),
+  created_at: z.string(),
+})
+
+const chatMessageSchema = z.object({
+  id: z.string(),
+  baby_id: z.string(),
+  message_id: z.string(),
+  role: z.string(),
+  parts: z.unknown(),
+  created_at: z.string(),
+})
+
+const sleepPlanSchema = z.object({
+  id: z.string(),
+  baby_id: z.string(),
+  current_state: z.string(),
+  next_action: z.unknown(),
+  schedule: z.unknown(),
+  target_bedtime: z.string(),
+  summary: z.string(),
+  events_hash: z.string(),
+  plan_date: z.string(),
+  is_active: z.boolean(),
+  created_by: z.string().nullable(),
+  created_at: z.string(),
+})
 
 interface RealtimeSyncOptions {
   babyId: string
@@ -81,15 +118,27 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
       const record = changeType === 'DELETE' ? payload.old : payload.new
 
       switch (table) {
-        case 'sleep_events':
-          onSleepEventChangeRef.current?.(record as unknown as SleepEvent, changeType)
+        case 'sleep_events': {
+          const parsed = sleepEventSchema.safeParse(record)
+          if (parsed.success) {
+            onSleepEventChangeRef.current?.(parsed.data as SleepEvent, changeType)
+          }
           break
-        case 'chat_messages':
-          onChatMessageChangeRef.current?.(record as unknown as ChatMessage, changeType)
+        }
+        case 'chat_messages': {
+          const parsed = chatMessageSchema.safeParse(record)
+          if (parsed.success) {
+            onChatMessageChangeRef.current?.(parsed.data as ChatMessage, changeType)
+          }
           break
-        case 'sleep_plans':
-          onSleepPlanChangeRef.current?.(record as unknown as SleepPlanRow, changeType)
+        }
+        case 'sleep_plans': {
+          const parsed = sleepPlanSchema.safeParse(record)
+          if (parsed.success) {
+            onSleepPlanChangeRef.current?.(parsed.data as SleepPlanRow, changeType)
+          }
           break
+        }
       }
     },
     []
@@ -145,15 +194,27 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
       .on('broadcast', { event: 'delete' }, (payload) => {
         const { table, record } = payload.payload as { table: string; record: Record<string, unknown> }
         switch (table) {
-          case 'sleep_events':
-            onSleepEventChangeRef.current?.(record as unknown as SleepEvent, 'DELETE')
+          case 'sleep_events': {
+            const parsed = sleepEventSchema.safeParse(record)
+            if (parsed.success) {
+              onSleepEventChangeRef.current?.(parsed.data as SleepEvent, 'DELETE')
+            }
             break
-          case 'chat_messages':
-            onChatMessageChangeRef.current?.(record as unknown as ChatMessage, 'DELETE')
+          }
+          case 'chat_messages': {
+            const parsed = chatMessageSchema.safeParse(record)
+            if (parsed.success) {
+              onChatMessageChangeRef.current?.(parsed.data as ChatMessage, 'DELETE')
+            }
             break
-          case 'sleep_plans':
-            onSleepPlanChangeRef.current?.(record as unknown as SleepPlanRow, 'DELETE')
+          }
+          case 'sleep_plans': {
+            const parsed = sleepPlanSchema.safeParse(record)
+            if (parsed.success) {
+              onSleepPlanChangeRef.current?.(parsed.data as SleepPlanRow, 'DELETE')
+            }
             break
+          }
         }
       })
       .subscribe((status, error) => {
