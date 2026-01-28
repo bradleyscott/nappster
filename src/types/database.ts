@@ -144,6 +144,59 @@ export type Database = {
           }
         ]
       }
+      sleep_plans: {
+        Row: {
+          id: string
+          baby_id: string
+          current_state: string
+          next_action: Json
+          schedule: Json
+          target_bedtime: string
+          summary: string
+          events_hash: string
+          plan_date: string
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          baby_id: string
+          current_state: string
+          next_action: Json
+          schedule: Json
+          target_bedtime: string
+          summary: string
+          events_hash: string
+          plan_date?: string
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          baby_id?: string
+          current_state?: string
+          next_action?: Json
+          schedule?: Json
+          target_bedtime?: string
+          summary?: string
+          events_hash?: string
+          plan_date?: string
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleep_plans_baby_id_fkey"
+            columns: ["baby_id"]
+            isOneToOne: false
+            referencedRelation: "babies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -198,5 +251,40 @@ export type ChatMessage = Database['public']['Tables']['chat_messages']['Row']
 export interface ChatHistoryMessage {
   role: 'user' | 'assistant'
   text: string
+  created_at: string
+}
+
+// Sleep plan types
+export type SleepPlanRow = Database['public']['Tables']['sleep_plans']['Row']
+
+export type ScheduleItemStatus = 'completed' | 'in_progress' | 'upcoming' | 'skipped'
+
+export interface ScheduleItem {
+  type: 'nap' | 'bedtime'
+  label: string
+  timeWindow: string
+  status: ScheduleItemStatus
+  notes: string
+}
+
+export interface NextAction {
+  label: string
+  timeWindow: string
+  isUrgent: boolean
+}
+
+// Full sleep plan with typed nested objects (for use in app code)
+export interface SleepPlan {
+  id: string
+  baby_id: string
+  current_state: CurrentState
+  next_action: NextAction
+  schedule: ScheduleItem[]
+  target_bedtime: string
+  summary: string
+  events_hash: string
+  plan_date: string
+  is_active: boolean
+  created_by: string | null
   created_at: string
 }

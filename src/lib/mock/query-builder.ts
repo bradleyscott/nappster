@@ -1,6 +1,6 @@
 import { mockStore, insertRecord } from './store'
 
-type TableName = 'babies' | 'family_members' | 'sleep_events' | 'chat_messages'
+type TableName = 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans'
 type FilterOp = 'eq' | 'gte' | 'lt' | 'in'
 
 interface Filter {
@@ -163,7 +163,7 @@ export class MockQueryBuilder<T = unknown> {
 
   private async executeUpdate(): Promise<QueryResult<T>> {
     const table = mockStore[this.tableName] as T[]
-    let updated: T | null = null
+    const updated: T[] = []
 
     for (let i = 0; i < table.length; i++) {
       const record = table[i] as Record<string, unknown>
@@ -177,12 +177,12 @@ export class MockQueryBuilder<T = unknown> {
 
       if (matches) {
         table[i] = { ...table[i], ...this.updateData } as T
-        updated = table[i]
-        break
+        updated.push(table[i])
       }
     }
 
-    return { data: updated, error: null }
+    // Return last updated for single(), all updated for array
+    return { data: updated.length > 0 ? updated[updated.length - 1] : null, error: null }
   }
 
   private async executeDelete(): Promise<QueryResult<T>> {

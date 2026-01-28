@@ -1,7 +1,7 @@
 import { mockAuth } from './auth'
 import { createQueryBuilder } from './query-builder'
 
-type TableName = 'babies' | 'family_members' | 'sleep_events' | 'chat_messages'
+type TableName = 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans'
 
 export function createMockClient() {
   return {

@@ -147,3 +147,56 @@ create policy "Users can insert chat messages for their babies"
       where user_id = auth.uid()
     )
   );
+
+-- Sleep plans table (persists AI-generated sleep schedules, shared across family members)
+create table if not exists public.sleep_plans (
+  id uuid primary key default gen_random_uuid(),
+  baby_id uuid references public.babies(id) on delete cascade not null,
+  current_state text not null check (current_state in ('overnight_sleep', 'nighttime_wake', 'daytime_napping', 'daytime_awake')),
+  next_action jsonb not null,
+  schedule jsonb not null,
+  target_bedtime text not null,
+  summary text not null,
+  events_hash text not null,
+  plan_date date not null default current_date,
+  is_active boolean not null default true,
+  created_by uuid references auth.users(id),
+  created_at timestamp with time zone default now()
+);
+
+-- Index for fetching active plan by baby
+create index if not exists idx_sleep_plans_baby_active on public.sleep_plans(baby_id, is_active, created_at desc);
+
+-- Index for history queries by date
+create index if not exists idx_sleep_plans_baby_date on public.sleep_plans(baby_id, plan_date);
+
+-- Enable Row Level Security
+alter table public.sleep_plans enable row level security;
+
+-- RLS Policies for sleep_plans table
+create policy "Users can view sleep plans for their babies"
+  on public.sleep_plans for select
+  using (
+    baby_id in (
+      select baby_id from public.family_members
+      where user_id = auth.uid()
+    )
+  );
+
+create policy "Users can insert sleep plans for their babies"
+  on public.sleep_plans for insert
+  with check (
+    baby_id in (
+      select baby_id from public.family_members
+      where user_id = auth.uid()
+    )
+  );
+
+create policy "Users can update sleep plans for their babies"
+  on public.sleep_plans for update
+  using (
+    baby_id in (
+      select baby_id from public.family_members
+      where user_id = auth.uid()
+    )
+  );

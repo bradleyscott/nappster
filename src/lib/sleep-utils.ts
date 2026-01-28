@@ -456,3 +456,26 @@ export function findSessionForEvent(event: SleepEvent, events: SleepEvent[]): Sl
 
   return null
 }
+
+/**
+ * Compute a deterministic hash of sleep events for cache invalidation.
+ * Only includes fields that affect the sleep plan: id, event_time, event_type.
+ * Works in both browser and server environments.
+ */
+export function computeEventsHash(events: Array<{ id: string; event_time: string; event_type: string }>): string {
+  // Create a normalized string of event data, sorted by id for consistency
+  const normalized = events
+    .map(e => `${e.id}:${e.event_time}:${e.event_type}`)
+    .sort()
+    .join('|')
+
+  // Simple djb2 hash algorithm - fast and works in browser
+  let hash = 5381
+  for (let i = 0; i < normalized.length; i++) {
+    hash = ((hash << 5) + hash) + normalized.charCodeAt(i)
+    hash = hash & hash // Convert to 32-bit integer
+  }
+
+  // Convert to hex string, ensuring positive value
+  return (hash >>> 0).toString(16).padStart(8, '0')
+}

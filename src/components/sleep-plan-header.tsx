@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { z } from 'zod'
 import { Baby, SleepEvent, CURRENT_STATE_VALUES } from '@/types/database'
@@ -11,6 +11,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { ChevronDown } from 'lucide-react'
+import { computeEventsHash } from '@/lib/sleep-utils'
 
 // Schema matching the API
 const scheduleItemSchema = z.object({
@@ -42,37 +43,6 @@ interface SleepPlanHeaderProps {
   baby: Baby
   refreshKey?: number
   onPlanChange?: (plan: SleepPlan | null) => void
-}
-
-// Generate a cache key based on events
-function getEventsCacheKey(babyId: string, events: SleepEvent[]): string {
-  const eventsHash = events
-    .map((e) => `${e.id}:${e.event_time}:${e.event_type}`)
-    .join('|')
-  return `sleep-plan:${babyId}:${eventsHash}`
-}
-
-// Cache helpers
-function getCachedPlan(key: string): SleepPlan | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const cached = sessionStorage.getItem(key)
-    if (cached) {
-      return JSON.parse(cached)
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return null
-}
-
-function setCachedPlan(key: string, plan: SleepPlan): void {
-  if (typeof window === 'undefined') return
-  try {
-    sessionStorage.setItem(key, JSON.stringify(plan))
-  } catch {
-    // Ignore storage errors
-  }
 }
 
 // Status icons and colors for schedule items
@@ -110,58 +80,91 @@ export function SleepPlanHeader({
   onPlanChange,
 }: SleepPlanHeaderProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [persistedPlan, setPersistedPlan] = useState<SleepPlan | null>(null)
+  const [isFetching, setIsFetching] = useState(true)
 
   const { object, submit, isLoading, error } = useObject({
     api: '/api/sleep-plan',
     schema: sleepPlanSchema,
   })
 
-  // Cache management
-  const cacheKey = getEventsCacheKey(babyId, events)
-  const lastCacheKeyRef = useRef<string>('')
+  // Track refs for change detection
+  const lastEventsHashRef = useRef<string>('')
   const lastRefreshKeyRef = useRef<number>(refreshKey ?? 0)
-  const isSubmittingRef = useRef(false)
-  const [cachedPlan, setCachedState] = useState<SleepPlan | null>(null)
+  const isRegeneratingRef = useRef(false)
 
-  // Load cached plan after hydration
-  useEffect(() => {
-    const cached = getCachedPlan(cacheKey)
-    if (cached) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external sessionStorage
-      setCachedState(cached)
-      onPlanChange?.(cached)
-    }
-  }, [cacheKey, onPlanChange])
+  // Compute current events hash
+  const currentEventsHash = computeEventsHash(events)
 
-  // Request plan when events change
-  useEffect(() => {
-    if (events.length === 0) return
-    if (isSubmittingRef.current) return
-
-    const cached = getCachedPlan(cacheKey)
-    const refreshKeyChanged =
-      refreshKey !== undefined && refreshKey !== lastRefreshKeyRef.current
-
-    if (cached && cacheKey === lastCacheKeyRef.current && !refreshKeyChanged) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external sessionStorage
-      setCachedState(cached)
-      return
-    }
-
-    if (cached && lastCacheKeyRef.current === '' && !refreshKeyChanged) {
-      lastCacheKeyRef.current = cacheKey
-      setCachedState(cached)
-      return
-    }
-
-    lastCacheKeyRef.current = cacheKey
-    lastRefreshKeyRef.current = refreshKey ?? 0
-    isSubmittingRef.current = true
+  // Trigger regeneration
+  const triggerRegeneration = useCallback(() => {
+    if (isRegeneratingRef.current) return
+    isRegeneratingRef.current = true
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     submit({ babyId, events, baby, timezone })
-  }, [cacheKey, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [babyId, events, baby, submit])
 
-  // Update cache when we get a result
+  // Fetch persisted plan from database
+  useEffect(() => {
+    if (events.length === 0) {
+      setIsFetching(false)
+      return
+    }
+
+    const refreshKeyChanged =
+      refreshKey !== undefined && refreshKey !== lastRefreshKeyRef.current
+    const eventsChanged = currentEventsHash !== lastEventsHashRef.current
+
+    // Update refs
+    lastEventsHashRef.current = currentEventsHash
+    lastRefreshKeyRef.current = refreshKey ?? 0
+
+    // If refresh was manually triggered, skip fetching and regenerate
+    if (refreshKeyChanged) {
+      triggerRegeneration()
+      return
+    }
+
+    // Fetch the persisted plan
+    async function fetchPlan() {
+      try {
+        setIsFetching(true)
+        const res = await fetch(`/api/sleep-plan/${babyId}`)
+
+        if (!res.ok) {
+          // No persisted plan, need to generate
+          triggerRegeneration()
+          return
+        }
+
+        const data = await res.json()
+
+        if (!data.plan || data.stale) {
+          // Plan doesn't exist or is stale, regenerate
+          triggerRegeneration()
+          return
+        }
+
+        // We have a valid, fresh plan from the database
+        setPersistedPlan(data.plan)
+        onPlanChange?.(data.plan)
+        isRegeneratingRef.current = false
+      } catch (err) {
+        console.error('Error fetching persisted plan:', err)
+        // On error, try to regenerate
+        triggerRegeneration()
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    // Only fetch if events changed or we don't have a plan yet
+    if (eventsChanged || !persistedPlan) {
+      fetchPlan()
+    }
+  }, [babyId, currentEventsHash, refreshKey, events.length, triggerRegeneration, onPlanChange, persistedPlan])
+
+  // Update state when streaming completes
   useEffect(() => {
     if (
       object?.currentState &&
@@ -170,18 +173,16 @@ export function SleepPlanHeader({
       object?.targetBedtime
     ) {
       const plan = object as SleepPlan
-      setCachedPlan(cacheKey, plan)
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing streaming result to local state
-      setCachedState(plan)
-      isSubmittingRef.current = false
+      setPersistedPlan(plan)
+      isRegeneratingRef.current = false
       onPlanChange?.(plan)
     }
-  }, [object, cacheKey, onPlanChange])
+  }, [object, onPlanChange])
 
-  // Reset submitting flag on error
+  // Reset regenerating flag on error
   useEffect(() => {
     if (error) {
-      isSubmittingRef.current = false
+      isRegeneratingRef.current = false
     }
   }, [error])
 
@@ -196,14 +197,15 @@ export function SleepPlanHeader({
     )
   }
 
+  // Determine what to display: streaming object takes priority, then persisted plan
   const displayPlan = (
     object?.currentState && object?.nextAction && object?.schedule && object?.targetBedtime
       ? object
-      : cachedPlan
+      : persistedPlan
   ) as SleepPlan | null
 
   // Loading state
-  if ((isLoading || !displayPlan) && !cachedPlan) {
+  if ((isFetching || isLoading || !displayPlan) && !persistedPlan) {
     return (
       <div className="border-b px-4 py-3">
         <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
@@ -230,7 +232,7 @@ export function SleepPlanHeader({
     )
   }
 
-  if (!displayPlan) return null
+  if (!displayPlan || !displayPlan.nextAction) return null
 
   const { nextAction, schedule, targetBedtime, summary } = displayPlan
 

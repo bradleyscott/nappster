@@ -2,6 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
 import { CURRENT_STATE_VALUES } from '@/types/database'
+import { computeEventsHash } from '@/lib/sleep-utils'
 
 const scheduleItemSchema = z.object({
   type: z.enum(['nap', 'bedtime']),
@@ -25,12 +26,11 @@ const sleepPlanSchema = z.object({
 })
 
 /**
- * Creates a tool that updates the displayed sleep plan.
+ * Creates a tool that updates the displayed sleep plan and persists it to the database.
  * Use this when the AI recommends a different schedule than what's currently shown.
  */
 export function createUpdateSleepPlanTool(context: ToolContext) {
-  // context is available but not needed for this tool since it doesn't access the database
-  void context
+  const { supabase, babyId } = context
 
   return tool({
     description: `Update the displayed sleep plan when recommending a different schedule than what the baby currently has.
@@ -41,16 +41,79 @@ Use this tool when:
 - You're creating a modified schedule based on how the day has gone
 - The parent asks what the rest of the day should look like
 
-The plan you provide will replace the currently displayed schedule in the app.
+The plan you provide will replace the currently displayed schedule in the app and be shared with all family members.
 Use 12-hour format for all times (e.g., "9:30am", "7:15pm").
 Set isUrgent to true if the next action should happen within 30 minutes.
 Mark completed naps/events with status "completed", current activity as "in_progress", future items as "upcoming".`,
     inputSchema: sleepPlanSchema,
     execute: async (plan) => {
-      return {
-        success: true,
-        plan,
-        message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
+      try {
+        const today = new Date().toISOString().split('T')[0]
+
+        // Get today's events to compute hash
+        const { data: events } = await supabase
+          .from('sleep_events')
+          .select('id, event_time, event_type')
+          .eq('baby_id', babyId)
+          .gte('event_time', `${today}T00:00:00`)
+          .order('event_time', { ascending: true })
+
+        const eventsHash = computeEventsHash(events || [])
+
+        // Get current user for created_by field
+        const { data: { user } } = await supabase.auth.getUser()
+
+        // Mark existing active plans as inactive
+        await supabase
+          .from('sleep_plans')
+          .update({ is_active: false })
+          .eq('baby_id', babyId)
+          .eq('is_active', true)
+
+        // Insert the new plan
+        const { data: savedPlan, error } = await supabase
+          .from('sleep_plans')
+          .insert({
+            baby_id: babyId,
+            current_state: plan.currentState,
+            next_action: plan.nextAction,
+            schedule: plan.schedule,
+            target_bedtime: plan.targetBedtime,
+            summary: plan.summary,
+            events_hash: eventsHash,
+            plan_date: today,
+            is_active: true,
+            created_by: user?.id ?? null,
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Error persisting sleep plan from chat:', error)
+          // Return the plan anyway for UI update, even if persistence failed
+          return {
+            success: true,
+            plan,
+            persisted: false,
+            message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
+          }
+        }
+
+        return {
+          success: true,
+          plan: savedPlan,
+          persisted: true,
+          message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
+        }
+      } catch (err) {
+        console.error('Error in updateSleepPlan tool:', err)
+        // Return the plan for UI update even if persistence failed
+        return {
+          success: true,
+          plan,
+          persisted: false,
+          message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
+        }
       }
     },
   })
