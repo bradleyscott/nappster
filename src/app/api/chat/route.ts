@@ -5,6 +5,13 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createChatTools } from "@/lib/ai/tools";
 import { buildChatSystemPrompt } from "@/lib/ai/prompts";
+import {
+  requireBabyAccess,
+  apiError,
+  apiValidationError,
+  authErrorResponse,
+} from "@/lib/api";
+import { Json } from "@/types/database";
 
 // Schema for validating critical request fields
 // Messages are validated by the SDK itself
@@ -26,13 +33,7 @@ export async function POST(req: Request) {
     // Validate critical fields
     const fieldsResult = requestFieldsSchema.safeParse(body);
     if (!fieldsResult.success) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid request body",
-          details: fieldsResult.error.flatten(),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return apiValidationError(fieldsResult.error.flatten());
     }
 
     // Extract fields with defaults
@@ -42,13 +43,16 @@ export async function POST(req: Request) {
     const showThinking = fieldsResult.data.showThinking ?? false;
 
     if (!Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: "messages must be an array" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return apiError("messages must be an array", 400);
     }
 
     const supabase = await createClient();
+
+    // Verify user has access to this baby
+    const auth = await requireBabyAccess(supabase, babyId);
+    if (!auth.success) {
+      return authErrorResponse(auth);
+    }
 
     // Create tool context - no upfront data fetching, AI will use tools
     const toolContext = { supabase, babyId, timezone };
@@ -73,6 +77,29 @@ export async function POST(req: Request) {
     // Save messages to database after stream completes
     // Using after() ensures this runs to completion even in serverless environments
     after(async () => {
+      const maxRetries = 2;
+
+      // Helper to save with retry logic
+      async function saveWithRetry(
+        data: { baby_id: string; message_id: string; role: string; parts: Json },
+        attempt = 1
+      ): Promise<boolean> {
+        const { error } = await supabase.from("chat_messages").insert(data);
+        if (error) {
+          if (attempt < maxRetries) {
+            // Exponential backoff: 100ms, 200ms
+            await new Promise((r) => setTimeout(r, 100 * attempt));
+            return saveWithRetry(data, attempt + 1);
+          }
+          console.error(
+            `Failed to save chat message after ${maxRetries} attempts:`,
+            { messageId: data.message_id, role: data.role, error }
+          );
+          return false;
+        }
+        return true;
+      }
+
       try {
         // Save the user message
         const lastUserMessage = messages[messages.length - 1] as {
@@ -81,7 +108,7 @@ export async function POST(req: Request) {
           parts?: unknown[];
         } | undefined;
         if (lastUserMessage?.role === "user" && lastUserMessage.id) {
-          await supabase.from("chat_messages").insert({
+          await saveWithRetry({
             baby_id: babyId,
             message_id: lastUserMessage.id,
             role: "user",
@@ -137,7 +164,7 @@ export async function POST(req: Request) {
         }
 
         if (assistantParts.length > 0) {
-          await supabase.from("chat_messages").insert({
+          await saveWithRetry({
             baby_id: babyId,
             message_id: `assistant-${crypto.randomUUID()}`,
             role: "assistant",
@@ -155,6 +182,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Error in chat API:", error);
-    return new Response("Error processing chat", { status: 500 });
+    return apiError("Error processing chat", 500);
   }
 }

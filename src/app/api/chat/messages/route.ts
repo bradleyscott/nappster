@@ -1,5 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import {
+  requireBabyAccess,
+  apiError,
+  apiSuccess,
+  authErrorResponse,
+} from '@/lib/api'
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,26 +15,15 @@ export async function GET(req: NextRequest) {
     const before = searchParams.get('before') // ISO timestamp for cursor-based pagination
 
     if (!babyId) {
-      return NextResponse.json({ error: 'babyId required' }, { status: 400 })
+      return apiError('babyId required', 400)
     }
 
     const supabase = await createClient()
 
     // Get current user and verify they have access to this baby
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: familyMember } = await supabase
-      .from('family_members')
-      .select('id')
-      .eq('baby_id', babyId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (!familyMember) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await requireBabyAccess(supabase, babyId)
+    if (!auth.success) {
+      return authErrorResponse(auth)
     }
 
     // Build query - fetch in descending order, then reverse for chronological
@@ -48,7 +43,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error('Error fetching chat messages:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return apiError(error.message, 500)
     }
 
     // Reverse to get chronological order (oldest first)
@@ -89,7 +84,7 @@ export async function GET(req: NextRequest) {
       sleepEvents = events || []
     }
 
-    return NextResponse.json({
+    return apiSuccess({
       messages: formattedMessages,
       sleepEvents,
       // Cursor for loading more (earliest message's timestamp from the fetched batch)
@@ -98,6 +93,6 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('Error in chat messages API:', error)
-    return NextResponse.json({ error: 'Error fetching messages' }, { status: 500 })
+    return apiError('Error fetching messages', 500)
   }
 }
