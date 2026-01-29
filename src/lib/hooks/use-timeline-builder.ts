@@ -68,11 +68,13 @@ export function useTimelineBuilder({
       const msg = liveMessages[i]
       if (!seen.has(msg.id)) {
         seen.add(msg.id)
+        // Use far-future timestamp to ensure live messages sort after persisted ones
+        // The index offset maintains relative ordering among live messages
         combined.push({
           id: msg.id,
           role: msg.role as 'user' | 'assistant',
           parts: msg.parts as Json,
-          createdAt: new Date(Date.now() + i).toISOString(),
+          createdAt: `9999-12-31T00:00:00.${String(i).padStart(3, '0')}Z`,
         })
       }
     }
