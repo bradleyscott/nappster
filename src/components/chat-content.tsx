@@ -140,23 +140,51 @@ export function ChatContent({
     }, []),
   })
 
+  // Type guard helpers for message parts
+  const isToolPart = (part: unknown): part is { type: string; state?: string; output?: unknown } => {
+    return (
+      typeof part === 'object' &&
+      part !== null &&
+      'type' in part &&
+      typeof (part as { type: unknown }).type === 'string'
+    )
+  }
+
+  const hasToolOutput = (part: { output?: unknown }): part is { output: Record<string, unknown> } => {
+    return typeof part.output === 'object' && part.output !== null
+  }
+
   // Extract events created by AI tools and add them to localEvents
   // Also handle sleep plan updates from the updateSleepPlan tool
   useEffect(() => {
     for (const msg of liveMessages) {
       if (msg.role !== 'assistant') continue
-      const parts = msg.parts as Array<{ type: string; state?: string; output?: { success?: boolean; event?: SleepEvent; plan?: SleepPlan } }> | undefined
-      if (!parts) continue
+      const parts = msg.parts
+      if (!Array.isArray(parts)) continue
 
       for (const part of parts) {
-        if (part.type === 'tool-createSleepEvent' && part.state === 'output-available' && part.output?.success && part.output?.event) {
-          addToolCreatedEvent(part.output.event)
+        if (!isToolPart(part)) continue
+
+        if (
+          part.type === 'tool-createSleepEvent' &&
+          part.state === 'output-available' &&
+          hasToolOutput(part) &&
+          part.output.success === true &&
+          part.output.event
+        ) {
+          addToolCreatedEvent(part.output.event as SleepEvent)
         }
 
-        if (part.type === 'tool-updateSleepPlan' && part.state === 'output-available' && part.output?.success && part.output?.plan) {
+        if (
+          part.type === 'tool-updateSleepPlan' &&
+          part.state === 'output-available' &&
+          hasToolOutput(part) &&
+          part.output.success === true &&
+          part.output.plan
+        ) {
           if (!processedSleepPlanMsgIds.current.has(msg.id)) {
             processedSleepPlanMsgIds.current.add(msg.id)
-            setSleepPlan(part.output.plan)
+            setSleepPlan(part.output.plan as SleepPlan)
           }
         }
       }

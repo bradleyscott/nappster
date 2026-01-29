@@ -7,6 +7,12 @@ import { createReadOnlyTools } from "@/lib/ai/tools";
 import { computeEventsHash } from "@/lib/sleep-utils";
 import { sleepPlanSchema } from "@/lib/ai/schemas/sleep-plan";
 import { buildSleepPlanSystemPrompt } from "@/lib/ai/prompts";
+import {
+  requireBabyAccess,
+  apiError,
+  apiValidationError,
+  authErrorResponse,
+} from "@/lib/api";
 
 export type { SleepPlan, ScheduleItem } from "@/lib/ai/schemas/sleep-plan";
 
@@ -20,45 +26,19 @@ export async function POST(req: Request) {
   try {
     const parseResult = sleepPlanRequestSchema.safeParse(await req.json());
     if (!parseResult.success) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid request body",
-          details: parseResult.error.flatten(),
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return apiValidationError(parseResult.error.flatten());
     }
 
     const { babyId, timezone } = parseResult.data;
 
     const supabase = await createClient();
 
-    // Verify user is authenticated
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     // Verify user has access to this baby
-    const { data: membership } = await supabase
-      .from("family_members")
-      .select("id")
-      .eq("baby_id", babyId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!membership) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+    const auth = await requireBabyAccess(supabase, babyId);
+    if (!auth.success) {
+      return authErrorResponse(auth);
     }
+    const user = auth.user;
 
     // Create tool context - no upfront data fetching, AI will use tools
     const toolContext = { supabase, babyId, timezone };
@@ -122,6 +102,6 @@ export async function POST(req: Request) {
     return result.toTextStreamResponse();
   } catch (error) {
     console.error("Error in sleep-plan API:", error);
-    return new Response("Error generating sleep plan", { status: 500 });
+    return apiError("Error generating sleep plan", 500);
   }
 }

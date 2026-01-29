@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { SleepEvent, Json } from '@/types/database'
 
 // Message type for chat history (compatible with useChat messages)
@@ -40,15 +40,28 @@ export function useChatHistory({
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [hasMoreHistory, setHasMoreHistory] = useState(initialHasMore)
 
+  // Use ref for synchronous loading guard to prevent race conditions
+  const isLoadingRef = useRef(false)
+
   // Load more history when user scrolls to top or clicks button
   const loadMoreHistory = useCallback(async () => {
-    if (isLoadingHistory || !hasMoreHistory || !historyCursor) return
+    // Check ref synchronously to prevent duplicate requests from rapid calls
+    if (isLoadingRef.current || !hasMoreHistory || !historyCursor) return
 
+    isLoadingRef.current = true
     setIsLoadingHistory(true)
     try {
       const res = await fetch(
         `/api/chat/messages?babyId=${babyId}&limit=50&before=${encodeURIComponent(historyCursor)}`
       )
+
+      // Check response status before parsing JSON
+      if (!res.ok) {
+        console.error(`Failed to load history: ${res.status}`)
+        setHasMoreHistory(false)
+        return
+      }
+
       const data = await res.json()
 
       if (data.messages && data.messages.length > 0) {
@@ -64,10 +77,12 @@ export function useChatHistory({
       }
     } catch (error) {
       console.error('Error loading history:', error)
+      setHasMoreHistory(false)
     } finally {
+      isLoadingRef.current = false
       setIsLoadingHistory(false)
     }
-  }, [babyId, historyCursor, hasMoreHistory, isLoadingHistory])
+  }, [babyId, historyCursor, hasMoreHistory])
 
   // Add a message from realtime sync (from other family members)
   const addRealtimeMessage = useCallback((message: ChatMessageData) => {

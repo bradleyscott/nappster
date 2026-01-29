@@ -5,6 +5,7 @@ import { computeEventsHash } from '@/lib/sleep-utils'
 import { SleepPlanRow } from '@/types/database'
 import { CURRENT_STATE_VALUES } from '@/types/database'
 import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
+import { requireBabyAccess, authErrorResponse, apiError } from '@/lib/api'
 
 // Schemas for validating JSON fields from database
 const nextActionSchema = sleepPlanSchema.shape.nextAction
@@ -47,17 +48,9 @@ export async function GET(
     const supabase = await createClient()
 
     // Verify user has access to this baby
-    const { data: membership, error: membershipError } = await supabase
-      .from('family_members')
-      .select('baby_id')
-      .eq('baby_id', babyId)
-      .single()
-
-    if (membershipError || !membership) {
-      return NextResponse.json(
-        { error: 'Not authorized to access this baby' },
-        { status: 403 }
-      )
+    const auth = await requireBabyAccess(supabase, babyId)
+    if (!auth.success) {
+      return authErrorResponse(auth)
     }
 
     // Get today's date in UTC for plan_date filtering
@@ -111,9 +104,6 @@ export async function GET(
     })
   } catch (error) {
     console.error('Error in GET /api/sleep-plan/[babyId]:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return apiError('Internal server error', 500)
   }
 }
