@@ -29,6 +29,7 @@ export class MockQueryBuilder<T = unknown> {
     this.tableName = table
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   select(_columns?: string): this {
     this.selectCalled = true
     return this

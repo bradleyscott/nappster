@@ -245,6 +245,7 @@ export function TimelineRenderer({
   timelineItems,
   allMessages,
   allSleepEvents,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   allSleepPlans,
   baby,
   status,

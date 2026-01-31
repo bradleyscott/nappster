@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'motion/react'
 import {
   Collapsible,
@@ -46,23 +46,13 @@ const statusConfig: Record<
 export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   // Defer rendering Collapsible until after hydration to avoid Radix ID mismatch
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // Using lazy initialization to detect client-side without useEffect
+  const [mounted] = useState(() => typeof window !== 'undefined')
 
   const schedule = plan.schedule as unknown as ScheduleItem[]
   const nextAction = plan.next_action as unknown as NextAction
   const planTime = formatTime(plan.created_at)
 
-  // Format the plan date for display
-  const planDate = new Date(plan.plan_date)
-  const dateStr = planDate.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
 
   // Show placeholder during SSR to avoid hydration mismatch with Radix IDs
   if (!mounted) {
