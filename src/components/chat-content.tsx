@@ -6,6 +6,8 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Baby, SleepEvent, SleepSession, SleepPlanRow, ChatMessage } from '@/types/database'
 import { findSessionForEvent } from '@/lib/sleep-utils'
+import { computeCurrentState, type SleepState } from '@/lib/state-machine'
+import { getTodayBoundsForTimezone } from '@/lib/timezone'
 import { createClient } from '@/lib/supabase/client'
 import { useRealtimeSync } from '@/lib/hooks/use-realtime-sync'
 import { useSleepEventCRUD, type SaveEventData, type SaveSessionData } from '@/lib/hooks/use-sleep-event-crud'
@@ -204,6 +206,18 @@ export function ChatContent({
     initialSleepPlans,
   })
 
+  // Compute current state from today's events for quick action buttons
+  // We use state + effect to avoid hydration mismatch from Date.now() differences
+  // Uses timezone-aware date bounds to correctly filter events for the user's local "today"
+  const [currentState, setCurrentState] = useState<SleepState>('awaiting_morning_wake')
+  useEffect(() => {
+    const { start, end } = getTodayBoundsForTimezone(timezone)
+    const todayEvents = allSleepEvents
+      .filter(e => e.event_time >= start && e.event_time < end)
+      .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime())
+    setCurrentState(computeCurrentState(todayEvents))
+  }, [allSleepEvents, timezone])
+
   // Handle sending chat messages
   const handleSendMessage = useCallback(async (text: string) => {
     await sendMessage({ text })
@@ -317,6 +331,7 @@ export function ChatContent({
             onCreateEvent={handleCreateEvent}
             status={status}
             sleepPlan={sleepPlan}
+            currentState={currentState}
             disabled={isLoading}
           />
         </div>
