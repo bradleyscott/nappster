@@ -134,7 +134,7 @@ export default async function Home() {
     <ChatContent
       baby={baby}
       initialMessages={initialMessages}
-      initialSleepEvents={sleepEvents}
+      initialSleepEvents={sleepEvents ?? undefined}
       initialSleepPlans={initialSleepPlans}
       initialCursor={oldestTimestamp}
       hasMoreHistory={chatMessages?.length === 50}
