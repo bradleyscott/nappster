@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { motion } from 'motion/react'
 import {
   Collapsible,
@@ -43,11 +43,18 @@ const statusConfig: Record<
   },
 }
 
+// Empty subscription for useSyncExternalStore - never triggers updates
+const emptySubscribe = () => () => {}
+
 export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   // Defer rendering Collapsible until after hydration to avoid Radix ID mismatch
-  // Using lazy initialization to detect client-side without useEffect
-  const [mounted] = useState(() => typeof window !== 'undefined')
+  // useSyncExternalStore is the React 18+ way to handle client-only rendering
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,  // Client: mounted
+    () => false  // Server: not mounted
+  )
 
   const schedule = plan.schedule as unknown as ScheduleItem[]
   const nextAction = plan.next_action as unknown as NextAction

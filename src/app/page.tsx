@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChatContent } from '@/components/chat-content'
-import { getTodayBoundsForTimezone, getYesterdayBoundsForTimezone } from '@/lib/timezone'
+import { getYesterdayBoundsForTimezone } from '@/lib/timezone'
 
 export default async function Home() {
   const supabase = await createClient();
@@ -78,58 +78,24 @@ export default async function Home() {
     redirect("/onboarding");
   }
 
-  // Get today's events using user's timezone from cookie
+  // Get timezone from cookie
   const cookieStore = await cookies()
   const timezone = cookieStore.get('timezone')?.value || 'UTC'
-  const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)
-  const { start: yesterdayStart, end: yesterdayEnd } = getYesterdayBoundsForTimezone(timezone)
+  const { start: yesterdayStart } = getYesterdayBoundsForTimezone(timezone)
 
-  // Step 1: Find yesterday's last bedtime (start of overnight sleep)
-  const { data: lastBedtime } = await supabase
-    .from("sleep_events")
-    .select("*")
-    .eq("baby_id", babyId)
-    .eq("event_type", "bedtime")
-    .gte("event_time", yesterdayStart)
-    .lt("event_time", yesterdayEnd)
-    .order("event_time", { ascending: false })
-    .limit(1);
-
-  // Step 2: Fetch all events from bedtime onward (includes night wakes and today's events)
-  const overnightStartTime = lastBedtime?.[0]?.event_time;
-  let sleepEvents;
-
-  if (overnightStartTime) {
-    // Fetch all events from bedtime through today's end
-    const { data: allEvents } = await supabase
-      .from("sleep_events")
-      .select("*")
-      .eq("baby_id", babyId)
-      .gte("event_time", overnightStartTime)
-      .lt("event_time", todayEnd)
-      .order("event_time", { ascending: true });
-
-    sleepEvents = allEvents || [];
-  } else {
-    // No bedtime yesterday, just fetch today's events
-    const { data: todayEvents } = await supabase
-      .from("sleep_events")
-      .select("*")
-      .eq("baby_id", babyId)
-      .gte("event_time", todayStart)
-      .lt("event_time", todayEnd)
-      .order("event_time", { ascending: true });
-
-    sleepEvents = todayEvents || [];
-  }
-
-  // Fetch initial chat messages (most recent 50)
+  // Fetch initial chat messages (most recent 50, newest first)
   const { data: chatMessages } = await supabase
     .from('chat_messages')
     .select('*')
     .eq('baby_id', babyId)
     .order('created_at', { ascending: false })
     .limit(50)
+
+  // Get cursor for loading more history (oldest message's timestamp)
+  // Must access before .reverse() mutates the array
+  const oldestTimestamp = chatMessages && chatMessages.length > 0
+    ? chatMessages[chatMessages.length - 1].created_at
+    : null
 
   // Convert to AI SDK format and reverse for chronological order
   const initialMessages = (chatMessages || [])
@@ -141,33 +107,18 @@ export default async function Home() {
       createdAt: msg.created_at,
     }))
 
-  // Get cursor for loading more history (oldest message's timestamp)
-  const oldestTimestamp = chatMessages && chatMessages.length > 0
-    ? chatMessages[chatMessages.length - 1].created_at
-    : null
+  // Fetch events from the earlier of yesterdayStart or oldest message timestamp
+  // This ensures overnight sleep is included, and goes further back if messages do
+  const eventStartTime = oldestTimestamp && new Date(oldestTimestamp) < new Date(yesterdayStart)
+    ? oldestTimestamp
+    : yesterdayStart
 
-  // Fetch historical sleep events logged within the initial messages' time range
-  // Use created_at (when logged) not event_time (when occurred) to align with chat message pagination
-  if (oldestTimestamp) {
-    const oldestEventCreatedAt = sleepEvents.length > 0
-      ? sleepEvents[0].created_at
-      : todayStart
-
-    // Only fetch if there's a gap between oldest message and oldest event we have
-    if (oldestTimestamp < oldestEventCreatedAt) {
-      const { data: historicalEvents } = await supabase
-        .from("sleep_events")
-        .select("*")
-        .eq("baby_id", babyId)
-        .gte("created_at", oldestTimestamp)
-        .lt("created_at", oldestEventCreatedAt)
-        .order("event_time", { ascending: true })
-
-      if (historicalEvents && historicalEvents.length > 0) {
-        sleepEvents = [...historicalEvents, ...sleepEvents]
-      }
-    }
-  }
+  const { data: sleepEvents } = await supabase
+    .from("sleep_events")
+    .select("*")
+    .eq("baby_id", babyId)
+    .gte("event_time", eventStartTime)
+    .order("event_time", { ascending: true })
 
   // Fetch initial sleep plans (including active plan so it appears in timeline)
   const { data: sleepPlans } = await supabase

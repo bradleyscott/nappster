@@ -56,6 +56,10 @@ const TRANSITIONS: Record<SleepState, Partial<Record<EventType, SleepState>>> = 
  * Compute current state from chronologically-ordered events.
  * This is a PURE FUNCTION - no side effects, deterministic output.
  *
+ * Uses a hybrid approach:
+ * 1. First, infer state from the last event (handles missing wake events gracefully)
+ * 2. Fall back to transition-based computation for edge cases
+ *
  * @param events - Array of sleep events, sorted by event_time ascending
  * @returns The current sleep state
  */
@@ -64,20 +68,24 @@ export function computeCurrentState(events: SleepEvent[]): SleepState {
     return 'awaiting_morning_wake'
   }
 
-  let state: SleepState = 'awaiting_morning_wake'
+  // Infer state from the last event - this handles cases where users
+  // forget to log intermediate events (e.g., morning wake)
+  const lastEvent = events[events.length - 1]
+  const lastEventType = lastEvent.event_type as EventType
 
-  for (const event of events) {
-    const eventType = event.event_type as EventType
-    const nextState: SleepState | undefined = TRANSITIONS[state]?.[eventType]
-
-    if (nextState) {
-      state = nextState
-    }
-    // If no valid transition exists, state remains unchanged
-    // This handles edge cases like orphaned events gracefully
+  switch (lastEventType) {
+    case 'bedtime':
+      return 'overnight_sleep'
+    case 'nap_start':
+      return 'daytime_napping'
+    case 'nap_end':
+    case 'wake':
+      return 'daytime_awake'
+    case 'night_wake':
+      return 'overnight_sleep'
+    default:
+      return 'awaiting_morning_wake'
   }
-
-  return state
 }
 
 /**

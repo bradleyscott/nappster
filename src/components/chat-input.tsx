@@ -32,6 +32,7 @@ interface ChatInputProps {
   }) => void | Promise<void>
   status: ChatStatus
   sleepPlan?: SleepPlan | null
+  currentState: SleepState
   disabled?: boolean
 }
 
@@ -41,6 +42,7 @@ export function ChatInput({
   onCreateEvent,
   status,
   sleepPlan,
+  currentState,
   disabled = false,
 }: ChatInputProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -77,7 +79,6 @@ export function ChatInput({
 
   // Determine which quick action buttons to show based on current state
   // Uses the state machine for deterministic button selection
-  const currentState = (sleepPlan?.currentState ?? 'awaiting_morning_wake') as SleepState
   const showBedtime = currentState === 'daytime_awake' && shouldShowBedtime(
     sleepPlan?.schedule,
     sleepPlan?.targetBedtime
