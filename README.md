@@ -92,7 +92,6 @@ src/
 │   ├── ui/                       # shadcn/ui components
 │   ├── ai-elements/              # Chat UI components
 │   ├── chat-content.tsx          # Main chat interface
-│   ├── sleep-plan-header.tsx     # AI schedule display
 │   ├── sleep-event-dialog.tsx    # Event editor
 │   └── sleep-session-dialog.tsx  # Paired event editor
 │
