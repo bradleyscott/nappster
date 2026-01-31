@@ -13,8 +13,13 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import { SleepEventButton } from '@/components/sleep-event-button'
 import { SleepEventDialog } from '@/components/sleep-event-dialog'
-import { EventType, Context, } from '@/types/database'
+import { EventType, Context } from '@/types/database'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
+import {
+  getQuickEntryButtons,
+  shouldShowBedtime,
+  type SleepState,
+} from '@/lib/state-machine'
 
 interface ChatInputProps {
   babyId: string
@@ -71,45 +76,13 @@ export function ChatInput({
   }
 
   // Determine which quick action buttons to show based on current state
-  // See requirements.md "Quick Entry Buttons" section for logic
-  const getQuickActions = () => {
-    const currentState = sleepPlan?.currentState
-
-    switch (currentState) {
-      case 'overnight_sleep':
-        // Nighttime sleep is in progress - show buttons for ending night or recording night wake
-        return [
-          { eventType: 'wake' as EventType, label: 'End Night', icon: '☀️' },
-          { eventType: 'night_wake' as EventType, label: 'Night Wake', icon: '👀' },
-        ]
-
-      case 'nighttime_wake':
-        // Baby is awake during the night - no quick actions, use dialog to set end_time on night_wake
-        return []
-
-      case 'daytime_napping':
-        // Nap is in progress - show button for ending the nap
-        return [
-          { eventType: 'nap_end' as EventType, label: 'End Nap', icon: '🌤️' },
-        ]
-
-      case 'daytime_awake':
-      default:
-        // Baby is awake during the day - show nap or bedtime based on sleep plan recommendation
-        const nextLabel = sleepPlan?.nextAction?.label?.toLowerCase() || ''
-        if (nextLabel.includes('bedtime') || nextLabel.includes('bed')) {
-          return [
-            { eventType: 'bedtime' as EventType, label: 'Bedtime', icon: '🌙' },
-          ]
-        }
-        // Default to nap start
-        return [
-          { eventType: 'nap_start' as EventType, label: 'Start Nap', icon: '😴' },
-        ]
-    }
-  }
-
-  const quickActions = getQuickActions()
+  // Uses the state machine for deterministic button selection
+  const currentState = (sleepPlan?.currentState ?? 'awaiting_morning_wake') as SleepState
+  const showBedtime = currentState === 'daytime_awake' && shouldShowBedtime(
+    sleepPlan?.schedule,
+    sleepPlan?.targetBedtime
+  )
+  const quickActions = getQuickEntryButtons(currentState, { showBedtimeOverNap: showBedtime })
 
   return (
     <>

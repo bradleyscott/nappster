@@ -1,7 +1,9 @@
 import { tool } from 'ai'
 import { ToolContext } from './types'
 import { computeEventsHash } from '@/lib/sleep-utils'
+import { computeCurrentState } from '@/lib/state-machine'
 import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
+import type { SleepEvent } from '@/types/database'
 
 /**
  * Creates a tool that updates the displayed sleep plan and persists it to the database.
@@ -28,15 +30,17 @@ Mark completed naps/events with status "completed", current activity as "in_prog
       try {
         const today = new Date().toISOString().split('T')[0]
 
-        // Get today's events to compute hash
+        // Get today's events to compute hash and current state
         const { data: events } = await supabase
           .from('sleep_events')
-          .select('id, event_time, event_type')
+          .select('*')
           .eq('baby_id', babyId)
           .gte('event_time', `${today}T00:00:00`)
           .order('event_time', { ascending: true })
 
         const eventsHash = computeEventsHash(events || [])
+        // Compute state deterministically from events, don't trust LLM's value
+        const currentState = computeCurrentState((events || []) as SleepEvent[])
 
         // Get current user for created_by field
         const { data: { user } } = await supabase.auth.getUser()
@@ -53,7 +57,7 @@ Mark completed naps/events with status "completed", current activity as "in_prog
           .from('sleep_plans')
           .insert({
             baby_id: babyId,
-            current_state: plan.currentState,
+            current_state: currentState,
             next_action: plan.nextAction,
             schedule: plan.schedule,
             target_bedtime: plan.targetBedtime,

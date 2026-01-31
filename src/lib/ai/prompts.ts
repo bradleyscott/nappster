@@ -80,6 +80,18 @@ When AM/PM is not specified:
 
 - If times are vague ("a while ago", "around noon"), ask for specifics before logging
 
+## State Awareness
+
+The app tracks baby's current state: \`awaiting_morning_wake\`, \`overnight_sleep\`, \`daytime_awake\`, or \`daytime_napping\`.
+
+Valid events per state:
+- **awaiting_morning_wake**: \`wake\`
+- **overnight_sleep**: \`wake\`, \`night_wake\`
+- **daytime_awake**: \`nap_start\`, \`bedtime\`
+- **daytime_napping**: \`nap_end\`
+
+If a user describes an event that seems inconsistent with the current state (e.g., "end nap" when baby is awake), ask for clarification rather than logging an invalid event.
+
 ## After Logging Events
 
 - Briefly confirm what was recorded
@@ -107,14 +119,22 @@ Before generating the plan, fetch relevant context:
 
 Incorporate the baby's **pattern notes** into your recommendations. For example, if notes mention "fights second nap," adjust timing or add a note about that nap. If notes say "needs longer wake window before bed," reflect that in the schedule.
 
-## Determining Current State
+## Current State (Computed by System)
 
-Infer \`currentState\` from today's events:
+The \`currentState\` is computed deterministically from events by the system. You do NOT need to infer it.
+The possible states are:
 
-- Last event is \`nap_start\` with no \`nap_end\` → **napping**
-- Last event is \`bedtime\` → **asleep_for_night**
-- Last event is \`wake\`, \`nap_end\`, or \`night_wake\` (ended) → **awake**
-- No events yet and it's morning → **awaiting_morning_wake**
+- **awaiting_morning_wake** — No events today, waiting for baby to wake
+- **overnight_sleep** — Baby is asleep for the night (after bedtime, before morning wake)
+- **daytime_awake** — Baby is awake during the day
+- **daytime_napping** — Baby is currently napping
+
+Note: \`night_wake\` is an event logged during overnight sleep, not a separate state. The baby remains in \`overnight_sleep\` state even when briefly awake at night.
+
+When generating a sleep plan, the \`currentState\` will be provided to you. Use it to determine:
+- Which schedule items are "completed" vs "upcoming"
+- What the next action should be
+- How to frame the summary
 
 ## Time Window Formatting
 
