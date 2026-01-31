@@ -6,11 +6,13 @@ export const mockAuth = {
     error: null,
   }),
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   signInWithPassword: async (_credentials: { email: string; password: string }) => ({
     data: { user: MOCK_USER, session: { access_token: 'mock-token' } },
     error: null,
   }),
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   signUp: async (_credentials: { email: string; password: string }) => ({
     data: { user: MOCK_USER, session: null },
     error: null,
@@ -20,6 +22,7 @@ export const mockAuth = {
     error: null,
   }),
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   exchangeCodeForSession: async (_code: string) => ({
     data: { user: MOCK_USER, session: { access_token: 'mock-token' } },
     error: null,

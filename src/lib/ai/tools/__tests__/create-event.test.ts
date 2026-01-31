@@ -61,6 +61,7 @@ describe('createCreateSleepEventTool', () => {
       event_type: 'night_wake',
       event_time: '2024-01-15T03:00:00Z',
       end_time: '2024-01-15T03:45:00Z',
+      force: true, // Bypass state validation for insert behavior testing
     })
 
     const insertCalls = mockSupabase._getInsertCalls()
@@ -86,6 +87,7 @@ describe('createCreateSleepEventTool', () => {
       event_type: 'nap_start',
       event_time: '2024-01-15T09:30:00Z',
       end_time: '2024-01-15T10:00:00Z', // Should be ignored
+      force: true, // Bypass state validation for insert behavior testing
     })
 
     const insertCalls = mockSupabase._getInsertCalls()
@@ -130,6 +132,7 @@ describe('createCreateSleepEventTool', () => {
     const result = await tool.execute({
       event_type: 'nap_end',
       event_time: '2024-01-15T14:00:00Z',
+      force: true, // Bypass state validation for insert behavior testing
     })
 
     expect(result.success).toBe(true)
@@ -148,6 +151,7 @@ describe('createCreateSleepEventTool', () => {
       event_type: 'nap_end',
       event_time: '2024-01-15T14:00:00Z',
       context: 'daycare',
+      force: true, // Bypass state validation for insert behavior testing
     })
 
     const insertCalls = mockSupabase._getInsertCalls()
@@ -169,6 +173,7 @@ describe('createCreateSleepEventTool', () => {
       event_type: 'bedtime',
       event_time: '2024-01-15T19:00:00Z',
       notes: 'Seemed tired, fell asleep quickly',
+      force: true, // Bypass state validation for insert behavior testing
     })
 
     const insertCalls = mockSupabase._getInsertCalls()
@@ -216,6 +221,7 @@ describe('createCreateSleepEventTool', () => {
       event_type: 'night_wake',
       event_time: '2024-01-15T03:00:00Z',
       end_time: '2024-01-15T03:30:00Z',
+      force: true, // Bypass state validation for insert behavior testing
     })
 
     // Message should include both start and end times for night_wake
@@ -234,6 +240,7 @@ describe('createCreateSleepEventTool', () => {
       event_type: 'nap_start',
       event_time: '2024-01-15T09:30:00Z',
       context: 'daycare',
+      force: true, // Bypass state validation for insert behavior testing
     })
 
     expect(result.message).toContain('(daycare)')
@@ -252,6 +259,7 @@ describe('createCreateSleepEventTool', () => {
       const result = await tool.execute({
         event_type: eventType,
         event_time: '2024-01-15T12:00:00Z',
+        force: true, // Bypass state validation for insert behavior testing
       })
 
       expect(result.success).toBe(true)
