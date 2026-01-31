@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react'
 import Image from 'next/image'
-import { Baby, SleepEvent } from '@/types/database'
+import { Baby, SleepEvent, SleepPlanRow } from '@/types/database'
 import { formatTime, calculateDurationMinutes } from '@/lib/sleep-utils'
 import { formatDateHeader, getDateKey, getTimelineItemTimestamp, type TimelineItem } from '@/lib/hooks/use-timeline-builder'
 import type { ChatMessageData } from '@/lib/hooks/use-chat-history'
@@ -20,6 +20,7 @@ import {
   ChainOfThoughtContent,
   ChainOfThoughtStep,
 } from '@/components/ai-elements/chain-of-thought'
+import { SleepPlanCard } from '@/components/sleep-plan-card'
 import { Search, Database, History, MessageSquare, FileEdit, Calendar, Moon } from 'lucide-react'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
 
@@ -75,6 +76,7 @@ interface TimelineRendererProps {
   timelineItems: TimelineItem[]
   allMessages: ChatMessageData[]
   allSleepEvents: SleepEvent[]
+  allSleepPlans: SleepPlanRow[]
   baby: Baby
   status: 'ready' | 'submitted' | 'streaming' | 'error'
   isLoadingHistory: boolean
@@ -243,6 +245,7 @@ export function TimelineRenderer({
   timelineItems,
   allMessages,
   allSleepEvents,
+  allSleepPlans,
   baby,
   status,
   isLoadingHistory,
@@ -368,6 +371,24 @@ export function TimelineRenderer({
                 </button>
               </div>
             </motion.div>
+          )
+        }
+
+        if (item.kind === 'sleep_plan') {
+          const { plan } = item
+          return (
+            <div key={`plan-${plan.id}`}>
+              {showDateHeader && (
+                <div className="flex items-center gap-3 my-6">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">
+                    {formatDateHeader(currentTimestamp!)}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )}
+              <SleepPlanCard plan={plan} defaultOpen={plan.is_active} />
+            </div>
           )
         }
 

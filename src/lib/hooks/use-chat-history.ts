@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { SleepEvent, Json } from '@/types/database'
+import { SleepEvent, SleepPlanRow, Json } from '@/types/database'
 
 // Message type for chat history (compatible with useChat messages)
 export interface ChatMessageData {
@@ -21,6 +21,7 @@ interface UseChatHistoryOptions {
 interface UseChatHistoryReturn {
   historyMessages: ChatMessageData[]
   historySleepEvents: SleepEvent[]
+  historySleepPlans: SleepPlanRow[]
   historyCursor: string | null
   isLoadingHistory: boolean
   hasMoreHistory: boolean
@@ -36,6 +37,7 @@ export function useChatHistory({
   // History state for loading older messages
   const [historyMessages, setHistoryMessages] = useState<ChatMessageData[]>([])
   const [historySleepEvents, setHistorySleepEvents] = useState<SleepEvent[]>([])
+  const [historySleepPlans, setHistorySleepPlans] = useState<SleepPlanRow[]>([])
   const [historyCursor, setHistoryCursor] = useState<string | null>(initialCursor)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [hasMoreHistory, setHasMoreHistory] = useState(initialHasMore)
@@ -72,6 +74,10 @@ export function useChatHistory({
         if (data.sleepEvents && data.sleepEvents.length > 0) {
           setHistorySleepEvents(prev => [...data.sleepEvents, ...prev])
         }
+
+        if (data.sleepPlans && data.sleepPlans.length > 0) {
+          setHistorySleepPlans(prev => [...data.sleepPlans, ...prev])
+        }
       } else {
         setHasMoreHistory(false)
       }
@@ -95,6 +101,7 @@ export function useChatHistory({
   return {
     historyMessages,
     historySleepEvents,
+    historySleepPlans,
     historyCursor,
     isLoadingHistory,
     hasMoreHistory,
