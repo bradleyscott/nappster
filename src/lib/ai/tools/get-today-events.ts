@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { ToolContext } from './types'
 import { getTodayBoundsForTimezone } from '@/lib/timezone'
 import { calculateDurationMinutes, formatDuration, formatTime, countNaps } from '@/lib/sleep-utils'
+import { computeCurrentState } from '@/lib/state-machine'
+import type { SleepEvent } from '@/types/database'
 
 /**
  * Creates a tool that fetches today's sleep events.
@@ -36,6 +38,7 @@ This is essential for making recommendations about the next nap or bedtime.`,
           success: true,
           message: 'No events logged yet today.',
           events: [],
+          currentState: 'awaiting_morning_wake',
           summary: {
             hasWake: false,
             napCount: 0,
@@ -73,26 +76,21 @@ This is essential for making recommendations about the next nap or bedtime.`,
         }
       })
 
+      // Compute current state from events using the state machine
+      const currentState = computeCurrentState(events as SleepEvent[])
+
       // Calculate summary stats
       const lastEvent = events[events.length - 1]
       const hasWake = events.some(e => e.event_type === 'wake')
       const napCount = countNaps(events)
-      const isNapInProgress = lastEvent?.event_type === 'nap_start'
-
-      // Check for overnight state
-      const lastBedtime = [...events].reverse().find(e => e.event_type === 'bedtime')
-      const lastWake = [...events].reverse().find(e => e.event_type === 'wake')
-      const isOvernight = lastBedtime &&
-        (!lastWake || new Date(lastBedtime.event_time) > new Date(lastWake.event_time))
 
       return {
         success: true,
         events: formattedEvents,
+        currentState,
         summary: {
           hasWake,
           napCount,
-          isNapInProgress,
-          isOvernight,
           lastEventType: lastEvent?.event_type,
           lastEventTime: lastEvent ? formatTime(lastEvent.event_time, timezone) : null
         }

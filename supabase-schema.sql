@@ -152,7 +152,7 @@ create policy "Users can insert chat messages for their babies"
 create table if not exists public.sleep_plans (
   id uuid primary key default gen_random_uuid(),
   baby_id uuid references public.babies(id) on delete cascade not null,
-  current_state text not null check (current_state in ('overnight_sleep', 'nighttime_wake', 'daytime_napping', 'daytime_awake')),
+  current_state text not null check (current_state in ('awaiting_morning_wake', 'overnight_sleep', 'daytime_awake', 'daytime_napping')),
   next_action jsonb not null,
   schedule jsonb not null,
   target_bedtime text not null,

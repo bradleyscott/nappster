@@ -224,11 +224,12 @@ export type Context = 'home' | 'daycare' | 'travel' | null
 export type SessionType = 'nap' | 'overnight'
 
 // Sleep plan current state values
+// These must match the states in src/lib/state-machine.ts
 export const CURRENT_STATE_VALUES = [
+  'awaiting_morning_wake',
   'overnight_sleep',
-  'nighttime_wake',
-  'daytime_napping',
   'daytime_awake',
+  'daytime_napping',
 ] as const
 
 export type CurrentState = typeof CURRENT_STATE_VALUES[number]

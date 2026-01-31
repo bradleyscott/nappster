@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createReadOnlyTools } from "@/lib/ai/tools";
 import { computeEventsHash } from "@/lib/sleep-utils";
+import { computeCurrentState } from "@/lib/state-machine";
 import { sleepPlanSchema } from "@/lib/ai/schemas/sleep-plan";
 import { buildSleepPlanSystemPrompt } from "@/lib/ai/prompts";
 import {
@@ -13,6 +14,7 @@ import {
   apiValidationError,
   authErrorResponse,
 } from "@/lib/api";
+import type { SleepEvent } from "@/types/database";
 
 export type { SleepPlan, ScheduleItem } from "@/lib/ai/schemas/sleep-plan";
 
@@ -63,15 +65,17 @@ export async function POST(req: Request) {
 
         const today = new Date().toISOString().split("T")[0];
 
-        // Get today's events to compute hash
+        // Get today's events to compute hash and current state
         const { data: events } = await supabase
           .from("sleep_events")
-          .select("id, event_time, event_type")
+          .select("*")
           .eq("baby_id", babyId)
           .gte("event_time", `${today}T00:00:00`)
           .order("event_time", { ascending: true });
 
         const eventsHash = computeEventsHash(events || []);
+        // Compute state deterministically from events, don't trust LLM's value
+        const currentState = computeCurrentState((events || []) as SleepEvent[]);
 
         // Mark existing active plans as inactive
         await supabase
@@ -83,7 +87,7 @@ export async function POST(req: Request) {
         // Insert the new plan
         await supabase.from("sleep_plans").insert({
           baby_id: babyId,
-          current_state: plan.currentState,
+          current_state: currentState,
           next_action: plan.nextAction,
           schedule: plan.schedule,
           target_bedtime: plan.targetBedtime,

@@ -2,6 +2,9 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
 import { formatTime } from '@/lib/sleep-utils'
+import { getTodayBoundsForTimezone } from '@/lib/timezone'
+import { computeCurrentState, isValidEvent, VALID_EVENTS } from '@/lib/state-machine'
+import type { SleepEvent, EventType } from '@/types/database'
 
 /**
  * Creates a tool that logs sleep events to the database.
@@ -34,8 +37,38 @@ Do NOT use this tool for questions or hypothetical scenarios.`,
         .describe('Where the event occurred, if mentioned'),
       notes: z.string().optional()
         .describe('Any additional details mentioned by the user'),
+      force: z.boolean().optional()
+        .describe('If true, log the event even if it seems inconsistent with current state. Use when correcting data or logging historical events.'),
     }),
-    execute: async ({ event_type, event_time, end_time, context: eventContext, notes }) => {
+    execute: async ({ event_type, event_time, end_time, context: eventContext, notes, force }) => {
+      // Validate event against current state unless force is true
+      if (!force) {
+        const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)
+
+        const { data: existingEvents } = await supabase
+          .from('sleep_events')
+          .select('*')
+          .eq('baby_id', babyId)
+          .gte('event_time', todayStart)
+          .lt('event_time', todayEnd)
+          .order('event_time', { ascending: true })
+
+        const currentState = computeCurrentState((existingEvents || []) as SleepEvent[])
+
+        if (!isValidEvent(currentState, event_type as EventType)) {
+          const validEvents = VALID_EVENTS[currentState]
+          return {
+            success: false,
+            error: `Cannot log ${event_type.replace('_', ' ')} when baby is in state: ${currentState.replace('_', ' ')}`,
+            currentState,
+            validEvents,
+            hint: validEvents.length > 0
+              ? `Valid events for this state: ${validEvents.join(', ')}`
+              : 'No quick events available. Use the dialog to edit existing events.',
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('sleep_events')
         .insert({
