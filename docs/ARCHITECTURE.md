@@ -84,7 +84,6 @@ src/
 │   │   └── prompt-input.tsx          # Message input field
 │   ├── chat-content.tsx              # Main chat interface (client)
 │   ├── chat-input.tsx                # Input with quick actions
-│   ├── sleep-plan-header.tsx         # AI schedule display
 │   ├── sleep-event-dialog.tsx        # Edit single event
 │   ├── sleep-session-dialog.tsx      # Edit paired events
 │   └── app-header.tsx                # Navigation header
@@ -174,7 +173,7 @@ Events change (create/update/delete)
 Increment refreshKey state
          │
          ▼
-SleepPlanHeader detects key change
+SleepPlanCard detects key change
          │
          ▼
 Compute events hash (djb2 algorithm)
@@ -553,10 +552,6 @@ page.tsx (Server Component)
 └── ChatContent (Client Component)
     ├── AppHeader
     │   └── Settings, Sign Out
-    ├── SleepPlanHeader
-    │   ├── Current state indicator
-    │   ├── Next action banner
-    │   └── Collapsible schedule
     ├── Conversation (ai-elements)
     │   ├── Message (user)
     │   │   └── MessageContent
