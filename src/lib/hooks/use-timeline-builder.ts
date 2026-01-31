@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { SleepEvent, Json } from '@/types/database'
+import { SleepEvent, SleepPlanRow, Json } from '@/types/database'
 import type { ChatMessageData } from './use-chat-history'
 import type { UIMessage } from '@ai-sdk/react'
 
@@ -9,6 +9,7 @@ import type { UIMessage } from '@ai-sdk/react'
 export type TimelineItem =
   | { kind: 'message'; message: ChatMessageData }
   | { kind: 'sleep_event'; event: SleepEvent }
+  | { kind: 'sleep_plan'; plan: SleepPlanRow }
 
 // Helper to normalize timestamps to ISO strings for comparison
 function normalizeTimestamp(ts: string | Date | undefined): string {
@@ -25,11 +26,14 @@ interface UseTimelineBuilderOptions {
   initialSleepEvents: SleepEvent[]
   localEvents: SleepEvent[]
   deletedEventIds: Set<string>
+  historySleepPlans: SleepPlanRow[]
+  initialSleepPlans: SleepPlanRow[]
 }
 
 interface UseTimelineBuilderReturn {
   allMessages: ChatMessageData[]
   allSleepEvents: SleepEvent[]
+  allSleepPlans: SleepPlanRow[]
   timelineItems: TimelineItem[]
 }
 
@@ -41,6 +45,8 @@ export function useTimelineBuilder({
   initialSleepEvents,
   localEvents,
   deletedEventIds,
+  historySleepPlans,
+  initialSleepPlans,
 }: UseTimelineBuilderOptions): UseTimelineBuilderReturn {
   // Combine all messages (history, initial, live) deduplicating by id
   const allMessages = useMemo(() => {
@@ -114,7 +120,33 @@ export function useTimelineBuilder({
     )
   }, [historySleepEvents, initialSleepEvents, localEvents, deletedEventIds])
 
-  // Create interleaved timeline of messages and sleep events
+  // Combine all sleep plans (history + initial), deduplicating by id
+  // Include active plans so they appear in the timeline at their chronological position
+  const allSleepPlans = useMemo(() => {
+    const seen = new Set<string>()
+    const combined: SleepPlanRow[] = []
+
+    for (const plan of historySleepPlans) {
+      if (!seen.has(plan.id)) {
+        seen.add(plan.id)
+        combined.push(plan)
+      }
+    }
+
+    for (const plan of initialSleepPlans) {
+      if (!seen.has(plan.id)) {
+        seen.add(plan.id)
+        combined.push(plan)
+      }
+    }
+
+    // Sort by created_at
+    return combined.sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }, [historySleepPlans, initialSleepPlans])
+
+  // Create interleaved timeline of messages, sleep events, and sleep plans
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = []
 
@@ -128,14 +160,20 @@ export function useTimelineBuilder({
       items.push({ kind: 'sleep_event', event })
     }
 
+    // Add all sleep plans (historical, non-active)
+    for (const plan of allSleepPlans) {
+      items.push({ kind: 'sleep_plan', plan })
+    }
+
     // Sort by timestamp
     items.sort((a, b) => {
-      const timeA = a.kind === 'message'
-        ? normalizeTimestamp(a.message.createdAt)
-        : a.event.event_time
-      const timeB = b.kind === 'message'
-        ? normalizeTimestamp(b.message.createdAt)
-        : b.event.event_time
+      const getTime = (item: TimelineItem): string => {
+        if (item.kind === 'message') return normalizeTimestamp(item.message.createdAt)
+        if (item.kind === 'sleep_event') return item.event.event_time
+        return item.plan.created_at
+      }
+      const timeA = getTime(a)
+      const timeB = getTime(b)
 
       if (!timeA && !timeB) return 0
       if (!timeA) return 1
@@ -145,11 +183,12 @@ export function useTimelineBuilder({
     })
 
     return items
-  }, [allMessages, allSleepEvents])
+  }, [allMessages, allSleepEvents, allSleepPlans])
 
   return {
     allMessages,
     allSleepEvents,
+    allSleepPlans,
     timelineItems,
   }
 }
@@ -184,7 +223,7 @@ export function getDateKey(dateStr: string | Date): string {
 
 // Helper to get timestamp from timeline item
 export function getTimelineItemTimestamp(item: TimelineItem): string {
-  return item.kind === 'message'
-    ? normalizeTimestamp(item.message.createdAt)
-    : item.event.event_time
+  if (item.kind === 'message') return normalizeTimestamp(item.message.createdAt)
+  if (item.kind === 'sleep_event') return item.event.event_time
+  return item.plan.created_at
 }

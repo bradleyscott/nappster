@@ -10,7 +10,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Loader2 } from 'lucide-react'
 import { computeEventsHash } from '@/lib/sleep-utils'
 
 // Schema matching the API
@@ -266,9 +266,7 @@ export function SleepPlanHeader({
                     </span>
                   )}
                   {isLoading && (
-                    <span className="text-xs text-muted-foreground">
-                      (updating...)
-                    </span>
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   )}
                 </div>
                 {/* Subtitle - visible when collapsed */}

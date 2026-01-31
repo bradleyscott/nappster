@@ -71,22 +71,51 @@ export async function GET(req: NextRequest) {
       created_at: string
     }> = []
 
+    // Fetch sleep plans that fall within this time range
+    let sleepPlans: Array<{
+      id: string
+      baby_id: string
+      current_state: string
+      next_action: unknown
+      schedule: unknown
+      target_bedtime: string
+      summary: string
+      events_hash: string
+      plan_date: string
+      is_active: boolean
+      created_by: string | null
+      created_at: string
+    }> = []
+
     if (before && cursor) {
-      // Get sleep events between cursor (oldest fetched) and before (previous cursor)
+      // Get sleep events logged between cursor (oldest fetched) and before (previous cursor)
+      // Use created_at (when logged) not event_time (when occurred) to align with chat message pagination
       const { data: events } = await supabase
         .from('sleep_events')
         .select('*')
         .eq('baby_id', babyId)
-        .gte('event_time', cursor)
-        .lt('event_time', before)
+        .gte('created_at', cursor)
+        .lt('created_at', before)
         .order('event_time', { ascending: true })
 
       sleepEvents = events || []
+
+      // Get sleep plans between cursor (oldest fetched) and before (previous cursor)
+      const { data: plans } = await supabase
+        .from('sleep_plans')
+        .select('*')
+        .eq('baby_id', babyId)
+        .gte('created_at', cursor)
+        .lt('created_at', before)
+        .order('created_at', { ascending: true })
+
+      sleepPlans = plans || []
     }
 
     return apiSuccess({
       messages: formattedMessages,
       sleepEvents,
+      sleepPlans,
       // Cursor for loading more (earliest message's timestamp from the fetched batch)
       cursor,
       hasMore: (messages?.length || 0) === limit,

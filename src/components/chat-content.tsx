@@ -12,7 +12,6 @@ import { useSleepEventCRUD, type SaveEventData, type SaveSessionData } from '@/l
 import { useChatHistory, ChatMessageData } from '@/lib/hooks/use-chat-history'
 import { useTimelineBuilder } from '@/lib/hooks/use-timeline-builder'
 import { AppHeader } from '@/components/app-header'
-import { SleepPlanHeader } from '@/components/sleep-plan-header'
 import { ChatInput } from '@/components/chat-input'
 import { SleepEventDialog } from '@/components/sleep-event-dialog'
 import { SleepSessionDialog } from '@/components/sleep-session-dialog'
@@ -29,6 +28,7 @@ interface ChatContentProps {
   baby: Baby
   initialMessages?: ChatMessageData[]
   initialSleepEvents?: SleepEvent[]
+  initialSleepPlans?: SleepPlanRow[]
   initialCursor?: string | null
   hasMoreHistory?: boolean
 }
@@ -37,6 +37,7 @@ export function ChatContent({
   baby,
   initialMessages = [],
   initialSleepEvents = [],
+  initialSleepPlans = [],
   initialCursor = null,
   hasMoreHistory: initialHasMore = false
 }: ChatContentProps) {
@@ -52,7 +53,6 @@ export function ChatContent({
 
   // Sleep plan state for ChatInput quick actions
   const [sleepPlan, setSleepPlan] = useState<SleepPlan | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   // Track which tool-created sleep plans we've already processed
   const processedSleepPlanMsgIds = useRef(new Set<string>())
@@ -76,6 +76,7 @@ export function ChatContent({
   const {
     historyMessages,
     historySleepEvents,
+    historySleepPlans,
     isLoadingHistory,
     hasMoreHistory,
     loadMoreHistory,
@@ -100,7 +101,6 @@ export function ChatContent({
     isEventTracked,
   } = useSleepEventCRUD({
     babyId: baby.id,
-    onEventChange: useCallback(() => setRefreshKey(k => k + 1), []),
   })
 
   // Realtime sync for multi-family member updates
@@ -192,7 +192,7 @@ export function ChatContent({
   }, [liveMessages, addToolCreatedEvent])
 
   // Timeline builder hook
-  const { allMessages, allSleepEvents, timelineItems } = useTimelineBuilder({
+  const { allMessages, allSleepEvents, allSleepPlans, timelineItems } = useTimelineBuilder({
     historyMessages,
     initialMessages,
     liveMessages,
@@ -200,6 +200,8 @@ export function ChatContent({
     initialSleepEvents,
     localEvents,
     deletedEventIds,
+    historySleepPlans,
+    initialSleepPlans,
   })
 
   // Handle sending chat messages
@@ -284,13 +286,6 @@ export function ChatContent({
           baby={baby}
           onSignOut={handleSignOut}
         />
-        <SleepPlanHeader
-          babyId={baby.id}
-          events={allSleepEvents}
-          baby={baby}
-          refreshKey={refreshKey}
-          onPlanChange={setSleepPlan}
-        />
       </div>
 
       {/* Messages */}
@@ -300,6 +295,7 @@ export function ChatContent({
             timelineItems={timelineItems}
             allMessages={allMessages}
             allSleepEvents={allSleepEvents}
+            allSleepPlans={allSleepPlans}
             baby={baby}
             status={status}
             isLoadingHistory={isLoadingHistory}

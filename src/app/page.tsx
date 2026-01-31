@@ -146,11 +146,45 @@ export default async function Home() {
     ? chatMessages[chatMessages.length - 1].created_at
     : null
 
+  // Fetch historical sleep events logged within the initial messages' time range
+  // Use created_at (when logged) not event_time (when occurred) to align with chat message pagination
+  if (oldestTimestamp) {
+    const oldestEventCreatedAt = sleepEvents.length > 0
+      ? sleepEvents[0].created_at
+      : todayStart
+
+    // Only fetch if there's a gap between oldest message and oldest event we have
+    if (oldestTimestamp < oldestEventCreatedAt) {
+      const { data: historicalEvents } = await supabase
+        .from("sleep_events")
+        .select("*")
+        .eq("baby_id", babyId)
+        .gte("created_at", oldestTimestamp)
+        .lt("created_at", oldestEventCreatedAt)
+        .order("event_time", { ascending: true })
+
+      if (historicalEvents && historicalEvents.length > 0) {
+        sleepEvents = [...historicalEvents, ...sleepEvents]
+      }
+    }
+  }
+
+  // Fetch initial sleep plans (including active plan so it appears in timeline)
+  const { data: sleepPlans } = await supabase
+    .from('sleep_plans')
+    .select('*')
+    .eq('baby_id', babyId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  const initialSleepPlans = (sleepPlans || []).reverse()
+
   return (
     <ChatContent
       baby={baby}
       initialMessages={initialMessages}
       initialSleepEvents={sleepEvents}
+      initialSleepPlans={initialSleepPlans}
       initialCursor={oldestTimestamp}
       hasMoreHistory={chatMessages?.length === 50}
     />
