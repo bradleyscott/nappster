@@ -56,8 +56,11 @@ export function ChatContent({
   // Sleep plan state for ChatInput quick actions
   const [sleepPlan, setSleepPlan] = useState<SleepPlan | null>(null)
 
-  // Track which tool-created sleep plans we've already processed
-  const processedSleepPlanMsgIds = useRef(new Set<string>())
+  // Local sleep plans for timeline display (tool-created + realtime)
+  const [localSleepPlans, setLocalSleepPlans] = useState<SleepPlanRow[]>([])
+
+  // Track which tool-created sleep plans we've already processed (by plan ID)
+  const processedSleepPlanIds = useRef(new Set<string>())
 
   // Get user's timezone for the AI to correctly parse times
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
@@ -105,6 +108,17 @@ export function ChatContent({
     babyId: baby.id,
   })
 
+  // Add a sleep plan created by AI tools to local state
+  const addToolCreatedPlan = useCallback((plan: SleepPlanRow) => {
+    if (!processedSleepPlanIds.current.has(plan.id)) {
+      processedSleepPlanIds.current.add(plan.id)
+      setLocalSleepPlans(prev => {
+        if (prev.some(p => p.id === plan.id)) return prev
+        return [...prev, plan]
+      })
+    }
+  }, [])
+
   // Realtime sync for multi-family member updates
   const { broadcastDelete } = useRealtimeSync({
     babyId: baby.id,
@@ -128,15 +142,32 @@ export function ChatContent({
       }
     }, [liveMessages, addRealtimeMessage]),
     onSleepPlanChange: useCallback((plan: SleepPlanRow, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+      // Skip plans we created ourselves via tool
+      if (processedSleepPlanIds.current.has(plan.id)) return
+
       if (changeType === 'DELETE') {
         setSleepPlan(null)
-      } else if (plan.is_active) {
-        setSleepPlan({
-          currentState: plan.current_state as SleepPlan['currentState'],
-          nextAction: plan.next_action as SleepPlan['nextAction'],
-          schedule: plan.schedule as SleepPlan['schedule'],
-          targetBedtime: plan.target_bedtime,
-          summary: plan.summary,
+        setLocalSleepPlans(prev => prev.filter(p => p.id !== plan.id))
+      } else {
+        // Update ChatInput quick actions if this is the active plan
+        if (plan.is_active) {
+          setSleepPlan({
+            currentState: plan.current_state as SleepPlan['currentState'],
+            nextAction: plan.next_action as SleepPlan['nextAction'],
+            schedule: plan.schedule as SleepPlan['schedule'],
+            targetBedtime: plan.target_bedtime,
+            summary: plan.summary,
+          })
+        }
+        // Add to timeline (for plans from other family members)
+        setLocalSleepPlans(prev => {
+          if (changeType === 'INSERT') {
+            if (prev.some(p => p.id === plan.id)) return prev
+            return [...prev, plan]
+          } else {
+            // UPDATE
+            return prev.map(p => p.id === plan.id ? plan : p)
+          }
         })
       }
     }, []),
@@ -184,14 +215,24 @@ export function ChatContent({
           part.output.success === true &&
           part.output.plan
         ) {
-          if (!processedSleepPlanMsgIds.current.has(msg.id)) {
-            processedSleepPlanMsgIds.current.add(msg.id)
-            setSleepPlan(part.output.plan as SleepPlan)
+          const planData = part.output.plan as SleepPlanRow
+          // Only process each plan once
+          if (!processedSleepPlanIds.current.has(planData.id)) {
+            // Update ChatInput quick actions state
+            setSleepPlan({
+              currentState: planData.current_state as SleepPlan['currentState'],
+              nextAction: planData.next_action as SleepPlan['nextAction'],
+              schedule: planData.schedule as SleepPlan['schedule'],
+              targetBedtime: planData.target_bedtime,
+              summary: planData.summary,
+            })
+            // Add to timeline
+            addToolCreatedPlan(planData)
           }
         }
       }
     }
-  }, [liveMessages, addToolCreatedEvent])
+  }, [liveMessages, addToolCreatedEvent, addToolCreatedPlan])
 
   // Timeline builder hook
   const { allMessages, allSleepEvents, allSleepPlans, timelineItems } = useTimelineBuilder({
@@ -204,6 +245,7 @@ export function ChatContent({
     deletedEventIds,
     historySleepPlans,
     initialSleepPlans,
+    localSleepPlans,
   })
 
   // Compute current state from today's events for quick action buttons
