@@ -215,3 +215,32 @@ function parseTimeWindowStartHour(timeWindow: string): number | null {
 
   return hour + minutes / 60
 }
+
+/**
+ * Get suggested questions for AI chat based on current sleep state.
+ * These are contextual prompts that help users ask relevant timing questions.
+ *
+ * @param state - The current sleep state
+ * @param babyName - The baby's name for personalization
+ */
+export function getSuggestedQuestions(
+  state: SleepState,
+  babyName: string
+): string[] {
+  switch (state) {
+    case 'awaiting_morning_wake':
+      return [`What time should ${babyName} wake up?`]
+    case 'daytime_awake':
+      return [
+        `When is ${babyName}'s next nap?`,
+        `When should ${babyName} go to bed?`,
+      ]
+    case 'daytime_napping':
+      return [
+        `When should I wake ${babyName}?`,
+        `How long should this nap be?`,
+      ]
+    case 'overnight_sleep':
+      return [`What time should ${babyName} wake up tomorrow?`]
+  }
+}
