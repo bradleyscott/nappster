@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Redirect unauthenticated users to login (except for auth pages)
+  // Redirect unauthenticated users to login (except for auth pages and root)
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/auth') &&
@@ -57,9 +57,11 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
+     * - favicon.ico, manifest.json (PWA files)
+     * - sw.js, workbox-*.js (service worker files)
+     * - icons folder (PWA icons)
+     * - Static assets (svg, png, jpg, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*\\.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }
