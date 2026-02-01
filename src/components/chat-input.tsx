@@ -17,12 +17,15 @@ import { EventType, Context } from '@/types/database'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
 import {
   getQuickEntryButtons,
+  getSuggestedQuestions,
   shouldShowBedtime,
   type SleepState,
 } from '@/lib/state-machine'
+import { Suggestion } from '@/components/ai-elements/suggestion'
 
 interface ChatInputProps {
   babyId: string
+  babyName: string
   onSendMessage: (text: string) => void | Promise<void>
   onCreateEvent: (eventData: {
     event_type: EventType
@@ -38,6 +41,7 @@ interface ChatInputProps {
 
 export function ChatInput({
   babyId,
+  babyName,
   onSendMessage,
   onCreateEvent,
   status,
@@ -85,6 +89,9 @@ export function ChatInput({
   )
   const quickActions = getQuickEntryButtons(currentState, { showBedtimeOverNap: showBedtime })
 
+  // Get contextual suggested questions based on current sleep state
+  const suggestedQuestions = getSuggestedQuestions(currentState, babyName)
+
   return (
     <>
       <PromptInput onSubmit={handleSubmit} className="bg-background">
@@ -94,7 +101,7 @@ export function ChatInput({
         />
 
         <PromptInputFooter>
-          <PromptInputTools>
+          <PromptInputTools className="flex-wrap">
             <PromptInputButton
               onClick={() => setDialogOpen(true)}
               aria-label="Record past event"
@@ -112,6 +119,14 @@ export function ChatInput({
                 onClick={() => handleQuickAction(action.eventType)}
                 disabled={disabled}
                 size="compact"
+              />
+            ))}
+            {suggestedQuestions.map((question) => (
+              <Suggestion
+                key={question}
+                suggestion={question}
+                onClick={onSendMessage}
+                disabled={disabled}
               />
             ))}
           </PromptInputTools>

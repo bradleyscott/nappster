@@ -369,6 +369,7 @@ export function ChatContent({
         <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
           <ChatInput
             babyId={baby.id}
+            babyName={baby.name}
             onSendMessage={handleSendMessage}
             onCreateEvent={handleCreateEvent}
             status={status}
