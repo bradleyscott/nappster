@@ -28,6 +28,7 @@ interface UseTimelineBuilderOptions {
   deletedEventIds: Set<string>
   historySleepPlans: SleepPlanRow[]
   initialSleepPlans: SleepPlanRow[]
+  localSleepPlans: SleepPlanRow[]
 }
 
 interface UseTimelineBuilderReturn {
@@ -47,6 +48,7 @@ export function useTimelineBuilder({
   deletedEventIds,
   historySleepPlans,
   initialSleepPlans,
+  localSleepPlans,
 }: UseTimelineBuilderOptions): UseTimelineBuilderReturn {
   // Combine all messages (history, initial, live) deduplicating by id
   const allMessages = useMemo(() => {
@@ -70,17 +72,16 @@ export function useTimelineBuilder({
     }
 
     // Add live messages (new messages from current session)
-    for (let i = 0; i < liveMessages.length; i++) {
-      const msg = liveMessages[i]
+    // Use current time - live messages naturally sort after persisted ones
+    const now = new Date().toISOString()
+    for (const msg of liveMessages) {
       if (!seen.has(msg.id)) {
         seen.add(msg.id)
-        // Use far-future timestamp to ensure live messages sort after persisted ones
-        // The index offset maintains relative ordering among live messages
         combined.push({
           id: msg.id,
           role: msg.role as 'user' | 'assistant',
           parts: msg.parts as Json,
-          createdAt: `9999-12-31T00:00:00.${String(i).padStart(3, '0')}Z`,
+          createdAt: now,
         })
       }
     }
@@ -120,7 +121,7 @@ export function useTimelineBuilder({
     )
   }, [historySleepEvents, initialSleepEvents, localEvents, deletedEventIds])
 
-  // Combine all sleep plans (history + initial), deduplicating by id
+  // Combine all sleep plans (history + initial + local), deduplicating by id
   // Include active plans so they appear in the timeline at their chronological position
   const allSleepPlans = useMemo(() => {
     const seen = new Set<string>()
@@ -140,11 +141,18 @@ export function useTimelineBuilder({
       }
     }
 
+    for (const plan of localSleepPlans) {
+      if (!seen.has(plan.id)) {
+        seen.add(plan.id)
+        combined.push(plan)
+      }
+    }
+
     // Sort by created_at
     return combined.sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
-  }, [historySleepPlans, initialSleepPlans])
+  }, [historySleepPlans, initialSleepPlans, localSleepPlans])
 
   // Create interleaved timeline of messages, sleep events, and sleep plans
   const timelineItems = useMemo(() => {
@@ -165,21 +173,38 @@ export function useTimelineBuilder({
       items.push({ kind: 'sleep_plan', plan })
     }
 
-    // Sort by timestamp
+    // Sort by timestamp, with kind-based ordering for items within a time window.
+    // When items are within 60 seconds, sort: messages first, then sleep_events, then sleep_plans.
+    // This groups AI responses with the events/plans they created.
+    const TIME_WINDOW_MS = 60 * 1000
+
+    const kindOrder: Record<TimelineItem['kind'], number> = {
+      message: 0,
+      sleep_event: 1,
+      sleep_plan: 2,
+    }
+
     items.sort((a, b) => {
-      const getTime = (item: TimelineItem): string => {
-        if (item.kind === 'message') return normalizeTimestamp(item.message.createdAt)
-        if (item.kind === 'sleep_event') return item.event.event_time
-        return item.plan.created_at
+      const getTimeMs = (item: TimelineItem): number => {
+        if (item.kind === 'message') {
+          const ts = normalizeTimestamp(item.message.createdAt)
+          return ts ? new Date(ts).getTime() : 0
+        }
+        if (item.kind === 'sleep_event') return new Date(item.event.event_time).getTime()
+        return new Date(item.plan.created_at).getTime()
       }
-      const timeA = getTime(a)
-      const timeB = getTime(b)
 
-      if (!timeA && !timeB) return 0
-      if (!timeA) return 1
-      if (!timeB) return -1
+      const timeA = getTimeMs(a)
+      const timeB = getTimeMs(b)
 
-      return timeA.localeCompare(timeB)
+      // If times are within the window, sort by kind
+      if (Math.abs(timeA - timeB) <= TIME_WINDOW_MS) {
+        const kindCompare = kindOrder[a.kind] - kindOrder[b.kind]
+        if (kindCompare !== 0) return kindCompare
+      }
+
+      // Otherwise (or if same kind), sort by timestamp
+      return timeA - timeB
     })
 
     return items
