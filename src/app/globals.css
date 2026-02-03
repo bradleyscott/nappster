@@ -136,6 +136,19 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Disable native pull-to-refresh on PWA */
+  html,
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Reduced motion support for pull-to-refresh */
+@media (prefers-reduced-motion: reduce) {
+  .pull-to-refresh-indicator {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* AI Elements theme overrides */

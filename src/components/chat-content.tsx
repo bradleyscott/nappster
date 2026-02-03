@@ -24,6 +24,7 @@ import {
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
 import { TimelineRenderer } from '@/components/timeline-renderer'
+import { PullToRefreshContainer } from '@/components/pull-to-refresh'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
 
 interface ChatContentProps {
@@ -334,6 +335,53 @@ export function ChatContent({
     router.refresh()
   }, [supabase, router])
 
+  // Handle pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    const { start: yesterdayStart } = getTodayBoundsForTimezone(timezone)
+    const yesterday = new Date(new Date(yesterdayStart).getTime() - 24 * 60 * 60 * 1000).toISOString()
+
+    const [eventsResult, plansResult] = await Promise.all([
+      supabase
+        .from('sleep_events')
+        .select('*')
+        .eq('baby_id', baby.id)
+        .gte('event_time', yesterday)
+        .order('event_time', { ascending: true }),
+      supabase
+        .from('sleep_plans')
+        .select('*')
+        .eq('baby_id', baby.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1),
+    ])
+
+    if (eventsResult.data) {
+      // Add any new events from the refresh
+      for (const event of eventsResult.data) {
+        if (!isEventTracked(event.id)) {
+          handleRealtimeEvent(event, 'INSERT')
+        }
+      }
+    }
+
+    if (plansResult.data?.[0]) {
+      const plan = plansResult.data[0]
+      if (!processedSleepPlanIds.current.has(plan.id)) {
+        setSleepPlan({
+          currentState: plan.current_state as SleepPlan['currentState'],
+          nextAction: plan.next_action as SleepPlan['nextAction'],
+          schedule: plan.schedule as SleepPlan['schedule'],
+          targetBedtime: plan.target_bedtime,
+          summary: plan.summary,
+        })
+      }
+    }
+  }, [baby.id, supabase, timezone, isEventTracked, handleRealtimeEvent])
+
+  // Determine if pull-to-refresh should be enabled
+  const isPullToRefreshEnabled = !isLoading && !isLoadingHistory && !editDialogOpen && !sessionDialogOpen && !deleteDialogOpen
+
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
       {/* Sticky Header Container */}
@@ -346,21 +394,26 @@ export function ChatContent({
 
       {/* Messages */}
       <Conversation className="flex-1">
-        <ConversationContent className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6 gap-4">
-          <TimelineRenderer
-            timelineItems={timelineItems}
-            allMessages={allMessages}
-            allSleepEvents={allSleepEvents}
-            allSleepPlans={allSleepPlans}
-            baby={baby}
-            status={status}
-            isLoadingHistory={isLoadingHistory}
-            hasMoreHistory={hasMoreHistory}
-            onLoadMoreHistory={loadMoreHistory}
-            onSendMessage={handleSendMessage}
-            onEventClick={handleEventClick}
-          />
-        </ConversationContent>
+        <PullToRefreshContainer
+          onRefresh={handleRefresh}
+          isEnabled={isPullToRefreshEnabled}
+        >
+          <ConversationContent className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6 gap-4">
+            <TimelineRenderer
+              timelineItems={timelineItems}
+              allMessages={allMessages}
+              allSleepEvents={allSleepEvents}
+              allSleepPlans={allSleepPlans}
+              baby={baby}
+              status={status}
+              isLoadingHistory={isLoadingHistory}
+              hasMoreHistory={hasMoreHistory}
+              onLoadMoreHistory={loadMoreHistory}
+              onSendMessage={handleSendMessage}
+              onEventClick={handleEventClick}
+            />
+          </ConversationContent>
+        </PullToRefreshContainer>
         <ConversationScrollButton className="shadow-lg" />
       </Conversation>
 
