@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { usePullToRefresh } from "@/lib/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 import type { ReactNode } from "react";
@@ -10,11 +9,11 @@ export interface PullToRefreshContainerProps {
   isEnabled?: boolean;
   isAtBottom: boolean;
   children: ReactNode;
-  className?: string;
 }
 
 /**
- * Container that adds pull-to-refresh functionality.
+ * Adds pull-to-refresh functionality with a minimal wrapper.
+ * The wrapper is styled to act as a flex item that fills available space.
  * Requires isAtBottom to be passed as a prop (from useStickToBottomContext or similar).
  */
 export function PullToRefreshContainer({
@@ -22,7 +21,6 @@ export function PullToRefreshContainer({
   isEnabled = true,
   isAtBottom,
   children,
-  className,
 }: PullToRefreshContainerProps) {
   const {
     pullDistance,
@@ -38,7 +36,8 @@ export function PullToRefreshContainer({
 
   return (
     <div
-      className={cn("relative flex flex-col flex-1", className)}
+      className="relative flex-1 min-h-0 overflow-hidden"
+      style={{ display: 'flex', flexDirection: 'column' }}
       onTouchStart={handlers.onTouchStart}
       onTouchMove={handlers.onTouchMove}
       onTouchEnd={handlers.onTouchEnd}
