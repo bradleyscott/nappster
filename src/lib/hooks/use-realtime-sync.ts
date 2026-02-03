@@ -51,6 +51,9 @@ interface RealtimeSyncOptions {
   onChatMessageChange?: (message: ChatMessage, changeType: ChangeEvent) => void
   onSleepPlanChange?: (plan: SleepPlanRow, changeType: ChangeEvent) => void
   onConnectionChange?: (status: ConnectionStatus) => void
+  // Called when tab becomes visible again or connection is restored after disconnect
+  // Use this to refresh data that may have been missed while backgrounded
+  onRefreshData?: () => void
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -75,6 +78,7 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
     onChatMessageChange,
     onSleepPlanChange,
     onConnectionChange,
+    onRefreshData,
   } = options
 
   const [state, setState] = useState<ConnectionState>({
@@ -92,6 +96,10 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
   const onChatMessageChangeRef = useRef(onChatMessageChange)
   const onSleepPlanChangeRef = useRef(onSleepPlanChange)
   const onConnectionChangeRef = useRef(onConnectionChange)
+  const onRefreshDataRef = useRef(onRefreshData)
+
+  // Track if we were previously disconnected (for refresh on reconnect)
+  const wasDisconnectedRef = useRef(false)
 
   // Keep refs up to date
   useEffect(() => {
@@ -99,12 +107,27 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
     onChatMessageChangeRef.current = onChatMessageChange
     onSleepPlanChangeRef.current = onSleepPlanChange
     onConnectionChangeRef.current = onConnectionChange
+    onRefreshDataRef.current = onRefreshData
   })
 
   const updateConnectionStatus = useCallback(
     (status: ConnectionStatus, error?: Error) => {
-      setState({ connectionStatus: status, lastError: error ?? null })
+      setState((prev) => {
+        // Track if we're transitioning from disconnected/error to connected
+        const wasDisconnected = prev.connectionStatus === 'disconnected' || prev.connectionStatus === 'error'
+        if (wasDisconnected && status === 'connected') {
+          // Mark that we were disconnected so we can refresh data
+          wasDisconnectedRef.current = true
+        }
+        return { connectionStatus: status, lastError: error ?? null }
+      })
       onConnectionChangeRef.current?.(status)
+
+      // Trigger refresh when reconnecting after a disconnect
+      if (status === 'connected' && wasDisconnectedRef.current) {
+        wasDisconnectedRef.current = false
+        onRefreshDataRef.current?.()
+      }
     },
     []
   )
@@ -264,6 +287,34 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
       }
     }
   }, [babyId, enabled, handleChange, updateConnectionStatus])
+
+  // Handle visibility change - refresh data when tab becomes visible
+  // This catches cases where WebSocket events were missed while backgrounded
+  useEffect(() => {
+    if (!enabled || process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+      return
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab became visible - refresh data to catch any missed updates
+        onRefreshDataRef.current?.()
+      }
+    }
+
+    // Also handle window focus for additional coverage (e.g., switching between apps)
+    const handleFocus = () => {
+      onRefreshDataRef.current?.()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [enabled])
 
   // Broadcast a delete event to other clients
   // This is needed because RLS prevents postgres_changes from broadcasting DELETE events
