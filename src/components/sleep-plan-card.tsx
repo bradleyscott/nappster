@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, Calendar } from 'lucide-react'
+import { ChevronDown, Calendar, Share2, Check } from 'lucide-react'
 import { formatTime } from '@/lib/sleep-utils'
 import type { SleepPlanRow, ScheduleItem, NextAction } from '@/types/database'
 
@@ -46,8 +46,32 @@ const statusConfig: Record<
 // Empty subscription for useSyncExternalStore - never triggers updates
 const emptySubscribe = () => () => {}
 
+function formatPlanForSharing(plan: SleepPlanRow, schedule: ScheduleItem[]): string {
+  const lines: string[] = []
+
+  // Header
+  lines.push('📅 Sleep Plan')
+  lines.push('')
+
+  // Summary
+  lines.push(plan.summary)
+  lines.push('')
+
+  // Schedule
+  lines.push('Schedule:')
+  for (const item of schedule) {
+    if (item.type === 'bedtime') continue
+    const statusIcon = item.status === 'completed' ? '✓' : item.status === 'in_progress' ? '●' : '○'
+    lines.push(`  ${statusIcon} ${item.label}: ${item.timeWindow}`)
+  }
+  lines.push(`  🌙 Bedtime: ${plan.target_bedtime}`)
+
+  return lines.join('\n')
+}
+
 export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [copied, setCopied] = useState(false)
   // Defer rendering Collapsible until after hydration to avoid Radix ID mismatch
   // useSyncExternalStore is the React 18+ way to handle client-only rendering
   const mounted = useSyncExternalStore(
@@ -59,6 +83,13 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
   const schedule = plan.schedule as unknown as ScheduleItem[]
   const nextAction = plan.next_action as unknown as NextAction
   const planTime = formatTime(plan.created_at)
+
+  const handleShare = async () => {
+    const text = formatPlanForSharing(plan, schedule)
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
 
   // Show placeholder during SSR to avoid hydration mismatch with Radix IDs
@@ -172,6 +203,25 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
                   </span>
                 </div>
               </div>
+
+              {/* Share button */}
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 w-full py-2 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                aria-label="Copy sleep plan to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600">Copied to clipboard</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-4 w-4" />
+                    <span>Share plan</span>
+                  </>
+                )}
+              </button>
             </div>
           </CollapsibleContent>
         </div>
