@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Baby, SleepEvent, SleepSession, SleepPlanRow, ChatMessage } from '@/types/database'
 import { findSessionForEvent } from '@/lib/sleep-utils'
 import { computeCurrentState, type SleepState } from '@/lib/state-machine'
-import { getTodayBoundsForTimezone } from '@/lib/timezone'
+import { getTodayBoundsForTimezone, getYesterdayBoundsForTimezone } from '@/lib/timezone'
 import { createClient } from '@/lib/supabase/client'
 import { useRealtimeSync } from '@/lib/hooks/use-realtime-sync'
 import { useSleepEventCRUD, type SaveEventData, type SaveSessionData } from '@/lib/hooks/use-sleep-event-crud'
@@ -86,6 +86,7 @@ export function ChatContent({
     hasMoreHistory,
     loadMoreHistory,
     addRealtimeMessage,
+    mergeRefreshedMessages,
   } = useChatHistory({
     babyId: baby.id,
     initialCursor,
@@ -104,6 +105,7 @@ export function ChatContent({
     handleRealtimeEvent,
     addToolCreatedEvent,
     isEventTracked,
+    mergeRefreshedEvents,
   } = useSleepEventCRUD({
     babyId: baby.id,
   })
@@ -118,6 +120,82 @@ export function ChatContent({
       })
     }
   }, [])
+
+  // Refresh data when tab becomes visible or connection is restored
+  // This catches updates that were missed while the app was backgrounded
+  const lastRefreshRef = useRef<number>(0)
+  const refreshData = useCallback(async () => {
+    // Debounce: don't refresh more than once every 2 seconds
+    const now = Date.now()
+    if (now - lastRefreshRef.current < 2000) return
+    lastRefreshRef.current = now
+
+    const { start: yesterdayStart } = getYesterdayBoundsForTimezone(timezone)
+
+    try {
+      // Fetch recent sleep events (from yesterday to catch overnight sleep)
+      const { data: recentEvents } = await supabase
+        .from('sleep_events')
+        .select('*')
+        .eq('baby_id', baby.id)
+        .gte('event_time', yesterdayStart)
+        .order('event_time', { ascending: true })
+
+      if (recentEvents && recentEvents.length > 0) {
+        mergeRefreshedEvents(recentEvents)
+      }
+
+      // Fetch recent chat messages (last 50)
+      const { data: recentMessages } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('baby_id', baby.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (recentMessages && recentMessages.length > 0) {
+        const formatted = recentMessages.reverse().map(msg => ({
+          id: msg.message_id,
+          role: msg.role as 'user' | 'assistant',
+          parts: msg.parts,
+          createdAt: msg.created_at,
+        }))
+        mergeRefreshedMessages(formatted)
+      }
+
+      // Fetch recent sleep plans
+      const { data: recentPlans } = await supabase
+        .from('sleep_plans')
+        .select('*')
+        .eq('baby_id', baby.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (recentPlans && recentPlans.length > 0) {
+        // Merge into local sleep plans
+        setLocalSleepPlans(prev => {
+          const existingIds = new Set(prev.map(p => p.id))
+          const newPlans = recentPlans.filter(p => !existingIds.has(p.id))
+          if (newPlans.length === 0) return prev
+          return [...prev, ...newPlans]
+        })
+
+        // Update the active plan for quick actions
+        const activePlan = recentPlans.find(p => p.is_active)
+        if (activePlan) {
+          setSleepPlan({
+            currentState: activePlan.current_state as SleepPlan['currentState'],
+            nextAction: activePlan.next_action as SleepPlan['nextAction'],
+            schedule: activePlan.schedule as SleepPlan['schedule'],
+            targetBedtime: activePlan.target_bedtime,
+            summary: activePlan.summary,
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+    }
+  }, [baby.id, supabase, timezone, mergeRefreshedEvents, mergeRefreshedMessages])
 
   // Realtime sync for multi-family member updates
   const { broadcastDelete } = useRealtimeSync({
@@ -171,6 +249,7 @@ export function ChatContent({
         })
       }
     }, []),
+    onRefreshData: refreshData,
   })
 
   // Type guard helpers for message parts
