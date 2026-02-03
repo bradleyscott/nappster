@@ -3,27 +3,29 @@
 import { cn } from "@/lib/utils";
 import { usePullToRefresh } from "@/lib/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
-import { useStickToBottomContext } from "use-stick-to-bottom";
 import type { ReactNode } from "react";
 
 export interface PullToRefreshContainerProps {
   onRefresh: () => Promise<void>;
   isEnabled?: boolean;
+  isAtBottom: boolean;
   children: ReactNode;
   className?: string;
 }
 
+/**
+ * Container that adds pull-to-refresh functionality.
+ * Requires isAtBottom to be passed as a prop (from useStickToBottomContext or similar).
+ */
 export function PullToRefreshContainer({
   onRefresh,
   isEnabled = true,
+  isAtBottom,
   children,
   className,
 }: PullToRefreshContainerProps) {
-  const { isAtBottom } = useStickToBottomContext();
-
   const {
     pullDistance,
-    isPulling,
     isRefreshing,
     hasReachedThreshold,
     progress,

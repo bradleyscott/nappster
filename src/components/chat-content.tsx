@@ -23,9 +23,19 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
+import { useStickToBottomContext } from 'use-stick-to-bottom'
 import { TimelineRenderer } from '@/components/timeline-renderer'
 import { PullToRefreshContainer } from '@/components/pull-to-refresh'
 import type { SleepPlan } from '@/app/api/sleep-plan/route'
+
+// Bridge component to sync isAtBottom state from StickToBottom context
+function IsAtBottomBridge({ onIsAtBottomChange }: { onIsAtBottomChange: (isAtBottom: boolean) => void }) {
+  const { isAtBottom } = useStickToBottomContext()
+  useEffect(() => {
+    onIsAtBottomChange(isAtBottom)
+  }, [isAtBottom, onIsAtBottomChange])
+  return null
+}
 
 interface ChatContentProps {
   baby: Baby
@@ -53,6 +63,9 @@ export function ChatContent({
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SleepSession | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  // Pull-to-refresh state (synced from StickToBottom context via bridge)
+  const [isAtBottom, setIsAtBottom] = useState(true)
 
   // Sleep plan state for ChatInput quick actions
   const [sleepPlan, setSleepPlan] = useState<SleepPlan | null>(null)
@@ -393,11 +406,13 @@ export function ChatContent({
       </div>
 
       {/* Messages */}
-      <Conversation className="flex-1">
-        <PullToRefreshContainer
-          onRefresh={handleRefresh}
-          isEnabled={isPullToRefreshEnabled}
-        >
+      <PullToRefreshContainer
+        onRefresh={handleRefresh}
+        isEnabled={isPullToRefreshEnabled}
+        isAtBottom={isAtBottom}
+      >
+        <Conversation className="flex-1">
+          <IsAtBottomBridge onIsAtBottomChange={setIsAtBottom} />
           <ConversationContent className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6 gap-4">
             <TimelineRenderer
               timelineItems={timelineItems}
@@ -413,9 +428,9 @@ export function ChatContent({
               onEventClick={handleEventClick}
             />
           </ConversationContent>
-        </PullToRefreshContainer>
-        <ConversationScrollButton className="shadow-lg" />
-      </Conversation>
+          <ConversationScrollButton className="shadow-lg" />
+        </Conversation>
+      </PullToRefreshContainer>
 
       {/* Chat Input */}
       <div className="sticky bottom-0 border-t py-1 sm:py-3 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 chat-input-container">
