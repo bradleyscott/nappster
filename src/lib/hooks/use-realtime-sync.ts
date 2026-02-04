@@ -125,6 +125,7 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
 
       // Trigger refresh when reconnecting after a disconnect
       if (status === 'connected' && wasDisconnectedRef.current) {
+        console.log('[Realtime] Reconnected after disconnect - triggering refresh')
         wasDisconnectedRef.current = false
         onRefreshDataRef.current?.()
       }
@@ -298,12 +299,14 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         // Tab became visible - refresh data to catch any missed updates
+        console.log('[Realtime] Tab became visible - triggering refresh')
         onRefreshDataRef.current?.()
       }
     }
 
     // Also handle window focus for additional coverage (e.g., switching between apps)
     const handleFocus = () => {
+      console.log('[Realtime] Window focused - triggering refresh')
       onRefreshDataRef.current?.()
     }
 

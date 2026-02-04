@@ -127,8 +127,12 @@ export function ChatContent({
   const refreshData = useCallback(async () => {
     // Debounce: don't refresh more than once every 2 seconds
     const now = Date.now()
-    if (now - lastRefreshRef.current < 2000) return
+    if (now - lastRefreshRef.current < 2000) {
+      console.log('[Refresh] Debounced - too soon since last refresh')
+      return
+    }
     lastRefreshRef.current = now
+    console.log('[Refresh] Starting data refresh...')
 
     const { start: yesterdayStart } = getYesterdayBoundsForTimezone(timezone)
 
@@ -142,6 +146,7 @@ export function ChatContent({
         .order('event_time', { ascending: true })
 
       if (recentEvents && recentEvents.length > 0) {
+        console.log(`[Refresh] Fetched ${recentEvents.length} sleep events`)
         mergeRefreshedEvents(recentEvents)
       }
 
@@ -154,6 +159,7 @@ export function ChatContent({
         .limit(50)
 
       if (recentMessages && recentMessages.length > 0) {
+        console.log(`[Refresh] Fetched ${recentMessages.length} chat messages`)
         const formatted = recentMessages.reverse().map(msg => ({
           id: msg.message_id,
           role: msg.role as 'user' | 'assistant',
@@ -172,6 +178,7 @@ export function ChatContent({
         .limit(10)
 
       if (recentPlans && recentPlans.length > 0) {
+        console.log(`[Refresh] Fetched ${recentPlans.length} sleep plans`)
         // Merge into local sleep plans
         setLocalSleepPlans(prev => {
           const existingIds = new Set(prev.map(p => p.id))
@@ -192,8 +199,9 @@ export function ChatContent({
           })
         }
       }
+      console.log('[Refresh] Data refresh complete')
     } catch (error) {
-      console.error('Error refreshing data:', error)
+      console.error('[Refresh] Error refreshing data:', error)
     }
   }, [baby.id, supabase, timezone, mergeRefreshedEvents, mergeRefreshedMessages])
 
