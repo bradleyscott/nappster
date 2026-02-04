@@ -52,6 +52,8 @@ interface UseSleepEventCRUDReturn {
   handleRealtimeEvent: (event: SleepEvent, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => void
   addToolCreatedEvent: (event: SleepEvent) => void
   isEventTracked: (eventId: string) => boolean
+  // Merge refreshed events (from visibility change refresh)
+  mergeRefreshedEvents: (events: SleepEvent[]) => void
 }
 
 export function useSleepEventCRUD({
@@ -116,6 +118,33 @@ export function useSleepEventCRUD({
       onEventChange?.()
     }
   }, [onEventChange])
+
+  // Merge refreshed events from background refresh (visibility change, reconnect)
+  // Updates existing events and adds new ones, respecting deleted events
+  const mergeRefreshedEvents = useCallback((events: SleepEvent[]) => {
+    setLocalEvents(prev => {
+      const existingIds = new Set(prev.map(e => e.id))
+      const updatedEvents = [...prev]
+
+      for (const event of events) {
+        // Skip deleted events
+        if (deletedEventIds.has(event.id)) continue
+
+        if (existingIds.has(event.id)) {
+          // Update existing event
+          const index = updatedEvents.findIndex(e => e.id === event.id)
+          if (index !== -1) {
+            updatedEvents[index] = event
+          }
+        } else {
+          // Add new event
+          updatedEvents.push(event)
+        }
+      }
+
+      return updatedEvents
+    })
+  }, [deletedEventIds])
 
   // Create a new sleep event
   const createEvent = useCallback(async (data: CreateEventData): Promise<SleepEvent | null> => {
@@ -321,5 +350,6 @@ export function useSleepEventCRUD({
     handleRealtimeEvent,
     addToolCreatedEvent,
     isEventTracked,
+    mergeRefreshedEvents,
   }
 }
