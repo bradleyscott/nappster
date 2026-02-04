@@ -27,6 +27,8 @@ interface UseChatHistoryReturn {
   hasMoreHistory: boolean
   loadMoreHistory: () => Promise<void>
   addRealtimeMessage: (message: ChatMessageData) => void
+  // Merge refreshed messages (from visibility change refresh)
+  mergeRefreshedMessages: (messages: ChatMessageData[]) => void
 }
 
 export function useChatHistory({
@@ -98,6 +100,16 @@ export function useChatHistory({
     })
   }, [])
 
+  // Merge refreshed messages from background refresh (visibility change, reconnect)
+  const mergeRefreshedMessages = useCallback((messages: ChatMessageData[]) => {
+    setHistoryMessages(prev => {
+      const existingIds = new Set(prev.map(m => m.id))
+      const newMessages = messages.filter(m => !existingIds.has(m.id))
+      if (newMessages.length === 0) return prev
+      return [...prev, ...newMessages]
+    })
+  }, [])
+
   return {
     historyMessages,
     historySleepEvents,
@@ -107,5 +119,6 @@ export function useChatHistory({
     hasMoreHistory,
     loadMoreHistory,
     addRealtimeMessage,
+    mergeRefreshedMessages,
   }
 }
