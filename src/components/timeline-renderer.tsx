@@ -22,7 +22,7 @@ import {
 } from '@/components/ai-elements/chain-of-thought'
 import { SleepPlanCard } from '@/components/sleep-plan-card'
 import { Search, Database, History, MessageSquare, FileEdit, Calendar, Moon } from 'lucide-react'
-import type { SleepPlan } from '@/app/api/sleep-plan/route'
+import type { SleepPlan } from '@/lib/ai/schemas/sleep-plan'
 
 // Type definitions for tool message parts
 type ToolCreateSleepEventPart = {
@@ -69,7 +69,7 @@ const toolInfo: Record<string, { label: string; icon: typeof Search }> = {
   'getChatHistory': { label: 'Recalling past conversations', icon: MessageSquare },
   'createSleepEvent': { label: 'Recording sleep event', icon: Moon },
   'updatePatternNotes': { label: 'Saving pattern notes', icon: FileEdit },
-  'updateSleepPlan': { label: 'Updating schedule', icon: Calendar },
+  'updateSleepPlan': { label: 'Creating sleep plan', icon: Calendar },
 }
 
 interface TimelineRendererProps {
@@ -215,7 +215,7 @@ function renderMessageParts(message: { parts: unknown }, isStreaming: boolean) {
         return (
           <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground py-2">
             <Loader size={14} />
-            <span>Updating schedule...</span>
+            <span>Creating sleep plan...</span>
           </div>
         )
       }

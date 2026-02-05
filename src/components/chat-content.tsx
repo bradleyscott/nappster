@@ -24,7 +24,7 @@ import {
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
 import { TimelineRenderer } from '@/components/timeline-renderer'
-import type { SleepPlan } from '@/app/api/sleep-plan/route'
+import type { SleepPlan } from '@/lib/ai/schemas/sleep-plan'
 
 interface ChatContentProps {
   baby: Baby
@@ -65,11 +65,50 @@ export function ChatContent({
   // Get user's timezone for the AI to correctly parse times
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
 
-  // Create transport with API endpoint and body
+  // Combine all sleep events for context (initial + local, excluding deleted)
+  // This runs before useTimelineBuilder to provide context for API calls
+  const allEventsForContext = useMemo(() => {
+    const seen = new Set<string>()
+    const combined: SleepEvent[] = []
+    for (const event of initialSleepEvents) {
+      if (!seen.has(event.id)) {
+        seen.add(event.id)
+        combined.push(event)
+      }
+    }
+    return combined.sort(
+      (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+    )
+  }, [initialSleepEvents])
+
+  // Filter to today's events for API context
+  const todayEventsForApi = useMemo(() => {
+    const { start, end } = getTodayBoundsForTimezone(timezone)
+    return allEventsForContext
+      .filter(e => e.event_time >= start && e.event_time < end)
+      .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime())
+  }, [allEventsForContext, timezone])
+
+  // Get last 5 messages for API context (from initial messages only, to avoid hydration issues)
+  const recentMessagesForApi = useMemo(() => {
+    return [...initialMessages]
+      .filter(m => m.createdAt)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+      .slice(0, 5)
+      .reverse()
+      .map(m => ({ role: m.role, parts: m.parts }))
+  }, [initialMessages])
+
+  // Create transport with API endpoint and body including pre-injected context
   const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/chat',
-    body: { babyId: baby.id, timezone },
-  }), [baby.id, timezone])
+    body: {
+      babyId: baby.id,
+      timezone,
+      todayEvents: todayEventsForApi,
+      recentMessages: recentMessagesForApi,
+    },
+  }), [baby.id, timezone, todayEventsForApi, recentMessagesForApi])
 
   const { messages: liveMessages, sendMessage, status } = useChat({
     transport,

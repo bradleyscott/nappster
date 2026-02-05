@@ -6,12 +6,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createChatTools } from "@/lib/ai/tools";
 import { buildChatSystemPrompt } from "@/lib/ai/prompts";
 import {
+  formatEventsContext,
+  extractTextFromParts,
+  type ChatContext,
+} from "@/lib/ai/format-context";
+import {
   requireBabyAccess,
   apiError,
   apiValidationError,
   authErrorResponse,
 } from "@/lib/api";
-import { Json } from "@/types/database";
+import { Json, SleepEvent } from "@/types/database";
 
 // Schema for validating critical request fields
 // Messages are validated by the SDK itself
@@ -19,6 +24,27 @@ const requestFieldsSchema = z.object({
   babyId: z.string().uuid(),
   timezone: z.string().optional(),
   showThinking: z.boolean().optional(),
+  // Pre-injected context from client
+  todayEvents: z
+    .array(
+      z.object({
+        id: z.string(),
+        event_type: z.string(),
+        event_time: z.string(),
+        end_time: z.string().nullable().optional(),
+        context: z.string().nullable().optional(),
+        notes: z.string().nullable().optional(),
+      })
+    )
+    .optional(),
+  recentMessages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        parts: z.any(),
+      })
+    )
+    .optional(),
 });
 
 // Maximum tool invocation steps before stopping the AI response.
@@ -41,6 +67,8 @@ export async function POST(req: Request) {
     const babyId = fieldsResult.data.babyId;
     const timezone = fieldsResult.data.timezone ?? "UTC";
     const showThinking = fieldsResult.data.showThinking ?? false;
+    const todayEvents = fieldsResult.data.todayEvents;
+    const recentMessages = fieldsResult.data.recentMessages;
 
     if (!Array.isArray(messages)) {
       return apiError("messages must be an array", 400);
@@ -54,10 +82,32 @@ export async function POST(req: Request) {
       return authErrorResponse(auth);
     }
 
-    // Create tool context - no upfront data fetching, AI will use tools
+    // Build chat context from pre-injected data
+    let chatContext: ChatContext | undefined;
+    if (todayEvents || recentMessages) {
+      const eventsContext = todayEvents
+        ? formatEventsContext(todayEvents as SleepEvent[], timezone)
+        : undefined;
+
+      const formattedMessages = recentMessages
+        ?.map((m) => ({
+          role: m.role,
+          text: extractTextFromParts(m.parts),
+        }))
+        .filter((m) => m.text.length > 0);
+
+      chatContext = {
+        todayEvents: eventsContext?.formattedEvents,
+        currentState: eventsContext?.currentState,
+        eventSummary: eventsContext?.eventSummary,
+        recentMessages: formattedMessages,
+      };
+    }
+
+    // Create tool context - AI can still use tools for additional data
     const toolContext = { supabase, babyId, timezone };
 
-    const systemPrompt = buildChatSystemPrompt(timezone);
+    const systemPrompt = buildChatSystemPrompt(timezone, chatContext);
 
     const result = streamText({
       model: openai("gpt-5.2"),
@@ -121,6 +171,9 @@ export async function POST(req: Request) {
         const toolCalls = await result.toolCalls;
         const toolResults = await result.toolResults;
         const reasoning = await result.reasoning;
+        const response = await result.response;
+        // Use the response ID so it matches what useChat sees on the client
+        const assistantMessageId = response.id ?? `assistant-${crypto.randomUUID()}`;
 
         // Build assistant message parts
         const assistantParts: Array<{
@@ -166,7 +219,7 @@ export async function POST(req: Request) {
         if (assistantParts.length > 0) {
           await saveWithRetry({
             baby_id: babyId,
-            message_id: `assistant-${crypto.randomUUID()}`,
+            message_id: assistantMessageId,
             role: "assistant",
             parts: JSON.parse(JSON.stringify(assistantParts)),
           });

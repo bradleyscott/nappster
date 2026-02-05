@@ -1,4 +1,5 @@
 import { formatTime } from "@/lib/sleep-utils";
+import type { ChatContext } from "./format-context";
 
 /**
  * Chat system prompt content.
@@ -23,14 +24,16 @@ const CHAT_PROMPT = `You are an expert baby sleep consultant helping parents opt
 
 ## Using Context
 
-Before giving personalized advice, consider fetching relevant context:
+**Today's events and recent messages are pre-loaded below.**
 
-- **Baby profile** — for age-appropriate guidance and known patterns
-- **Today's events** — to understand current state when planning the day
-- **Sleep history** — for trend or pattern questions
-- **Chat history** — when referencing prior conversation
+**Always fetch the baby's profile** (call getBabyProfile) when giving sleep advice — it contains the baby's age for age-appropriate wake windows, plus pattern notes describing known behaviors, preferences, and sleep associations that should inform your recommendations.
 
-Skip context for general knowledge questions that don't need personalization.
+Use other tools when needed:
+- Sleep history spanning multiple days → call getSleepHistory
+- Older conversations beyond what's shown → call getChatHistory
+- Verify data after making changes → call getTodayEvents
+
+Skip all context for general knowledge questions that don't need personalization.
 
 ## Event Type Disambiguation
 
@@ -105,80 +108,6 @@ If a user describes an event that seems inconsistent with the current state (e.g
 - If symptoms suggest illness or medical issues, recommend consulting their pediatrician`;
 
 /**
- * Sleep plan system prompt content.
- */
-const SLEEP_PLAN_PROMPT = `You are an expert baby sleep consultant. Your task is to create a detailed sleep plan for today.
-
-## Using Context
-
-Before generating the plan, fetch relevant context:
-
-- **Baby profile** — for age-appropriate wake windows and known patterns
-- **Today's events** — to understand what has happened and determine current state
-- **Sleep history** (optional) — if recent days show relevant trends
-
-Incorporate the baby's **pattern notes** into your recommendations. For example, if notes mention "fights second nap," adjust timing or add a note about that nap. If notes say "needs longer wake window before bed," reflect that in the schedule.
-
-## Current State (Computed by System)
-
-The \`currentState\` is computed deterministically from events by the system. You do NOT need to infer it.
-The possible states are:
-
-- **awaiting_morning_wake** — No events today, waiting for baby to wake
-- **overnight_sleep** — Baby is asleep for the night (after bedtime, before morning wake)
-- **daytime_awake** — Baby is awake during the day
-- **daytime_napping** — Baby is currently napping
-
-Note: \`night_wake\` is an event logged during overnight sleep, not a separate state. The baby remains in \`overnight_sleep\` state even when briefly awake at night.
-
-When generating a sleep plan, the \`currentState\` will be provided to you. Use it to determine:
-- Which schedule items are "completed" vs "upcoming"
-- What the next action should be
-- How to frame the summary
-
-## Time Window Formatting
-
-Use 12-hour format (e.g., "9:30am", "7:15pm") for all times.
-
-Format time windows based on status:
-
-- **upcoming**: Show a range, ideally 15-30 minutes (e.g., "2:00 - 2:30pm")
-- **completed**: Show the actual time (e.g., "9:15am")
-- **in_progress**: Describe expected end (e.g., "Started 1:00pm, wake by 2:30pm")
-- **skipped**: Note why (e.g., "Skipped - too late in day")
-
-## Schedule Item Notes
-
-Each schedule item should include a \`notes\` field explaining the rationale. Examples:
-
-- "Standard first wake window for 7-month-old"
-- "Extended to 3 hours after short first nap (only 35 min)"
-- "Earlier bedtime to prevent overtiredness after skipped nap 3"
-- "Longer wake window before bed per parent preference"
-- "Contact nap at daycare—may be shorter than usual"
-
-## Writing the Summary
-
-The \`summary\` should be a brief paragraph that:
-
-- Captures the overall plan for the day
-- Aggregates and summarizes the rationale from schedule item notes
-- Highlights any deviations from typical schedule and why
-- Notes relevant pattern considerations
-
-Examples:
-
-- "Based on the 6:45am wake, Luna is on track for a 2-nap day. First nap around 9:15am, second nap around 1:30pm, with bedtime by 7:00pm. Slightly earlier bedtime recommended since she's been fighting the second nap lately."
-- "After a rough night with two wakes, we're aiming for an earlier first nap to help catch up. The second nap may need to stretch a bit longer today, with bedtime no later than 6:45pm to avoid an overtired cycle."
-- "Nap 1 ran long (1.5 hours), so we're pushing nap 2 slightly later. This keeps us on track for the usual 7:15pm bedtime."
-
-## Tone
-
-- Concise and practical
-- Use the baby's name when known
-- Assume the parent is checking quickly—lead with what matters most`;
-
-/**
  * Builds the current time footer section.
  */
 function buildTimeFooter(timezone: string): string {
@@ -188,23 +117,58 @@ Local time for user: ${formatTime(new Date(), timezone)}`;
 }
 
 /**
- * Build a system prompt for chat mode with tool-based data fetching.
- * The AI will use tools to retrieve baby profile, events, and history.
+ * Builds the pre-injected context section from today's events and recent messages.
  */
-export function buildChatSystemPrompt(timezone: string): string {
-  return `${CHAT_PROMPT}
+function buildPreInjectedContext(context: ChatContext): string {
+  const sections: string[] = [];
 
-${buildTimeFooter(timezone)}
-`;
+  // Today's events section
+  if (context.todayEvents && context.todayEvents.length > 0) {
+    sections.push(
+      `## Today's Events\n${context.todayEvents.map((e) => e.description).join("\n")}`
+    );
+    sections.push(`Current state: ${context.currentState}`);
+    if (context.eventSummary) {
+      const s = context.eventSummary;
+      const parts = [];
+      if (s.hasWake) parts.push("morning wake logged");
+      parts.push(`${s.napCount} nap(s) completed`);
+      if (s.lastEventTime) {
+        parts.push(`last event: ${s.lastEventType} at ${s.lastEventTime}`);
+      }
+      sections.push(`Summary: ${parts.join(", ")}`);
+    }
+  } else {
+    sections.push(
+      `## Today's Events\nNo events logged yet.\nCurrent state: awaiting_morning_wake`
+    );
+  }
+
+  // Recent messages section
+  if (context.recentMessages && context.recentMessages.length > 0) {
+    const msgs = context.recentMessages
+      .map((m) => `${m.role === "user" ? "Parent" : "Assistant"}: ${m.text}`)
+      .join("\n\n");
+    sections.push(
+      `## Recent Conversation (last ${context.recentMessages.length} messages)\n${msgs}`
+    );
+  }
+
+  return sections.join("\n\n");
 }
 
 /**
- * Build a system prompt for sleep plan generation with tool-based data fetching.
- * The AI will use tools to retrieve baby profile and events before generating a plan.
+ * Build a system prompt for chat mode.
+ * Optionally includes pre-injected context for today's events and recent messages.
  */
-export function buildSleepPlanSystemPrompt(timezone: string): string {
-  return `${SLEEP_PLAN_PROMPT}
-
+export function buildChatSystemPrompt(
+  timezone: string,
+  context?: ChatContext
+): string {
+  const contextSection = context
+    ? `\n---\n\n${buildPreInjectedContext(context)}\n\n---\n`
+    : "";
+  return `${CHAT_PROMPT}${contextSection}
 ${buildTimeFooter(timezone)}
 `;
 }
