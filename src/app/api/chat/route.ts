@@ -237,7 +237,7 @@ export async function POST(req: Request) {
     return result.toUIMessageStreamResponse({
       sendReasoning: showThinking,
       originalMessages: messages,
-      generateMessageId: assistantMessageId,
+      generateMessageId: () => assistantMessageId,
     });
   } catch (error) {
     console.error("Error in chat API:", error);
