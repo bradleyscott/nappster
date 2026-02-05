@@ -14,7 +14,7 @@ import {
 import { SleepEventButton } from '@/components/sleep-event-button'
 import { SleepEventDialog } from '@/components/sleep-event-dialog'
 import { EventType, Context } from '@/types/database'
-import type { SleepPlan } from '@/app/api/sleep-plan/route'
+import type { SleepPlan } from '@/lib/ai/schemas/sleep-plan'
 import {
   getQuickEntryButtons,
   getSuggestedQuestions,
