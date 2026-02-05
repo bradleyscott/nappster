@@ -109,6 +109,13 @@ export async function POST(req: Request) {
 
     const systemPrompt = buildChatSystemPrompt(timezone, chatContext);
 
+    // Generate a consistent assistant message ID upfront so the stream
+    // sends the same ID to the client that we save to the database.
+    // Without this, the client generates its own nanoid while the server
+    // saves with the model's response ID, causing realtime dedup to fail
+    // and the message to appear twice.
+    const assistantMessageId = crypto.randomUUID();
+
     const result = streamText({
       model: openai("gpt-5.2"),
       system: systemPrompt,
@@ -171,9 +178,6 @@ export async function POST(req: Request) {
         const toolCalls = await result.toolCalls;
         const toolResults = await result.toolResults;
         const reasoning = await result.reasoning;
-        const response = await result.response;
-        // Use the response ID so it matches what useChat sees on the client
-        const assistantMessageId = response.id ?? `assistant-${crypto.randomUUID()}`;
 
         // Build assistant message parts
         const assistantParts: Array<{
@@ -232,6 +236,8 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       sendReasoning: showThinking,
+      originalMessages: messages,
+      generateMessageId: assistantMessageId,
     });
   } catch (error) {
     console.error("Error in chat API:", error);
