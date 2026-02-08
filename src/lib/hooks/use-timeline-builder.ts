@@ -89,12 +89,13 @@ export function useTimelineBuilder({
     return combined
   }, [historyMessages, initialMessages, liveMessages])
 
-  // Combine all sleep events (history + initial + local), deduplicating by id
+  // Combine all sleep events, deduplicating by id.
+  // localEvents are processed first so edits take priority over stale server data.
   const allSleepEvents = useMemo(() => {
     const seen = new Set<string>()
     const combined: SleepEvent[] = []
 
-    for (const event of historySleepEvents) {
+    for (const event of localEvents) {
       if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
         seen.add(event.id)
         combined.push(event)
@@ -108,7 +109,7 @@ export function useTimelineBuilder({
       }
     }
 
-    for (const event of localEvents) {
+    for (const event of historySleepEvents) {
       if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
         seen.add(event.id)
         combined.push(event)
