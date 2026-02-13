@@ -463,8 +463,8 @@ export function ChatContent({
       </div>
 
       {/* Messages */}
-      <Conversation className="flex-1">
-        <ConversationContent className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6 gap-4">
+      <Conversation className="flex-1 min-w-0">
+        <ConversationContent className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6 gap-4 min-w-0">
           <TimelineRenderer
             timelineItems={timelineItems}
             allMessages={allMessages}

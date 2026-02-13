@@ -188,4 +188,11 @@
   .chat-input-container {
     @apply shadow-[0_-2px_10px_rgba(0,0,0,0.03)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.2)];
   }
+
+  /* Prevent horizontal overflow in the chat scroll area.
+     StickToBottom creates an inner scroll div with overflow:auto;
+     this constrains it to vertical scrolling only. */
+  [role="log"] > * {
+    overflow-x: hidden !important;
+  }
 }
