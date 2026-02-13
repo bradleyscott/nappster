@@ -110,10 +110,18 @@ If a user describes an event that seems inconsistent with the current state (e.g
 /**
  * Builds the current time footer section.
  */
+function formatDayOfWeek(date: Date, timezone: string): string {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    timeZone: timezone,
+  });
+}
+
 function buildTimeFooter(timezone: string): string {
-  return `Current time: ${new Date().toISOString()}
+  const now = new Date();
+  return `Current time: ${now.toISOString()}
 User timezone: ${timezone}
-Local time for user: ${formatTime(new Date(), timezone)}`;
+Local time for user: ${formatDayOfWeek(now, timezone)}, ${formatTime(now, timezone)}`;
 }
 
 /**
