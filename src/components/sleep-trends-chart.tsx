@@ -6,10 +6,10 @@ import { SleepEvent } from '@/types/database'
 import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock } from '@/lib/sleep-trends'
 
 // Chart layout constants
-const LABEL_WIDTH = 72
-const ROW_HEIGHT = 38
-const ROW_GAP = 2
-const AXIS_HEIGHT = 24
+const LABEL_WIDTH = 90
+const ROW_HEIGHT = 44
+const ROW_GAP = 3
+const AXIS_HEIGHT = 28
 const PADDING_RIGHT = 8
 const SVG_WIDTH = 500
 
@@ -90,7 +90,7 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
       {expectedEntries.length > 0 && (
         <div className="border-t bg-background">
           <div className="px-1 pt-2">
-            <p className="text-[10px] text-muted-foreground font-medium mb-1 pl-1">Expected</p>
+            <p className="text-xs text-muted-foreground font-medium mb-1 pl-1">Expected</p>
             <svg
               width="100%"
               viewBox={`0 0 ${SVG_WIDTH} ${footerHeight}`}
@@ -126,7 +126,7 @@ function TimeAxis() {
             y={AXIS_HEIGHT - 6}
             textAnchor="middle"
             className="fill-muted-foreground"
-            fontSize="9"
+            fontSize="10"
           >
             {label}
           </text>
@@ -155,7 +155,7 @@ function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
         x={row.isDaycareDay ? 14 : 2}
         y={ROW_HEIGHT / 2 + 4}
         className="fill-foreground"
-        fontSize="10"
+        fontSize="11"
       >
         {row.label}
       </text>
@@ -214,7 +214,7 @@ function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
               strokeWidth={1.5}
               opacity={0.8}
             />
-            <circle r={2.5} fill={NIGHT_WAKE_COLOR} opacity={0.9} />
+            <circle r={3} fill={NIGHT_WAKE_COLOR} opacity={0.9} />
           </g>
         )
       })}
@@ -255,7 +255,7 @@ function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
         x={2}
         y={ROW_HEIGHT / 2 + 4}
         className="fill-muted-foreground"
-        fontSize="9"
+        fontSize="10"
         fontStyle="italic"
       >
         {expected.label}
@@ -297,7 +297,7 @@ function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
 
 function Building2Icon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-amber-500)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--color-amber-500)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
       <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
       <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />

@@ -171,7 +171,7 @@ export function buildDayRows(
     const zonedDate = toZonedTime(date, timezone)
     const dayStart = startOfDay(zonedDate)
     const dateKey = format(dayStart, 'yyyy-MM-dd')
-    const label = format(dayStart, 'EEE M/d')
+    const label = format(dayStart, 'MMM d EEE')
 
     const data = rowMap.get(dateKey)
     rows.push({
