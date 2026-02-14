@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Building2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Building2, X, Moon, Sun, AlertCircle } from 'lucide-react'
 import { SleepEvent } from '@/types/database'
 import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock } from '@/lib/sleep-trends'
 
@@ -51,6 +51,8 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
     const expected = computeExpectedDays(rows)
     return { dayRows: rows, expectedDays: expected }
   }, [events, timezone])
+
+  const [selectedRow, setSelectedRow] = useState<DayRow | null>(null)
 
   const activeRows = dayRows
     .filter(r => r.blocks.length > 0 || r.nightWakes.length > 0)
@@ -108,11 +110,16 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
                 key={row.dateKey}
                 row={row}
                 y={i * (ROW_HEIGHT + ROW_GAP)}
+                onSelect={() => setSelectedRow(row)}
               />
             ))}
           </g>
         </svg>
       </div>
+
+      {selectedRow && (
+        <DayDetailSheet row={selectedRow} onClose={() => setSelectedRow(null)} />
+      )}
     </div>
   )
 }
@@ -147,12 +154,18 @@ function TimeAxis() {
   )
 }
 
-function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
+function DayRowSVG({ row, y, onSelect }: { row: DayRow; y: number; onSelect: () => void }) {
   const midnightX = LABEL_WIDTH + (MIDNIGHT_HOUR / 24) * CHART_WIDTH
   const noonX = LABEL_WIDTH + (NOON_HOUR / 24) * CHART_WIDTH
 
   return (
-    <g transform={`translate(0, ${y})`}>
+    <g
+      transform={`translate(0, ${y})`}
+      onClick={onSelect}
+      className="cursor-pointer"
+      role="button"
+      tabIndex={0}
+    >
       {/* Date label */}
       <text
         x={row.isDaycareDay ? 14 : 2}
@@ -259,7 +272,6 @@ function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
         y={ROW_HEIGHT / 2 + 4}
         className="fill-muted-foreground"
         fontSize="13"
-        fontStyle="italic"
       >
         {expected.label}
       </text>
@@ -295,6 +307,116 @@ function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
         )
       })}
     </g>
+  )
+}
+
+const AXIS_ORIGIN_HOUR = 17 // 5pm - must match sleep-trends.ts
+
+/** Convert an axis hour (offset from 5pm) to a formatted time string like "7:30 PM" */
+function axisHourToTime(axisHour: number): string {
+  const totalMinutes = Math.round((axisHour + AXIS_ORIGIN_HOUR) * 60) % (24 * 60)
+  const h = Math.floor(totalMinutes / 60) % 24
+  const m = totalMinutes % 60
+  const period = h >= 12 ? 'PM' : 'AM'
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`
+}
+
+/** Format duration in hours/minutes */
+function formatDuration(startHour: number, endHour: number): string {
+  const totalMin = Math.round((endHour - startHour) * 60)
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
+}
+
+function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) {
+  const overnightBlocks = row.blocks.filter(b => b.type === 'overnight')
+  const napBlocks = row.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
+  const nightWakes = [...row.nightWakes].sort((a, b) => a.hour - b.hour)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40" />
+
+      {/* Sheet */}
+      <div
+        className="relative w-full max-w-lg bg-background rounded-t-2xl shadow-lg"
+        onClick={e => e.stopPropagation()}
+        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b">
+          <h3 className="text-base font-semibold">{row.label}</h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 -mr-1.5 rounded-full hover:bg-muted active:bg-muted/80 transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-5 py-4 space-y-4">
+          {/* Overnight sleep */}
+          {overnightBlocks.map((block, i) => (
+            <div key={`overnight-${i}`} className="flex items-start gap-3">
+              <Moon className="w-4.5 h-4.5 text-indigo-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Nighttime Sleep</p>
+                <p className="text-sm text-muted-foreground">
+                  {axisHourToTime(block.startHour)} – {axisHourToTime(block.endHour)}
+                  <span className="ml-2 text-xs">({formatDuration(block.startHour, block.endHour)})</span>
+                </p>
+              </div>
+            </div>
+          ))}
+
+          {/* Night wakes */}
+          {nightWakes.length > 0 && (
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-4.5 h-4.5 text-red-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">
+                  Night Wake{nightWakes.length > 1 ? 's' : ''}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {nightWakes.map(nw => axisHourToTime(nw.hour)).join(', ')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Naps */}
+          {napBlocks.map((block, i) => (
+            <div key={`nap-${i}`} className="flex items-start gap-3">
+              <Sun className="w-4.5 h-4.5 text-sky-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">
+                  Nap {napBlocks.length > 1 ? i + 1 : ''}
+                  {block.isDaycare && <span className="text-amber-500 ml-1">(daycare)</span>}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {axisHourToTime(block.startHour)} – {axisHourToTime(block.endHour)}
+                  <span className="ml-2 text-xs">({formatDuration(block.startHour, block.endHour)})</span>
+                </p>
+              </div>
+            </div>
+          ))}
+
+          {overnightBlocks.length === 0 && napBlocks.length === 0 && nightWakes.length === 0 && (
+            <p className="text-sm text-muted-foreground">No sleep data for this day.</p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
