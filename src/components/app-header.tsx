@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
-import { Baby as BabyIcon, Loader2 } from 'lucide-react'
+import { Baby as BabyIcon, BarChart3, Loader2 } from 'lucide-react'
 import { Baby } from '@/types/database'
 import { formatAge } from '@/lib/sleep-utils'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,7 @@ export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
   const router = useRouter()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false)
+  const [isNavigatingToTrends, setIsNavigatingToTrends] = useState(false)
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
@@ -33,6 +34,12 @@ export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
     e.preventDefault()
     setIsNavigatingToSettings(true)
     router.push('/settings')
+  }
+
+  const handleTrendsClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsNavigatingToTrends(true)
+    router.push('/sleep-trends')
   }
 
   return (
@@ -52,6 +59,15 @@ export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" size="icon" asChild disabled={isSigningOut || isNavigatingToTrends}>
+            <Link href="/sleep-trends" onClick={handleTrendsClick}>
+              {isNavigatingToTrends ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <BarChart3 className="h-4 w-4" />
+              )}
+            </Link>
+          </Button>
           <Button variant="ghost" size="icon" asChild disabled={isSigningOut || isNavigatingToSettings}>
             <Link href="/settings" onClick={handleSettingsClick}>
               {isNavigatingToSettings ? (
