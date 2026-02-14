@@ -4,10 +4,10 @@ import { SleepEvent } from '@/types/database'
 import { groupEventsIntoSessions } from '@/lib/sleep-utils'
 
 /**
- * Axis origin is 6pm. The 24-hour axis runs from 6pm (0) to 6pm next day (24).
- * 6pm=0, 9pm=3, midnight=6, 3am=9, 6am=12, 9am=15, noon=18, 3pm=21, 6pm=24.
+ * Axis origin is 5pm. The 24-hour axis runs from 5pm (0) to 5pm next day (24).
+ * 5pm=0, 8pm=3, 11pm=6, 2am=9, 5am=12, 8am=15, 11am=18, 2pm=21, 5pm=24.
  */
-const AXIS_ORIGIN_HOUR = 18 // 6pm
+const AXIS_ORIGIN_HOUR = 17 // 5pm
 
 /** A sleep block positioned on the 24-hour timeline. */
 export interface SleepBlock {
