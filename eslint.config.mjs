@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Test coverage output:
     "coverage/**",
+    // Public folder (service worker, static assets):
+    "public/**",
   ]),
 ]);
 
