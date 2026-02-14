@@ -5,7 +5,7 @@ import { DefaultChatTransport } from 'ai'
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Baby, SleepEvent, SleepSession, SleepPlanRow, ChatMessage } from '@/types/database'
-import { findSessionForEvent } from '@/lib/sleep-utils'
+import { findSessionForEvent, formatAge } from '@/lib/sleep-utils'
 import { computeCurrentState, type SleepState } from '@/lib/state-machine'
 import { getTodayBoundsForTimezone, getYesterdayBoundsForTimezone } from '@/lib/timezone'
 import { createClient } from '@/lib/supabase/client'
@@ -99,16 +99,26 @@ export function ChatContent({
       .map(m => ({ role: m.role, parts: m.parts }))
   }, [initialMessages])
 
+  // Build baby profile for API context (avoids a getBabyProfile tool call each turn)
+  const babyProfileForApi = useMemo(() => ({
+    name: baby.name,
+    age: formatAge(baby.birth_date),
+    birthDate: baby.birth_date,
+    sleepTrainingMethod: baby.sleep_training_method,
+    patternNotes: baby.pattern_notes,
+  }), [baby.name, baby.birth_date, baby.sleep_training_method, baby.pattern_notes])
+
   // Create transport with API endpoint and body including pre-injected context
   const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/chat',
     body: {
       babyId: baby.id,
       timezone,
+      babyProfile: babyProfileForApi,
       todayEvents: todayEventsForApi,
       recentMessages: recentMessagesForApi,
     },
-  }), [baby.id, timezone, todayEventsForApi, recentMessagesForApi])
+  }), [baby.id, timezone, babyProfileForApi, todayEventsForApi, recentMessagesForApi])
 
   const { messages: liveMessages, sendMessage, status } = useChat({
     transport,

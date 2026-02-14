@@ -9,6 +9,7 @@ import {
   formatEventsContext,
   extractTextFromParts,
   type ChatContext,
+  type BabyProfileContext,
 } from "@/lib/ai/format-context";
 import {
   requireBabyAccess,
@@ -25,6 +26,15 @@ const requestFieldsSchema = z.object({
   timezone: z.string().optional(),
   showThinking: z.boolean().optional(),
   // Pre-injected context from client
+  babyProfile: z
+    .object({
+      name: z.string(),
+      age: z.string(),
+      birthDate: z.string(),
+      sleepTrainingMethod: z.string().nullable(),
+      patternNotes: z.string().nullable(),
+    })
+    .optional(),
   todayEvents: z
     .array(
       z.object({
@@ -67,6 +77,7 @@ export async function POST(req: Request) {
     const babyId = fieldsResult.data.babyId;
     const timezone = fieldsResult.data.timezone ?? "UTC";
     const showThinking = fieldsResult.data.showThinking ?? false;
+    const babyProfile = fieldsResult.data.babyProfile;
     const todayEvents = fieldsResult.data.todayEvents;
     const recentMessages = fieldsResult.data.recentMessages;
 
@@ -84,7 +95,7 @@ export async function POST(req: Request) {
 
     // Build chat context from pre-injected data
     let chatContext: ChatContext | undefined;
-    if (todayEvents || recentMessages) {
+    if (babyProfile || todayEvents || recentMessages) {
       const eventsContext = todayEvents
         ? formatEventsContext(todayEvents as SleepEvent[], timezone)
         : undefined;
@@ -97,6 +108,7 @@ export async function POST(req: Request) {
         .filter((m) => m.text.length > 0);
 
       chatContext = {
+        babyProfile: babyProfile as BabyProfileContext | undefined,
         todayEvents: eventsContext?.formattedEvents,
         currentState: eventsContext?.currentState,
         eventSummary: eventsContext?.eventSummary,
