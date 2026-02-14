@@ -1,5 +1,5 @@
 import { formatTime } from "@/lib/sleep-utils";
-import type { ChatContext } from "./format-context";
+import type { ChatContext, BabyProfileContext } from "./format-context";
 
 /**
  * Chat system prompt content.
@@ -24,14 +24,13 @@ const CHAT_PROMPT = `You are an expert baby sleep consultant helping parents opt
 
 ## Using Context
 
-**Today's events and recent messages are pre-loaded below.**
+**The baby's profile, today's events, and recent messages are pre-loaded below.** Use the pre-loaded profile (name, age, pattern notes) for age-appropriate wake windows and known behaviors—no need to call getBabyProfile unless you just updated pattern notes and want to confirm the write.
 
-**Always fetch the baby's profile** (call getBabyProfile) when giving sleep advice — it contains the baby's age for age-appropriate wake windows, plus pattern notes describing known behaviors, preferences, and sleep associations that should inform your recommendations.
-
-Use other tools when needed:
+Use tools when needed:
 - Sleep history spanning multiple days → call getSleepHistory
 - Older conversations beyond what's shown → call getChatHistory
 - Verify data after making changes → call getTodayEvents
+- Re-fetch profile after updating pattern notes → call getBabyProfile
 
 Skip all context for general knowledge questions that don't need personalization.
 
@@ -127,8 +126,24 @@ Local time for user: ${formatDayOfWeek(now, timezone)}, ${formatTime(now, timezo
 /**
  * Builds the pre-injected context section from today's events and recent messages.
  */
+function formatBabyProfile(profile: BabyProfileContext): string {
+  const lines = [`Name: ${profile.name}`, `Age: ${profile.age}`, `Birth date: ${profile.birthDate}`];
+  if (profile.sleepTrainingMethod) {
+    lines.push(`Sleep training method: ${profile.sleepTrainingMethod}`);
+  }
+  if (profile.patternNotes) {
+    lines.push(`Pattern notes: ${profile.patternNotes}`);
+  }
+  return lines.join("\n");
+}
+
 function buildPreInjectedContext(context: ChatContext): string {
   const sections: string[] = [];
+
+  // Baby profile section
+  if (context.babyProfile) {
+    sections.push(`## Baby Profile\n${formatBabyProfile(context.babyProfile)}`);
+  }
 
   // Today's events section
   if (context.todayEvents && context.todayEvents.length > 0) {
