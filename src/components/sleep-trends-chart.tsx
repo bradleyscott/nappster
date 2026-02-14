@@ -1,9 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Building2, X, Moon, Sun, AlertCircle } from 'lucide-react'
+import { Building2, X, Moon, Sun, AlertCircle, BedDouble } from 'lucide-react'
 import { SleepEvent } from '@/types/database'
-import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock } from '@/lib/sleep-trends'
+import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock, type NightWakeMarker } from '@/lib/sleep-trends'
 
 // Chart layout constants
 const LABEL_WIDTH = 108
@@ -52,7 +52,7 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
     return { dayRows: rows, expectedDays: expected }
   }, [events, timezone])
 
-  const [selectedRow, setSelectedRow] = useState<DayRow | null>(null)
+  const [detailData, setDetailData] = useState<DetailData | null>(null)
 
   const activeRows = dayRows
     .filter(r => r.blocks.length > 0 || r.nightWakes.length > 0)
@@ -65,6 +65,28 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
 
   const mainHeight = AXIS_HEIGHT + activeRows.length * (ROW_HEIGHT + ROW_GAP)
   const headerHeight = expectedEntries.length * (ROW_HEIGHT + ROW_GAP) + 4
+
+  function handleSelectDayRow(row: DayRow) {
+    // Find tonight's bedtime from the next chronological day's overnight block
+    const rowIndex = dayRows.findIndex(r => r.dateKey === row.dateKey)
+    const nextRow = rowIndex >= 0 && rowIndex < dayRows.length - 1 ? dayRows[rowIndex + 1] : null
+    const overnightBlock = nextRow?.blocks.find(b => b.type === 'overnight')
+    setDetailData({
+      label: row.label,
+      blocks: row.blocks,
+      nightWakes: row.nightWakes,
+      bedtimeHour: overnightBlock?.startHour ?? null,
+    })
+  }
+
+  function handleSelectExpected(expected: ExpectedDay) {
+    setDetailData({
+      label: expected.label,
+      blocks: expected.blocks,
+      nightWakes: [],
+      bedtimeHour: null,
+    })
+  }
 
   return (
     <div className="flex flex-col max-w-lg mx-auto" style={{ height: 'calc(100dvh - 53px)' }}>
@@ -83,6 +105,7 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
                   key={exp.label}
                   expected={exp}
                   y={i * (ROW_HEIGHT + ROW_GAP)}
+                  onSelect={() => handleSelectExpected(exp)}
                 />
               ))}
             </svg>
@@ -110,15 +133,15 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
                 key={row.dateKey}
                 row={row}
                 y={i * (ROW_HEIGHT + ROW_GAP)}
-                onSelect={() => setSelectedRow(row)}
+                onSelect={() => handleSelectDayRow(row)}
               />
             ))}
           </g>
         </svg>
       </div>
 
-      {selectedRow && (
-        <DayDetailSheet row={selectedRow} onClose={() => setSelectedRow(null)} />
+      {detailData && (
+        <DayDetailSheet data={detailData} onClose={() => setDetailData(null)} />
       )}
     </div>
   )
@@ -264,9 +287,15 @@ function SleepBlockRect({ block, opacity = 0.85 }: { block: SleepBlock; opacity?
   )
 }
 
-function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
+function ExpectedDayRow({ expected, y, onSelect }: { expected: ExpectedDay; y: number; onSelect: () => void }) {
   return (
-    <g transform={`translate(0, ${y})`}>
+    <g
+      transform={`translate(0, ${y})`}
+      onClick={onSelect}
+      className="cursor-pointer"
+      role="button"
+      tabIndex={0}
+    >
       <text
         x={2}
         y={ROW_HEIGHT / 2 + 4}
@@ -332,10 +361,18 @@ function formatDuration(startHour: number, endHour: number): string {
   return `${h}h ${m}m`
 }
 
-function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) {
-  const overnightBlocks = row.blocks.filter(b => b.type === 'overnight')
-  const napBlocks = row.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
-  const nightWakes = [...row.nightWakes].sort((a, b) => a.hour - b.hour)
+/** Data shape for the detail sheet – works for both actual days and expected days. */
+interface DetailData {
+  label: string
+  blocks: SleepBlock[]
+  nightWakes: NightWakeMarker[]
+  bedtimeHour: number | null
+}
+
+function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => void }) {
+  const overnightBlocks = data.blocks.filter(b => b.type === 'overnight')
+  const napBlocks = data.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
+  const nightWakes = [...data.nightWakes].sort((a, b) => a.hour - b.hour)
 
   return (
     <div
@@ -353,7 +390,7 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b">
-          <h3 className="text-base font-semibold">{row.label}</h3>
+          <h3 className="text-base font-semibold">{data.label}</h3>
           <button
             onClick={onClose}
             className="p-1.5 -mr-1.5 rounded-full hover:bg-muted active:bg-muted/80 transition-colors"
@@ -411,7 +448,20 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
             </div>
           ))}
 
-          {overnightBlocks.length === 0 && napBlocks.length === 0 && nightWakes.length === 0 && (
+          {/* Bedtime (tonight) */}
+          {data.bedtimeHour !== null && (
+            <div className="flex items-start gap-3">
+              <BedDouble className="w-4.5 h-4.5 text-indigo-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Bedtime</p>
+                <p className="text-sm text-muted-foreground">
+                  {axisHourToTime(data.bedtimeHour)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {overnightBlocks.length === 0 && napBlocks.length === 0 && nightWakes.length === 0 && data.bedtimeHour === null && (
             <p className="text-sm text-muted-foreground">No sleep data for this day.</p>
           )}
         </div>
