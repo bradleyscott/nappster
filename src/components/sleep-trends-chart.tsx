@@ -6,10 +6,10 @@ import { SleepEvent } from '@/types/database'
 import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock } from '@/lib/sleep-trends'
 
 // Chart layout constants
-const LABEL_WIDTH = 90
+const LABEL_WIDTH = 108
 const ROW_HEIGHT = 44
 const ROW_GAP = 3
-const AXIS_HEIGHT = 28
+const AXIS_HEIGHT = 32
 const PADDING_RIGHT = 8
 const SVG_WIDTH = 500
 
@@ -90,7 +90,7 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
       {expectedEntries.length > 0 && (
         <div className="border-t bg-background">
           <div className="px-1 pt-2">
-            <p className="text-xs text-muted-foreground font-medium mb-1 pl-1">Expected</p>
+            <p className="text-sm text-muted-foreground font-medium mb-1 pl-1">Expected</p>
             <svg
               width="100%"
               viewBox={`0 0 ${SVG_WIDTH} ${footerHeight}`}
@@ -126,7 +126,7 @@ function TimeAxis() {
             y={AXIS_HEIGHT - 6}
             textAnchor="middle"
             className="fill-muted-foreground"
-            fontSize="10"
+            fontSize="13"
           >
             {label}
           </text>
@@ -155,7 +155,7 @@ function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
         x={row.isDaycareDay ? 14 : 2}
         y={ROW_HEIGHT / 2 + 4}
         className="fill-foreground"
-        fontSize="11"
+        fontSize="14"
       >
         {row.label}
       </text>
@@ -255,7 +255,7 @@ function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
         x={2}
         y={ROW_HEIGHT / 2 + 4}
         className="fill-muted-foreground"
-        fontSize="10"
+        fontSize="13"
         fontStyle="italic"
       >
         {expected.label}
@@ -311,25 +311,25 @@ function Building2Icon() {
 
 function Legend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 py-2 text-xs text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 py-2 text-sm text-muted-foreground">
       <span className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm bg-indigo-400 opacity-85" />
+        <span className="inline-block w-3.5 h-3.5 rounded-sm bg-indigo-400 opacity-85" />
         Overnight
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm bg-sky-400 opacity-85" />
+        <span className="inline-block w-3.5 h-3.5 rounded-sm bg-sky-400 opacity-85" />
         Nap (home)
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm bg-amber-400 opacity-85" />
+        <span className="inline-block w-3.5 h-3.5 rounded-sm bg-amber-400 opacity-85" />
         Nap (daycare)
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="inline-block w-2 h-2 rounded-full bg-red-400" />
+        <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-400" />
         Night wake
       </span>
       <span className="flex items-center gap-1.5">
-        <Building2 className="w-3 h-3 text-amber-500" />
+        <Building2 className="w-3.5 h-3.5 text-amber-500" />
         Daycare day
       </span>
     </div>
