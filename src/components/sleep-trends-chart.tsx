@@ -7,11 +7,11 @@ import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type 
 
 // Chart layout constants
 const LABEL_WIDTH = 72
-const ROW_HEIGHT = 36
-const ROW_GAP = 4
+const ROW_HEIGHT = 38
+const ROW_GAP = 2
 const AXIS_HEIGHT = 24
-const SECTION_GAP = 20
 const PADDING_RIGHT = 8
+const SVG_WIDTH = 500
 
 // Colors
 const OVERNIGHT_COLOR = 'var(--color-indigo-400)'
@@ -21,18 +21,24 @@ const NIGHT_WAKE_COLOR = 'var(--color-red-400)'
 const EXPECTED_OVERNIGHT_COLOR = 'var(--color-indigo-300)'
 const EXPECTED_NAP_COLOR = 'var(--color-sky-300)'
 
-// Time axis labels (6pm to 6pm)
+const CHART_WIDTH = SVG_WIDTH - LABEL_WIDTH - PADDING_RIGHT
+
+// Time axis labels (5pm to 5pm)
 const AXIS_LABELS = [
-  { hour: 0, label: '6p' },
-  { hour: 3, label: '9p' },
-  { hour: 6, label: '12a' },
-  { hour: 9, label: '3a' },
-  { hour: 12, label: '6a' },
-  { hour: 15, label: '9a' },
-  { hour: 18, label: '12p' },
-  { hour: 21, label: '3p' },
-  { hour: 24, label: '6p' },
+  { hour: 0, label: '5p' },
+  { hour: 3, label: '8p' },
+  { hour: 6, label: '11p' },
+  { hour: 9, label: '2a' },
+  { hour: 12, label: '5a' },
+  { hour: 15, label: '8a' },
+  { hour: 18, label: '11a' },
+  { hour: 21, label: '2p' },
+  { hour: 24, label: '5p' },
 ]
+
+// Gridline positions on the 5pm-5pm axis
+const MIDNIGHT_HOUR = 7  // midnight = 5pm + 7h
+const NOON_HOUR = 19     // noon = 5pm + 19h
 
 interface SleepTrendsChartProps {
   events: SleepEvent[]
@@ -52,24 +58,22 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
   if (expectedDays.home) expectedEntries.push(expectedDays.home)
   if (expectedDays.daycare) expectedEntries.push(expectedDays.daycare)
 
-  const dataHeight = activeRows.length * (ROW_HEIGHT + ROW_GAP)
-  const expectedHeight = expectedEntries.length * (ROW_HEIGHT + ROW_GAP)
-  const totalHeight = AXIS_HEIGHT + dataHeight + (expectedEntries.length > 0 ? SECTION_GAP + expectedHeight + 20 : 0) + 8
+  const mainHeight = AXIS_HEIGHT + activeRows.length * (ROW_HEIGHT + ROW_GAP)
+  const footerHeight = expectedEntries.length * (ROW_HEIGHT + ROW_GAP) + 4
 
   return (
-    <div className="w-full overflow-x-hidden">
-      <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 53px)' }}>
+      {/* Scrollable main chart */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <svg
           width="100%"
-          viewBox={`0 0 500 ${totalHeight}`}
+          viewBox={`0 0 ${SVG_WIDTH} ${mainHeight}`}
           className="block"
           role="img"
           aria-label="Sleep trends chart showing daily sleep patterns"
         >
-          {/* Time axis */}
-          <TimeAxis y={0} />
+          <TimeAxis />
 
-          {/* Day rows */}
           <g transform={`translate(0, ${AXIS_HEIGHT})`}>
             {activeRows.map((row, i) => (
               <DayRowSVG
@@ -79,52 +83,42 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
               />
             ))}
           </g>
+        </svg>
+      </div>
 
-          {/* Expected day section */}
-          {expectedEntries.length > 0 && (
-            <g transform={`translate(0, ${AXIS_HEIGHT + dataHeight + SECTION_GAP})`}>
-              <line
-                x1={LABEL_WIDTH}
-                x2={500 - PADDING_RIGHT}
-                y1={-SECTION_GAP / 2}
-                y2={-SECTION_GAP / 2}
-                stroke="var(--color-border)"
-                strokeDasharray="4 3"
-              />
-              <text
-                x={LABEL_WIDTH}
-                y={-2}
-                className="fill-muted-foreground"
-                fontSize="9"
-                fontWeight="500"
-              >
-                Expected
-              </text>
-
+      {/* Sticky footer: expected days + legend */}
+      {expectedEntries.length > 0 && (
+        <div className="border-t bg-background">
+          <div className="px-1 pt-2">
+            <p className="text-[10px] text-muted-foreground font-medium mb-1 pl-1">Expected</p>
+            <svg
+              width="100%"
+              viewBox={`0 0 ${SVG_WIDTH} ${footerHeight}`}
+              className="block"
+            >
               {expectedEntries.map((exp, i) => (
                 <ExpectedDayRow
                   key={exp.label}
                   expected={exp}
-                  y={i * (ROW_HEIGHT + ROW_GAP) + 12}
+                  y={i * (ROW_HEIGHT + ROW_GAP)}
                 />
               ))}
-            </g>
-          )}
-        </svg>
-      </div>
+            </svg>
+          </div>
+          <Legend />
+        </div>
+      )}
 
-      <Legend />
+      {expectedEntries.length === 0 && <Legend />}
     </div>
   )
 }
 
-function TimeAxis({ y }: { y: number }) {
-  const chartWidth = 500 - LABEL_WIDTH - PADDING_RIGHT
-
+function TimeAxis() {
   return (
-    <g transform={`translate(0, ${y})`}>
+    <g>
       {AXIS_LABELS.map(({ hour, label }) => {
-        const x = LABEL_WIDTH + (hour / 24) * chartWidth
+        const x = LABEL_WIDTH + (hour / 24) * CHART_WIDTH
         return (
           <text
             key={hour}
@@ -140,7 +134,7 @@ function TimeAxis({ y }: { y: number }) {
       })}
       <line
         x1={LABEL_WIDTH}
-        x2={500 - PADDING_RIGHT}
+        x2={SVG_WIDTH - PADDING_RIGHT}
         y1={AXIS_HEIGHT - 1}
         y2={AXIS_HEIGHT - 1}
         stroke="var(--color-border)"
@@ -151,11 +145,8 @@ function TimeAxis({ y }: { y: number }) {
 }
 
 function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
-  const chartWidth = 500 - LABEL_WIDTH - PADDING_RIGHT
-
-  // Gridline positions (fractional hours on 6pm-6pm axis)
-  const midnightX = LABEL_WIDTH + (6 / 24) * chartWidth
-  const noonX = LABEL_WIDTH + (18 / 24) * chartWidth
+  const midnightX = LABEL_WIDTH + (MIDNIGHT_HOUR / 24) * CHART_WIDTH
+  const noonX = LABEL_WIDTH + (NOON_HOUR / 24) * CHART_WIDTH
 
   return (
     <g transform={`translate(0, ${y})`}>
@@ -179,7 +170,7 @@ function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
       <rect
         x={LABEL_WIDTH}
         y={1}
-        width={chartWidth}
+        width={CHART_WIDTH}
         height={ROW_HEIGHT - 2}
         rx={4}
         className="fill-muted/30"
@@ -207,12 +198,12 @@ function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
 
       {/* Sleep blocks */}
       {row.blocks.map((block, i) => (
-        <SleepBlockRect key={i} block={block} chartWidth={chartWidth} />
+        <SleepBlockRect key={i} block={block} />
       ))}
 
       {/* Night wake markers */}
       {row.nightWakes.map((nw, i) => {
-        const x = LABEL_WIDTH + (nw.hour / 24) * chartWidth
+        const x = LABEL_WIDTH + (nw.hour / 24) * CHART_WIDTH
         return (
           <g key={`nw-${i}`} transform={`translate(${x}, ${ROW_HEIGHT / 2})`}>
             <line
@@ -231,17 +222,9 @@ function DayRowSVG({ row, y }: { row: DayRow; y: number }) {
   )
 }
 
-function SleepBlockRect({
-  block,
-  chartWidth,
-  opacity = 0.85,
-}: {
-  block: SleepBlock
-  chartWidth: number
-  opacity?: number
-}) {
-  const x = LABEL_WIDTH + (block.startHour / 24) * chartWidth
-  const width = ((block.endHour - block.startHour) / 24) * chartWidth
+function SleepBlockRect({ block, opacity = 0.85 }: { block: SleepBlock; opacity?: number }) {
+  const x = LABEL_WIDTH + (block.startHour / 24) * CHART_WIDTH
+  const width = ((block.endHour - block.startHour) / 24) * CHART_WIDTH
 
   let fill: string
   if (block.type === 'overnight') {
@@ -266,8 +249,6 @@ function SleepBlockRect({
 }
 
 function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
-  const chartWidth = 500 - LABEL_WIDTH - PADDING_RIGHT
-
   return (
     <g transform={`translate(0, ${y})`}>
       <text
@@ -283,15 +264,15 @@ function ExpectedDayRow({ expected, y }: { expected: ExpectedDay; y: number }) {
       <rect
         x={LABEL_WIDTH}
         y={1}
-        width={chartWidth}
+        width={CHART_WIDTH}
         height={ROW_HEIGHT - 2}
         rx={4}
         className="fill-muted/20"
       />
 
       {expected.blocks.map((block, i) => {
-        const x = LABEL_WIDTH + (block.startHour / 24) * chartWidth
-        const width = ((block.endHour - block.startHour) / 24) * chartWidth
+        const x = LABEL_WIDTH + (block.startHour / 24) * CHART_WIDTH
+        const width = ((block.endHour - block.startHour) / 24) * CHART_WIDTH
         const fill = block.type === 'overnight' ? EXPECTED_OVERNIGHT_COLOR : EXPECTED_NAP_COLOR
 
         return (
@@ -330,7 +311,7 @@ function Building2Icon() {
 
 function Legend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 py-3 text-xs text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 py-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <span className="inline-block w-3 h-3 rounded-sm bg-indigo-400 opacity-85" />
         Overnight
