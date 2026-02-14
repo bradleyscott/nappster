@@ -52,18 +52,46 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
     return { dayRows: rows, expectedDays: expected }
   }, [events, timezone])
 
-  const activeRows = dayRows.filter(r => r.blocks.length > 0 || r.nightWakes.length > 0)
+  const activeRows = dayRows
+    .filter(r => r.blocks.length > 0 || r.nightWakes.length > 0)
+    .slice()
+    .reverse()
 
   const expectedEntries: ExpectedDay[] = []
   if (expectedDays.home) expectedEntries.push(expectedDays.home)
   if (expectedDays.daycare) expectedEntries.push(expectedDays.daycare)
 
   const mainHeight = AXIS_HEIGHT + activeRows.length * (ROW_HEIGHT + ROW_GAP)
-  const footerHeight = expectedEntries.length * (ROW_HEIGHT + ROW_GAP) + 4
+  const headerHeight = expectedEntries.length * (ROW_HEIGHT + ROW_GAP) + 4
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100dvh - 53px)' }}>
-      {/* Scrollable main chart */}
+    <div className="flex flex-col max-w-lg mx-auto" style={{ height: 'calc(100dvh - 53px)' }}>
+      {/* Sticky header: expected days + legend */}
+      {expectedEntries.length > 0 && (
+        <div className="border-b bg-background">
+          <div className="px-1 pt-2">
+            <p className="text-sm text-muted-foreground font-medium mb-1 pl-1">Expected</p>
+            <svg
+              width="100%"
+              viewBox={`0 0 ${SVG_WIDTH} ${headerHeight}`}
+              className="block"
+            >
+              {expectedEntries.map((exp, i) => (
+                <ExpectedDayRow
+                  key={exp.label}
+                  expected={exp}
+                  y={i * (ROW_HEIGHT + ROW_GAP)}
+                />
+              ))}
+            </svg>
+          </div>
+          <Legend />
+        </div>
+      )}
+
+      {expectedEntries.length === 0 && <Legend />}
+
+      {/* Scrollable history: most recent first */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <svg
           width="100%"
@@ -85,31 +113,6 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
           </g>
         </svg>
       </div>
-
-      {/* Sticky footer: expected days + legend */}
-      {expectedEntries.length > 0 && (
-        <div className="border-t bg-background">
-          <div className="px-1 pt-2">
-            <p className="text-sm text-muted-foreground font-medium mb-1 pl-1">Expected</p>
-            <svg
-              width="100%"
-              viewBox={`0 0 ${SVG_WIDTH} ${footerHeight}`}
-              className="block"
-            >
-              {expectedEntries.map((exp, i) => (
-                <ExpectedDayRow
-                  key={exp.label}
-                  expected={exp}
-                  y={i * (ROW_HEIGHT + ROW_GAP)}
-                />
-              ))}
-            </svg>
-          </div>
-          <Legend />
-        </div>
-      )}
-
-      {expectedEntries.length === 0 && <Legend />}
     </div>
   )
 }
