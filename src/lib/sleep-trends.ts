@@ -3,13 +3,18 @@ import { toZonedTime } from 'date-fns-tz'
 import { SleepEvent } from '@/types/database'
 import { groupEventsIntoSessions } from '@/lib/sleep-utils'
 
-/** A sleep block positioned on a 24-hour timeline (8pm to 8pm). */
+/**
+ * Axis origin is 6pm. The 24-hour axis runs from 6pm (0) to 6pm next day (24).
+ * 6pm=0, 9pm=3, midnight=6, 3am=9, 6am=12, 9am=15, noon=18, 3pm=21, 6pm=24.
+ */
+const AXIS_ORIGIN_HOUR = 18 // 6pm
+
+/** A sleep block positioned on the 24-hour timeline. */
 export interface SleepBlock {
-  /** Fractional hours from the axis origin (8pm = 0, 8am = 12, 8pm next day = 24) */
+  /** Fractional hours from the axis origin (6pm) */
   startHour: number
   endHour: number
   type: 'overnight' | 'nap'
-  /** Whether this block is from a daycare context */
   isDaycare: boolean
 }
 
@@ -20,138 +25,162 @@ export interface NightWakeMarker {
 
 /** One row in the chart representing a single day. */
 export interface DayRow {
-  /** Date label like "Mon 2/10" */
   label: string
-  /** Full date string for grouping: "2026-02-10" */
   dateKey: string
-  /** Whether any events on this day have daycare context */
   isDaycareDay: boolean
-  /** Sleep blocks to render as rectangles */
   blocks: SleepBlock[]
-  /** Night wake positions to render as markers */
   nightWakes: NightWakeMarker[]
 }
 
-/** Expected/typical day computed from averages. */
+/** Expected/typical day computed from medians. */
 export interface ExpectedDay {
   label: string
   blocks: SleepBlock[]
 }
 
 /**
- * Convert an absolute Date to a fractional hour offset from 8pm.
- * The 24-hour axis runs from 8pm (0) to 8pm next day (24).
- * So 8pm = 0, 9pm = 1, midnight = 4, 6am = 10, noon = 16, 6pm = 22.
+ * Convert an absolute Date to a fractional hour offset from 6pm.
  */
 function toAxisHour(date: Date): number {
   const hours = date.getHours() + date.getMinutes() / 60
-  // Shift so 8pm (20:00) = 0
-  const shifted = hours - 20
+  const shifted = hours - AXIS_ORIGIN_HOUR
   return shifted < 0 ? shifted + 24 : shifted
+}
+
+/**
+ * Determine which "chart day" a timestamp belongs to.
+ * A chart day for date X runs from 6pm on (X-1) to 6pm on X.
+ * So anything from 6pm onwards belongs to the NEXT calendar day's row.
+ *
+ * Returns a dateKey string like "2026-02-10".
+ */
+function getChartDayKey(date: Date): string {
+  const hour = date.getHours()
+  if (hour >= AXIS_ORIGIN_HOUR) {
+    // After 6pm: belongs to next calendar day's chart row
+    const nextDay = new Date(date)
+    nextDay.setDate(nextDay.getDate() + 1)
+    return format(startOfDay(nextDay), 'yyyy-MM-dd')
+  }
+  return format(startOfDay(date), 'yyyy-MM-dd')
 }
 
 /**
  * Process raw sleep events into chart-ready day rows.
  *
- * Each "day" runs from 8pm the previous evening to 8pm.
- * This centers overnight sleep in the chart.
+ * Strategy: group ALL events into sessions first, then assign each
+ * session/event to the appropriate chart day. This correctly handles
+ * overnight sessions that span from evening to morning.
  */
 export function buildDayRows(
   events: SleepEvent[],
   timezone: string,
-  days: number = 30
+  days: number = 14
 ): DayRow[] {
-  const now = new Date()
-  const rows: DayRow[] = []
+  // Sort all events chronologically
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+  )
 
+  // Group into sessions across the entire dataset
+  const items = groupEventsIntoSessions(sorted)
+
+  // Build a map of dateKey -> DayRow data
+  const rowMap = new Map<string, { blocks: SleepBlock[]; nightWakes: NightWakeMarker[]; isDaycareDay: boolean }>()
+
+  const now = new Date()
+
+  for (const item of items) {
+    if (item.kind === 'session') {
+      const { session } = item
+      const startDate = toZonedTime(parseISO(session.startEvent.event_time), timezone)
+      const startAxisHour = toAxisHour(startDate)
+
+      let endAxisHour: number
+      if (session.endEvent) {
+        const endDate = toZonedTime(parseISO(session.endEvent.event_time), timezone)
+        endAxisHour = toAxisHour(endDate)
+      } else {
+        // In-progress: use current time for today, default duration for historical
+        const ageMs = now.getTime() - new Date(session.startEvent.event_time).getTime()
+        const isRecent = ageMs < 24 * 60 * 60 * 1000
+        if (isRecent) {
+          const zonedNow = toZonedTime(now, timezone)
+          endAxisHour = toAxisHour(zonedNow)
+        } else {
+          endAxisHour = startAxisHour + (session.type === 'nap' ? 0.5 : 10)
+        }
+      }
+
+      // Handle wrap-around
+      if (endAxisHour <= startAxisHour) {
+        endAxisHour += 24
+      }
+
+      // Clamp to 0-24
+      const clampedStart = Math.max(0, Math.min(24, startAxisHour))
+      const clampedEnd = Math.max(0, Math.min(24, endAxisHour))
+
+      if (clampedEnd <= clampedStart) continue
+
+      // Assign to chart day based on session start
+      const dayKey = getChartDayKey(startDate)
+      const isDaycare = session.startEvent.context === 'daycare'
+
+      if (!rowMap.has(dayKey)) {
+        rowMap.set(dayKey, { blocks: [], nightWakes: [], isDaycareDay: false })
+      }
+      const row = rowMap.get(dayKey)!
+      if (isDaycare) row.isDaycareDay = true
+
+      row.blocks.push({
+        startHour: clampedStart,
+        endHour: clampedEnd,
+        type: session.type,
+        isDaycare,
+      })
+    } else if (item.kind === 'standalone' && item.event.event_type === 'night_wake') {
+      const nwDate = toZonedTime(parseISO(item.event.event_time), timezone)
+      const hour = toAxisHour(nwDate)
+      const dayKey = getChartDayKey(nwDate)
+
+      if (hour >= 0 && hour <= 24) {
+        if (!rowMap.has(dayKey)) {
+          rowMap.set(dayKey, { blocks: [], nightWakes: [], isDaycareDay: false })
+        }
+        rowMap.get(dayKey)!.nightWakes.push({ hour })
+      }
+    }
+  }
+
+  // Also scan raw events for daycare context on days that may only have standalone events
+  for (const event of sorted) {
+    if (event.context === 'daycare') {
+      const eventDate = toZonedTime(parseISO(event.event_time), timezone)
+      const dayKey = getChartDayKey(eventDate)
+      if (rowMap.has(dayKey)) {
+        rowMap.get(dayKey)!.isDaycareDay = true
+      }
+    }
+  }
+
+  // Build ordered rows for the requested day range
+  const rows: DayRow[] = []
   for (let daysAgo = days; daysAgo >= 0; daysAgo--) {
     const date = subDays(now, daysAgo)
     const zonedDate = toZonedTime(date, timezone)
     const dayStart = startOfDay(zonedDate)
-
-    // The "chart day" for date X shows 8pm on (X-1) through 8pm on X
-    const windowStart = new Date(dayStart)
-    windowStart.setDate(windowStart.getDate() - 1)
-    windowStart.setHours(20, 0, 0, 0)
-
-    const windowEnd = new Date(dayStart)
-    windowEnd.setHours(20, 0, 0, 0)
-
     const dateKey = format(dayStart, 'yyyy-MM-dd')
     const label = format(dayStart, 'EEE M/d')
 
-    // Find events that fall within this window
-    const windowEvents = events.filter(e => {
-      const eventDate = toZonedTime(parseISO(e.event_time), timezone)
-      return eventDate >= windowStart && eventDate < windowEnd
+    const data = rowMap.get(dateKey)
+    rows.push({
+      label,
+      dateKey,
+      isDaycareDay: data?.isDaycareDay ?? false,
+      blocks: data?.blocks ?? [],
+      nightWakes: data?.nightWakes ?? [],
     })
-
-    // Group into sessions to get sleep blocks
-    const sorted = [...windowEvents].sort(
-      (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
-    )
-    const items = groupEventsIntoSessions(sorted)
-
-    const blocks: SleepBlock[] = []
-    const nightWakes: NightWakeMarker[] = []
-    let isDaycareDay = false
-
-    for (const item of items) {
-      if (item.kind === 'session') {
-        const { session } = item
-        const startDate = toZonedTime(parseISO(session.startEvent.event_time), timezone)
-        const startHour = toAxisHour(startDate)
-
-        let endHour: number
-        if (session.endEvent) {
-          const endDate = toZonedTime(parseISO(session.endEvent.event_time), timezone)
-          endHour = toAxisHour(endDate)
-        } else {
-          // In-progress session: extend to current time or a reasonable default
-          if (daysAgo === 0) {
-            const zonedNow = toZonedTime(now, timezone)
-            endHour = toAxisHour(zonedNow)
-          } else {
-            // Historical in-progress: assume 30 min for naps, skip for overnight
-            endHour = startHour + (session.type === 'nap' ? 0.5 : 0)
-          }
-        }
-
-        // Handle wrap-around (if end is before start, it crossed the axis boundary)
-        if (endHour < startHour) {
-          endHour += 24
-        }
-
-        // Clamp to 0-24 range
-        const clampedStart = Math.max(0, Math.min(24, startHour))
-        const clampedEnd = Math.max(0, Math.min(24, endHour))
-
-        if (clampedEnd > clampedStart) {
-          const isDaycare = session.startEvent.context === 'daycare'
-          if (isDaycare) isDaycareDay = true
-
-          blocks.push({
-            startHour: clampedStart,
-            endHour: clampedEnd,
-            type: session.type,
-            isDaycare,
-          })
-        }
-      } else if (item.kind === 'standalone' && item.event.event_type === 'night_wake') {
-        const nwDate = toZonedTime(parseISO(item.event.event_time), timezone)
-        const hour = toAxisHour(nwDate)
-        if (hour >= 0 && hour <= 24) {
-          nightWakes.push({ hour })
-        }
-      }
-    }
-
-    // Also check event contexts directly for daycare detection
-    if (!isDaycareDay) {
-      isDaycareDay = windowEvents.some(e => e.context === 'daycare')
-    }
-
-    rows.push({ label, dateKey, isDaycareDay, blocks, nightWakes })
   }
 
   return rows
@@ -177,7 +206,6 @@ export function computeExpectedDays(rows: DayRow[]): {
 function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
   if (rows.length < 2) return null
 
-  // Collect all overnight blocks and nap blocks separately
   const overnightStarts: number[] = []
   const overnightEnds: number[] = []
   const napSlots: { starts: number[]; ends: number[] }[] = []
@@ -191,7 +219,6 @@ function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
       overnightEnds.push(overnight[0].endHour)
     }
 
-    // Group naps by slot index (1st nap, 2nd nap, etc.)
     naps.forEach((nap, i) => {
       if (!napSlots[i]) napSlots[i] = { starts: [], ends: [] }
       napSlots[i].starts.push(nap.startHour)
@@ -201,7 +228,6 @@ function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
 
   const blocks: SleepBlock[] = []
 
-  // Median overnight
   if (overnightStarts.length > 0) {
     blocks.push({
       startHour: median(overnightStarts),
@@ -211,7 +237,6 @@ function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
     })
   }
 
-  // Median naps
   for (const slot of napSlots) {
     if (slot.starts.length >= 2) {
       blocks.push({
@@ -224,7 +249,6 @@ function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
   }
 
   if (blocks.length === 0) return null
-
   return { label, blocks }
 }
 

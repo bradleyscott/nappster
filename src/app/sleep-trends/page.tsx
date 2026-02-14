@@ -41,8 +41,8 @@ export default async function SleepTrendsPage() {
   const cookieStore = await cookies()
   const timezone = cookieStore.get('timezone')?.value || 'UTC'
 
-  // Fetch 32 days of events (30 days + buffer for overnight sessions spanning day boundaries)
-  const startDate = getStartOfDaysAgoForTimezone(timezone, 32)
+  // Fetch 16 days of events (14 days + buffer for overnight sessions spanning day boundaries)
+  const startDate = getStartOfDaysAgoForTimezone(timezone, 16)
 
   const { data: sleepEvents } = await supabase
     .from('sleep_events')
@@ -62,7 +62,7 @@ export default async function SleepTrendsPage() {
           </Button>
           <div>
             <h1 className="text-lg font-semibold">Sleep Trends</h1>
-            <p className="text-sm text-muted-foreground">{baby.name} · Last 30 days</p>
+            <p className="text-sm text-muted-foreground">{baby.name} · Last 14 days</p>
           </div>
         </div>
       </header>
