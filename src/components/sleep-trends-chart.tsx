@@ -311,7 +311,7 @@ function Building2Icon() {
 
 function Legend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 py-2 text-sm text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 py-2 pb-6 text-sm text-muted-foreground" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
       <span className="flex items-center gap-1.5">
         <span className="inline-block w-3.5 h-3.5 rounded-sm bg-indigo-400 opacity-85" />
         Overnight
