@@ -171,7 +171,7 @@ export function buildDayRows(
     const zonedDate = toZonedTime(date, timezone)
     const dayStart = startOfDay(zonedDate)
     const dateKey = format(dayStart, 'yyyy-MM-dd')
-    const label = format(dayStart, 'MMM d EEE')
+    const label = format(dayStart, 'EEE d MMM')
 
     const data = rowMap.get(dateKey)
     rows.push({
@@ -198,8 +198,8 @@ export function computeExpectedDays(rows: DayRow[]): {
   const daycareRows = rows.filter(r => r.isDaycareDay && r.blocks.length > 0)
 
   return {
-    home: computeMedianDay(homeRows, 'Typical Home Day'),
-    daycare: computeMedianDay(daycareRows, 'Typical Daycare Day'),
+    home: computeMedianDay(homeRows, 'Home Day'),
+    daycare: computeMedianDay(daycareRows, 'Daycare Day'),
   }
 }
 
