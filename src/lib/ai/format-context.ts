@@ -21,7 +21,16 @@ export interface EventSummary {
   lastEventTime?: string | null
 }
 
+export interface BabyProfileContext {
+  name: string
+  age: string
+  birthDate: string
+  sleepTrainingMethod: string | null
+  patternNotes: string | null
+}
+
 export interface ChatContext {
+  babyProfile?: BabyProfileContext
   todayEvents?: FormattedEvent[]
   currentState?: SleepState
   eventSummary?: EventSummary
