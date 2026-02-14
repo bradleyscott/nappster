@@ -80,11 +80,12 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
   }
 
   function handleSelectExpected(expected: ExpectedDay) {
+    const overnightBlock = expected.blocks.find(b => b.type === 'overnight')
     setDetailData({
       label: expected.label,
       blocks: expected.blocks,
       nightWakes: [],
-      bedtimeHour: null,
+      bedtimeHour: overnightBlock?.startHour ?? null,
     })
   }
 
@@ -370,9 +371,14 @@ interface DetailData {
 }
 
 function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => void }) {
-  const overnightBlocks = data.blocks.filter(b => b.type === 'overnight')
+  const overnightBlocks = data.blocks.filter(b => b.type === 'overnight').sort((a, b) => a.startHour - b.startHour)
   const napBlocks = data.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
   const nightWakes = [...data.nightWakes].sort((a, b) => a.hour - b.hour)
+
+  // Merge multiple overnight blocks into one range (e.g. bedtime→brief wake→back to sleep→morning wake)
+  const mergedOvernight = overnightBlocks.length > 0
+    ? { startHour: overnightBlocks[0].startHour, endHour: overnightBlocks[overnightBlocks.length - 1].endHour }
+    : null
 
   return (
     <div
@@ -402,19 +408,19 @@ function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => vo
 
         {/* Content */}
         <div className="px-5 py-4 space-y-4">
-          {/* Overnight sleep */}
-          {overnightBlocks.map((block, i) => (
-            <div key={`overnight-${i}`} className="flex items-start gap-3">
+          {/* Overnight sleep (merged into single entry) */}
+          {mergedOvernight && (
+            <div className="flex items-start gap-3">
               <Moon className="w-4.5 h-4.5 text-indigo-400 mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium">Nighttime Sleep</p>
                 <p className="text-sm text-muted-foreground">
-                  {axisHourToTime(block.startHour)} – {axisHourToTime(block.endHour)}
-                  <span className="ml-2 text-xs">({formatDuration(block.startHour, block.endHour)})</span>
+                  {axisHourToTime(mergedOvernight.startHour)} – {axisHourToTime(mergedOvernight.endHour)}
+                  <span className="ml-2 text-xs">({formatDuration(mergedOvernight.startHour, mergedOvernight.endHour)})</span>
                 </p>
               </div>
             </div>
-          ))}
+          )}
 
           {/* Night wakes */}
           {nightWakes.length > 0 && (
@@ -461,7 +467,7 @@ function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => vo
             </div>
           )}
 
-          {overnightBlocks.length === 0 && napBlocks.length === 0 && nightWakes.length === 0 && data.bedtimeHour === null && (
+          {!mergedOvernight && napBlocks.length === 0 && nightWakes.length === 0 && data.bedtimeHour === null && (
             <p className="text-sm text-muted-foreground">No sleep data for this day.</p>
           )}
         </div>
