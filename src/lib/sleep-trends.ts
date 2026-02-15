@@ -11,7 +11,7 @@ const AXIS_ORIGIN_HOUR = 17 // 5pm
 
 /** A sleep block positioned on the 24-hour timeline. */
 export interface SleepBlock {
-  /** Fractional hours from the axis origin (6pm) */
+  /** Fractional hours from the axis origin (5pm) */
   startHour: number
   endHour: number
   type: 'overnight' | 'nap'
@@ -40,7 +40,7 @@ export interface ExpectedDay {
 }
 
 /**
- * Convert an absolute Date to a fractional hour offset from 6pm.
+ * Convert an absolute Date to a fractional hour offset from 5pm.
  */
 function toAxisHour(date: Date): number {
   const hours = date.getHours() + date.getMinutes() / 60
@@ -50,15 +50,15 @@ function toAxisHour(date: Date): number {
 
 /**
  * Determine which "chart day" a timestamp belongs to.
- * A chart day for date X runs from 6pm on (X-1) to 6pm on X.
- * So anything from 6pm onwards belongs to the NEXT calendar day's row.
+ * A chart day for date X runs from 5pm on (X-1) to 5pm on X.
+ * So anything from 5pm onwards belongs to the NEXT calendar day's row.
  *
  * Returns a dateKey string like "2026-02-10".
  */
 function getChartDayKey(date: Date): string {
   const hour = date.getHours()
   if (hour >= AXIS_ORIGIN_HOUR) {
-    // After 6pm: belongs to next calendar day's chart row
+    // After 5pm: belongs to next calendar day's chart row
     const nextDay = new Date(date)
     nextDay.setDate(nextDay.getDate() + 1)
     return format(startOfDay(nextDay), 'yyyy-MM-dd')
@@ -198,27 +198,13 @@ export function computeExpectedDays(rows: DayRow[]): {
   const homeRows = rows.filter(r => !r.isDaycareDay && r.blocks.length > 0)
   const daycareRows = rows.filter(r => r.isDaycareDay && r.blocks.length > 0)
 
-  // Collect bedtimes for each day type by looking at the NEXT row's overnight start.
-  // The overnight block on a chart day row is from the previous night.
-  // Tonight's bedtime lives on the next day's row.
-  function collectBedtimes(matchingRows: DayRow[]): number[] {
-    const bedtimes: number[] = []
-    for (const row of matchingRows) {
-      const rowIndex = rows.indexOf(row)
-      const nextRow = rowIndex >= 0 && rowIndex < rows.length - 1 ? rows[rowIndex + 1] : null
-      const overnight = nextRow?.blocks.find(b => b.type === 'overnight')
-      if (overnight) bedtimes.push(overnight.startHour)
-    }
-    return bedtimes
-  }
-
   return {
-    home: computeMedianDay(homeRows, 'Home Day', collectBedtimes(homeRows)),
-    daycare: computeMedianDay(daycareRows, 'Daycare Day', collectBedtimes(daycareRows)),
+    home: computeMedianDay(homeRows, 'Home Day'),
+    daycare: computeMedianDay(daycareRows, 'Daycare Day'),
   }
 }
 
-function computeMedianDay(rows: DayRow[], label: string, bedtimes: number[]): ExpectedDay | null {
+function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
   if (rows.length < 2) return null
 
   const overnightStarts: number[] = []
@@ -226,12 +212,16 @@ function computeMedianDay(rows: DayRow[], label: string, bedtimes: number[]): Ex
   const napSlots: { starts: number[]; ends: number[] }[] = []
 
   for (const row of rows) {
-    const overnight = row.blocks.filter(b => b.type === 'overnight')
+    const overnightBlocks = row.blocks.filter(b => b.type === 'overnight')
     const naps = row.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
 
-    if (overnight.length > 0) {
-      overnightStarts.push(overnight[0].startHour)
-      overnightEnds.push(overnight[0].endHour)
+    // Merge multiple overnight blocks into one continuous period (earliest start to latest end)
+    // This handles edge cases with duplicate bedtime events in historical data
+    if (overnightBlocks.length > 0) {
+      const starts = overnightBlocks.map(b => b.startHour)
+      const ends = overnightBlocks.map(b => b.endHour)
+      overnightStarts.push(Math.min(...starts))
+      overnightEnds.push(Math.max(...ends))
     }
 
     naps.forEach((nap, i) => {
@@ -264,7 +254,11 @@ function computeMedianDay(rows: DayRow[], label: string, bedtimes: number[]): Ex
   }
 
   if (blocks.length === 0) return null
-  return { label, blocks, bedtimeHour: bedtimes.length >= 2 ? median(bedtimes) : null }
+
+  // Bedtime is simply the median overnight start time (they should always match)
+  const bedtimeHour = overnightStarts.length >= 2 ? median(overnightStarts) : null
+
+  return { label, blocks, bedtimeHour }
 }
 
 function median(values: number[]): number {

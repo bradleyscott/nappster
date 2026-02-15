@@ -53,25 +53,23 @@ export default async function SleepTrendsPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
-        <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/nappster.png"
-              alt="Nappster"
-              width={40}
-              height={40}
-              className="rounded-full"
-            />
-            <div>
-              <p className="text-sm text-muted-foreground">Sleep Trends · Last 14 days</p>
-              <h1 className="text-lg font-semibold">{baby.name}</h1>
-            </div>
-          </div>
+        <div className="container max-w-lg md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <BackButton />
+          <Image
+            src="/nappster.png"
+            alt="Nappster"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
+          <div>
+            <p className="text-sm text-muted-foreground">Sleep Trends · Last 14 days</p>
+            <h1 className="text-lg font-semibold">{baby.name}</h1>
+          </div>
         </div>
       </header>
 
-      <main className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-2">
+      <main className="container max-w-lg md:max-w-2xl mx-auto px-4 py-6">
         <SleepTrendsChart
           events={sleepEvents ?? []}
           timezone={timezone}

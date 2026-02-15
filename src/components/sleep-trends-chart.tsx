@@ -89,7 +89,7 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
   }
 
   return (
-    <div className="flex flex-col max-w-lg mx-auto" style={{ height: 'calc(100dvh - 53px)' }}>
+    <div className="flex flex-col max-w-lg md:max-w-2xl mx-auto" style={{ height: 'calc(100dvh - 53px)' }}>
       {/* Sticky header: expected days + legend */}
       {expectedEntries.length > 0 && (
         <div className="border-b bg-background">
@@ -374,7 +374,8 @@ function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => vo
   const napBlocks = data.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
   const nightWakes = [...data.nightWakes].sort((a, b) => a.hour - b.hour)
 
-  // Merge multiple overnight blocks into one range (e.g. bedtime→brief wake→back to sleep→morning wake)
+  // Merge multiple overnight blocks into one continuous range (earliest start to latest end).
+  // This handles rare edge cases with historical duplicate bedtime data.
   const mergedOvernight = overnightBlocks.length > 0
     ? { startHour: overnightBlocks[0].startHour, endHour: overnightBlocks[overnightBlocks.length - 1].endHour }
     : null
