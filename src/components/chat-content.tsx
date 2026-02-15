@@ -4,7 +4,7 @@ import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Baby, SleepEvent, SleepSession, SleepPlanRow, ChatMessage } from '@/types/database'
+import { Baby, SleepEvent, SleepSession, SleepPlanRow, ChatMessage, EventType, Context } from '@/types/database'
 import { findSessionForEvent, formatAge } from '@/lib/sleep-utils'
 import { computeCurrentState, type SleepState } from '@/lib/state-machine'
 import { getTodayBoundsForTimezone, getYesterdayBoundsForTimezone } from '@/lib/timezone'
@@ -15,9 +15,7 @@ import { useChatHistory, ChatMessageData } from '@/lib/hooks/use-chat-history'
 import { useTimelineBuilder } from '@/lib/hooks/use-timeline-builder'
 import { AppHeader } from '@/components/app-header'
 import { ChatInput } from '@/components/chat-input'
-import { SleepEventDialog } from '@/components/sleep-event-dialog'
-import { SleepSessionDialog } from '@/components/sleep-session-dialog'
-import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog'
+import { UnifiedEditDialog } from '@/components/unified-edit-dialog'
 import {
   Conversation,
   ConversationContent,
@@ -48,10 +46,7 @@ export function ChatContent({
 
   // Dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<SleepEvent | null>(null)
-  const [sessionDialogOpen, setSessionDialogOpen] = useState(false)
-  const [selectedSession, setSelectedSession] = useState<SleepSession | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<SleepSession | SleepEvent | null>(null)
 
   // Sleep plan state for ChatInput quick actions
   const [sleepPlan, setSleepPlan] = useState<SleepPlan | null>(null)
@@ -393,14 +388,36 @@ export function ChatContent({
     await sendMessage({ text })
   }, [sendMessage])
 
-  // Handle creating events (from ChatInput quick actions)
+  // Handle creating events (from ChatInput quick actions and add dialog)
   const handleCreateEvent = useCallback(async (eventData: {
-    event_type: SleepEvent['event_type']
+    event_type: EventType
     event_time: string
-    context: SleepEvent['context']
+    end_time?: string | null
+    context: Context
     notes: string | null
   }) => {
-    await createEvent(eventData as Parameters<typeof createEvent>[0])
+    // Create start event
+    await createEvent({
+      event_type: eventData.event_type as EventType,
+      event_time: eventData.event_time,
+      context: eventData.context as Context,
+      notes: eventData.notes,
+    })
+
+    // If end_time is provided, create the corresponding end event
+    if (eventData.end_time) {
+      const endEventType: EventType | null = eventData.event_type === 'nap_start' ? 'nap_end' :
+                           eventData.event_type === 'bedtime' ? 'wake' : null
+
+      if (endEventType) {
+        await createEvent({
+          event_type: endEventType,
+          event_time: eventData.end_time,
+          context: eventData.context as Context,
+          notes: null, // End events don't have notes
+        })
+      }
+    }
   }, [createEvent])
 
   // Handle saving events (edit from dialog)
@@ -408,29 +425,28 @@ export function ChatContent({
     const success = await saveEvent(eventData)
     if (success) {
       setEditDialogOpen(false)
-      setSelectedEvent(null)
+      setSelectedItem(null)
     }
   }, [saveEvent])
 
   // Handle deleting events
   const handleDeleteEvent = useCallback(async () => {
-    if (!selectedEvent) return
-    const success = await deleteEvent(selectedEvent)
+    if (!selectedItem || !('event_type' in selectedItem)) return
+    const success = await deleteEvent(selectedItem)
     if (success) {
       // Broadcast delete to other family members
-      await broadcastDelete('sleep_events', selectedEvent)
-      setDeleteDialogOpen(false)
+      await broadcastDelete('sleep_events', selectedItem)
       setEditDialogOpen(false)
-      setSelectedEvent(null)
+      setSelectedItem(null)
     }
-  }, [selectedEvent, deleteEvent, broadcastDelete])
+  }, [selectedItem, deleteEvent, broadcastDelete])
 
   // Handle saving session (paired events)
   const handleSaveSession = useCallback(async (sessionData: SaveSessionData) => {
     const success = await saveSession(sessionData)
     if (success) {
-      setSessionDialogOpen(false)
-      setSelectedSession(null)
+      setEditDialogOpen(false)
+      setSelectedItem(null)
     }
   }, [saveSession])
 
@@ -438,8 +454,8 @@ export function ChatContent({
   const handleDeleteSession = useCallback(async (startId: string, endId: string | null) => {
     const success = await deleteSession(startId, endId, allSleepEvents)
     if (success) {
-      setSessionDialogOpen(false)
-      setSelectedSession(null)
+      setEditDialogOpen(false)
+      setSelectedItem(null)
     }
   }, [deleteSession, allSleepEvents])
 
@@ -447,12 +463,11 @@ export function ChatContent({
   const handleEventClick = useCallback((event: SleepEvent) => {
     const session = findSessionForEvent(event, allSleepEvents)
     if (session) {
-      setSelectedSession(session)
-      setSessionDialogOpen(true)
+      setSelectedItem(session)
     } else {
-      setSelectedEvent(event)
-      setEditDialogOpen(true)
+      setSelectedItem(event)
     }
+    setEditDialogOpen(true)
   }, [allSleepEvents])
 
   // Handle sign out
@@ -498,6 +513,7 @@ export function ChatContent({
           <ChatInput
             babyId={baby.id}
             babyName={baby.name}
+            allEvents={allSleepEvents}
             onSendMessage={handleSendMessage}
             onCreateEvent={handleCreateEvent}
             status={status}
@@ -508,30 +524,15 @@ export function ChatContent({
         </div>
       </div>
 
-      {/* Edit Event Dialog */}
-      <SleepEventDialog
+      {/* Edit Dialog */}
+      <UnifiedEditDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        babyId={baby.id}
-        event={selectedEvent}
-        onSave={handleSaveEvent}
-        onDelete={() => setDeleteDialogOpen(true)}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <DeleteConfirmationDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onConfirm={handleDeleteEvent}
-      />
-
-      {/* Session Edit Dialog */}
-      <SleepSessionDialog
-        open={sessionDialogOpen}
-        onOpenChange={setSessionDialogOpen}
-        session={selectedSession}
-        onSave={handleSaveSession}
-        onDelete={handleDeleteSession}
+        item={selectedItem}
+        onSaveEvent={handleSaveEvent}
+        onSaveSession={handleSaveSession}
+        onDeleteEvent={handleDeleteEvent}
+        onDeleteSession={handleDeleteSession}
       />
     </div>
   )
