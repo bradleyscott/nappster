@@ -28,7 +28,7 @@ export function SleepEventButton({
       className={cn(
         "flex font-medium",
         size === 'default' && "h-20 flex-col gap-1 text-base",
-        size === 'compact' && "h-8 flex-row gap-1.5 text-sm px-2.5",
+        size === 'compact' && "h-11 flex-row gap-1.5 text-base px-4",
         className
       )}
       onClick={onClick}
@@ -36,7 +36,7 @@ export function SleepEventButton({
     >
       <span className={cn(
         size === 'default' && "text-2xl",
-        size === 'compact' && "text-base"
+        size === 'compact' && "text-lg"
       )}>{icon}</span>
       <span>{label}</span>
     </Button>
