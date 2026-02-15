@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Building2, X, Moon, Sun, AlertCircle, BedDouble } from 'lucide-react'
+import { Building2, X, Moon, Sun, AlertCircle, BedDouble, Share2, Check } from 'lucide-react'
 import { SleepEvent } from '@/types/database'
 import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock, type NightWakeMarker } from '@/lib/sleep-trends'
 
@@ -43,9 +43,10 @@ const NOON_HOUR = 19     // noon = 5pm + 19h
 interface SleepTrendsChartProps {
   events: SleepEvent[]
   timezone: string
+  babyName: string
 }
 
-export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
+export function SleepTrendsChart({ events, timezone, babyName }: SleepTrendsChartProps) {
   const { dayRows, expectedDays } = useMemo(() => {
     const rows = buildDayRows(events, timezone, 14)
     const expected = computeExpectedDays(rows)
@@ -85,6 +86,7 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
       blocks: expected.blocks,
       nightWakes: [],
       bedtimeHour: expected.bedtimeHour,
+      isExpected: true,
     })
   }
 
@@ -141,7 +143,7 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
       </div>
 
       {detailData && (
-        <DayDetailSheet data={detailData} onClose={() => setDetailData(null)} />
+        <DayDetailSheet data={detailData} babyName={babyName} onClose={() => setDetailData(null)} />
       )}
     </div>
   )
@@ -367,9 +369,46 @@ interface DetailData {
   blocks: SleepBlock[]
   nightWakes: NightWakeMarker[]
   bedtimeHour: number | null
+  isExpected?: boolean
 }
 
-function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => void }) {
+function formatExpectedDayForSharing(data: DetailData, babyName: string): string {
+  const lines: string[] = []
+  const overnightBlocks = data.blocks.filter(b => b.type === 'overnight').sort((a, b) => a.startHour - b.startHour)
+  const napBlocks = data.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
+  const mergedOvernight = overnightBlocks.length > 0
+    ? { startHour: overnightBlocks[0].startHour, endHour: overnightBlocks[overnightBlocks.length - 1].endHour }
+    : null
+
+  lines.push(`😴 ${babyName}'s Usual Sleep Schedule`)
+  lines.push(`(${data.label})`)
+  lines.push('')
+
+  if (mergedOvernight) {
+    lines.push(`🌙 Nighttime Sleep`)
+    lines.push(`  ${axisHourToTime(mergedOvernight.startHour)} – ${axisHourToTime(mergedOvernight.endHour)} (${formatDuration(mergedOvernight.startHour, mergedOvernight.endHour)})`)
+    lines.push('')
+  }
+
+  if (napBlocks.length > 0) {
+    lines.push(`☀️ Naps`)
+    napBlocks.forEach((block, i) => {
+      const napLabel = napBlocks.length > 1 ? `Nap ${i + 1}` : 'Nap'
+      const context = block.isDaycare ? ' (daycare)' : ''
+      lines.push(`  ${napLabel}: ${axisHourToTime(block.startHour)} – ${axisHourToTime(block.endHour)} (${formatDuration(block.startHour, block.endHour)})${context}`)
+    })
+    lines.push('')
+  }
+
+  if (data.bedtimeHour !== null) {
+    lines.push(`🛏️ Bedtime: ${axisHourToTime(data.bedtimeHour)}`)
+  }
+
+  return lines.join('\n').trimEnd()
+}
+
+function DayDetailSheet({ data, babyName, onClose }: { data: DetailData; babyName: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
   const overnightBlocks = data.blocks.filter(b => b.type === 'overnight').sort((a, b) => a.startHour - b.startHour)
   const napBlocks = data.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
   const nightWakes = [...data.nightWakes].sort((a, b) => a.hour - b.hour)
@@ -379,6 +418,13 @@ function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => vo
   const mergedOvernight = overnightBlocks.length > 0
     ? { startHour: overnightBlocks[0].startHour, endHour: overnightBlocks[overnightBlocks.length - 1].endHour }
     : null
+
+  const handleShare = async () => {
+    const text = formatExpectedDayForSharing(data, babyName)
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div
@@ -469,6 +515,27 @@ function DayDetailSheet({ data, onClose }: { data: DetailData; onClose: () => vo
 
           {!mergedOvernight && napBlocks.length === 0 && nightWakes.length === 0 && data.bedtimeHour === null && (
             <p className="text-sm text-muted-foreground">No sleep data for this day.</p>
+          )}
+
+          {/* Share button (expected days only) */}
+          {data.isExpected && (
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center gap-2 w-full py-2 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+              aria-label="Copy sleep schedule to clipboard"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 text-green-600" />
+                  <span className="text-green-600">Copied to clipboard</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-4 w-4" />
+                  <span>Share schedule</span>
+                </>
+              )}
+            </button>
           )}
         </div>
       </div>
