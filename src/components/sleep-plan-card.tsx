@@ -95,16 +95,16 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
   // Show placeholder during SSR to avoid hydration mismatch with Radix IDs
   if (!mounted) {
     return (
-      <div className="flex justify-center">
-        <div className="w-full max-w-lg border rounded-lg bg-card shadow-sm">
-          <div className="w-full px-4 py-3 flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900">
+      <div className="flex justify-center min-w-0 w-full">
+        <div className="w-full max-w-lg border rounded-lg bg-card shadow-sm overflow-hidden">
+          <div className="w-full px-4 py-3 flex items-center gap-3 min-w-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 shrink-0">
               <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Sleep Plan</span>
-                <span className="text-xs text-muted-foreground">{planTime}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-medium shrink-0">Sleep Plan</span>
+                <span className="text-xs text-muted-foreground shrink-0">{planTime}</span>
               </div>
               <p className="text-xs text-muted-foreground truncate">
                 {nextAction.label} · Bedtime {plan.target_bedtime}
@@ -122,24 +122,24 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="flex justify-center"
+      className="flex justify-center min-w-0 w-full"
     >
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="w-full max-w-lg border rounded-lg bg-card shadow-sm">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="min-w-0 w-full max-w-lg">
+        <div className="w-full border rounded-lg bg-card shadow-sm overflow-hidden">
           <CollapsibleTrigger asChild>
             <button
-              className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors rounded-lg"
+              className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors rounded-lg min-w-0"
               aria-label={isOpen ? 'Collapse sleep plan' : 'Expand sleep plan'}
             >
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 shrink-0">
                 <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-medium shrink-0">
                     Sleep Plan
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground shrink-0">
                     {planTime}
                   </span>
                 </div>
@@ -158,12 +158,12 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
           </CollapsibleTrigger>
 
           <CollapsibleContent>
-            <div className="px-4 pb-4 space-y-3">
+            <div className="px-4 pb-4 space-y-3 min-w-0">
               {/* Summary */}
-              <p className="text-sm text-muted-foreground">{plan.summary}</p>
+              <p className="text-sm text-muted-foreground wrap-break-word">{plan.summary}</p>
 
               {/* Full schedule */}
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 {schedule
                   .filter((item) => item.type !== 'bedtime')
                   .map((item, index) => {
@@ -171,19 +171,19 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
                     return (
                       <div
                         key={index}
-                        className={`flex items-center gap-3 py-1.5 px-2 rounded text-sm ${config.bgClass}`}
+                        className={`flex items-center gap-3 py-1.5 px-2 rounded text-sm min-w-0 ${config.bgClass}`}
                       >
                         <span
-                          className={`w-4 text-center ${config.textClass}`}
+                          className={`w-4 text-center shrink-0 ${config.textClass}`}
                         >
                           {config.icon}
                         </span>
                         <span
-                          className={`flex-1 font-medium ${config.textClass}`}
+                          className={`flex-1 font-medium min-w-0 truncate ${config.textClass}`}
                         >
                           {item.label}
                         </span>
-                        <span className={config.textClass}>
+                        <span className={`shrink-0 ${config.textClass}`}>
                           {item.timeWindow}
                         </span>
                       </div>
@@ -191,14 +191,14 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
                   })}
 
                 {/* Bedtime row */}
-                <div className="flex items-center gap-3 py-1.5 px-2 rounded bg-indigo-50 dark:bg-indigo-950 text-sm">
-                  <span className="w-4 text-center text-indigo-600 dark:text-indigo-400">
+                <div className="flex items-center gap-3 py-1.5 px-2 rounded bg-indigo-50 dark:bg-indigo-950 text-sm min-w-0">
+                  <span className="w-4 text-center shrink-0 text-indigo-600 dark:text-indigo-400">
                     🌙
                   </span>
-                  <span className="flex-1 font-medium text-indigo-600 dark:text-indigo-400">
+                  <span className="flex-1 font-medium min-w-0 text-indigo-600 dark:text-indigo-400">
                     Bedtime
                   </span>
-                  <span className="text-indigo-600 dark:text-indigo-400">
+                  <span className="shrink-0 text-indigo-600 dark:text-indigo-400">
                     {plan.target_bedtime}
                   </span>
                 </div>
@@ -207,7 +207,7 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
               {/* Share button */}
               <button
                 onClick={handleShare}
-                className="flex items-center justify-center gap-2 w-full py-2 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-2 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors min-w-0"
                 aria-label="Copy sleep plan to clipboard"
               >
                 {copied ? (
