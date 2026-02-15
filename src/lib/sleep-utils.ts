@@ -116,20 +116,51 @@ export function groupEventsIntoSessions(events: SleepEvent[]): TimelineItem[] {
       consumed.add(event.id)
 
     } else if (event.event_type === 'bedtime') {
-      // Look ahead for matching wake (within 16 hours)
+      // Look ahead for the final morning wake (within 16 hours), skipping
+      // intermediate wake→bedtime pairs (brief overnight awakenings where
+      // the baby goes back to sleep within 60 minutes).
       let endEvent: SleepEvent | null = null
+      const intermediateIds = new Set<string>()
+
       for (let j = i + 1; j < events.length; j++) {
-        if (events[j].event_type === 'wake' && !consumed.has(events[j].id)) {
+        if (consumed.has(events[j].id) || intermediateIds.has(events[j].id)) continue
+
+        if (events[j].event_type === 'wake') {
           const hoursDiff = differenceInHours(
             parseISO(events[j].event_time),
             parseISO(event.event_time)
           )
-          if (hoursDiff <= MAX_OVERNIGHT_HOURS) {
+          if (hoursDiff > MAX_OVERNIGHT_HOURS) break
+
+          // Check if a bedtime follows within 60 min (intermediate overnight wake)
+          let followingBedtime: SleepEvent | null = null
+          for (let k = j + 1; k < events.length; k++) {
+            if (consumed.has(events[k].id) || intermediateIds.has(events[k].id)) continue
+            if (events[k].event_type === 'bedtime') {
+              const gapMin = differenceInMinutes(
+                parseISO(events[k].event_time),
+                parseISO(events[j].event_time)
+              )
+              if (gapMin <= 60) followingBedtime = events[k]
+              break
+            }
+            if (events[k].event_type === 'nap_start') break
+          }
+
+          if (followingBedtime) {
+            // Intermediate wake→bedtime pair: skip and keep scanning
+            intermediateIds.add(events[j].id)
+            intermediateIds.add(followingBedtime.id)
+          } else {
             endEvent = events[j]
             consumed.add(events[j].id)
+            break
           }
-          break
         }
+      }
+
+      for (const id of intermediateIds) {
+        consumed.add(id)
       }
 
       const session: SleepSession = {
