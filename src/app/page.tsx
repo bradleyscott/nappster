@@ -120,15 +120,16 @@ export default async function Home() {
     .gte("event_time", eventStartTime)
     .order("event_time", { ascending: true })
 
-  // Fetch initial sleep plans (including active plan so it appears in timeline)
+  // Fetch initial sleep plans from the same time range as messages
+  // This ensures sleep plans and messages paginate together
   const { data: sleepPlans } = await supabase
     .from('sleep_plans')
     .select('*')
     .eq('baby_id', babyId)
-    .order('created_at', { ascending: false })
-    .limit(50)
+    .gte('created_at', oldestTimestamp || new Date(0).toISOString())
+    .order('created_at', { ascending: true })
 
-  const initialSleepPlans = (sleepPlans || []).reverse()
+  const initialSleepPlans = sleepPlans || []
 
   return (
     <ChatContent
