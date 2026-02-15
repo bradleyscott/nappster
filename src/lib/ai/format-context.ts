@@ -35,6 +35,27 @@ export interface ChatContext {
   currentState?: SleepState
   eventSummary?: EventSummary
   recentMessages?: Array<{ role: 'user' | 'assistant'; text: string }>
+  lastSessionRecap?: string
+}
+
+/**
+ * Build a short recap string from recent messages.
+ * Truncates each message to keep the recap compact.
+ */
+export function buildSessionRecap(
+  messages: Array<{ role: 'user' | 'assistant'; text: string }>,
+  maxMessages = 6,
+  maxCharsPerMessage = 150
+): string {
+  const recent = messages.slice(-maxMessages)
+  const lines = recent.map((m) => {
+    const label = m.role === 'user' ? 'Parent' : 'Assistant'
+    const text = m.text.length > maxCharsPerMessage
+      ? m.text.slice(0, maxCharsPerMessage) + '…'
+      : m.text
+    return `${label}: ${text}`
+  })
+  return lines.join('\n')
 }
 
 /**

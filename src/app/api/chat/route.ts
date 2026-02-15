@@ -8,6 +8,7 @@ import { buildChatSystemPrompt } from "@/lib/ai/prompts";
 import {
   formatEventsContext,
   extractTextFromParts,
+  buildSessionRecap,
   type ChatContext,
   type BabyProfileContext,
 } from "@/lib/ai/format-context";
@@ -62,6 +63,12 @@ const requestFieldsSchema = z.object({
 // with headroom for multi-step reasoning.
 const MAX_TOOL_STEPS = 6;
 
+// Maximum number of recent messages to include in the model context.
+// Older messages are available via the getChatHistory tool.
+// Each "message" from the SDK may expand to multiple model messages (tool
+// calls/results), so this keeps the context window bounded.
+const MAX_CONVERSATION_MESSAGES = 20;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -107,12 +114,27 @@ export async function POST(req: Request) {
         }))
         .filter((m) => m.text.length > 0);
 
+      // Only include recent messages in the system prompt for the first
+      // turn of a conversation. Once the model has live messages in its
+      // context window, the pre-injected recap is redundant tokens.
+      const isFirstTurn = messages.length <= 1;
+
+      // Build a compact last-session recap for cross-session continuity.
+      // Always included (even on subsequent turns) since it's cheap and
+      // helps the model recall prior-session context that isn't in the
+      // live message window.
+      const lastSessionRecap =
+        formattedMessages && formattedMessages.length > 0
+          ? buildSessionRecap(formattedMessages)
+          : undefined;
+
       chatContext = {
         babyProfile: babyProfile as BabyProfileContext | undefined,
         todayEvents: eventsContext?.formattedEvents,
         currentState: eventsContext?.currentState,
         eventSummary: eventsContext?.eventSummary,
-        recentMessages: formattedMessages,
+        recentMessages: isFirstTurn ? formattedMessages : undefined,
+        lastSessionRecap,
       };
     }
 
@@ -120,6 +142,13 @@ export async function POST(req: Request) {
     const toolContext = { supabase, babyId, timezone };
 
     const systemPrompt = buildChatSystemPrompt(timezone, chatContext);
+
+    // Window the conversation: only send the most recent messages to the
+    // model. Older messages are still saved and available via getChatHistory.
+    const windowedMessages =
+      messages.length > MAX_CONVERSATION_MESSAGES
+        ? messages.slice(-MAX_CONVERSATION_MESSAGES)
+        : messages;
 
     // Generate a consistent assistant message ID upfront so the stream
     // sends the same ID to the client that we save to the database.
@@ -131,7 +160,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: openai("gpt-5.2"),
       system: systemPrompt,
-      messages: await convertToModelMessages(messages),
+      messages: await convertToModelMessages(windowedMessages),
       tools: createChatTools(toolContext),
       stopWhen: stepCountIs(MAX_TOOL_STEPS),
       // Always enable reasoning for quality - showThinking only controls
@@ -142,6 +171,57 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    // Read-only tools whose full output is expensive to persist.
+    // We store a condensed summary instead to save DB storage and
+    // reduce tokens when these messages are loaded back as history.
+    const READ_TOOL_NAMES = new Set([
+      "getBabyProfile",
+      "getTodayEvents",
+      "getSleepHistory",
+      "getChatHistory",
+    ]);
+
+    function condenseToolOutput(
+      toolName: string,
+      output: unknown,
+    ): unknown {
+      if (!READ_TOOL_NAMES.has(toolName)) return output;
+      if (typeof output !== "object" || output === null) return output;
+
+      const o = output as Record<string, unknown>;
+      // Keep success/error status but replace bulky data with a summary
+      if (toolName === "getSleepHistory") {
+        return {
+          success: o.success,
+          days_retrieved: o.days_retrieved,
+          total_events: o.total_events,
+          _condensed: true,
+        };
+      }
+      if (toolName === "getChatHistory") {
+        return {
+          success: o.success,
+          days_retrieved: o.days_retrieved,
+          message_count: o.message_count,
+          _condensed: true,
+        };
+      }
+      if (toolName === "getTodayEvents") {
+        const summary = (o.summary as Record<string, unknown>) ?? {};
+        return {
+          success: o.success,
+          currentState: o.currentState,
+          eventCount: Array.isArray(o.events) ? o.events.length : 0,
+          summary,
+          _condensed: true,
+        };
+      }
+      if (toolName === "getBabyProfile") {
+        return { success: o.success, _condensed: true };
+      }
+      return output;
+    }
 
     // Save messages to database after stream completes
     // Using after() ensures this runs to completion even in serverless environments
@@ -220,10 +300,12 @@ export async function POST(req: Request) {
           );
           // Access the input via type assertion since the SDK types vary
           const input = "input" in toolCall ? toolCall.input : undefined;
-          const output =
+          const rawOutput =
             toolResult && "output" in toolResult
               ? toolResult.output
               : undefined;
+          // Condense read-tool outputs before persisting to save storage
+          const output = condenseToolOutput(toolCall.toolName, rawOutput);
           assistantParts.push({
             type: `tool-${toolCall.toolName}`,
             state: "output-available",
