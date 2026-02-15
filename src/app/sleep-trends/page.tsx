@@ -51,8 +51,8 @@ export default async function SleepTrendsPage() {
     .order('event_time', { ascending: true })
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
+    <div className="h-dvh flex flex-col overflow-hidden bg-background">
+      <header className="shrink-0 border-b">
         <div className="container max-w-lg md:max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <BackButton />
           <Image
@@ -69,7 +69,7 @@ export default async function SleepTrendsPage() {
         </div>
       </header>
 
-      <main className="container max-w-lg md:max-w-2xl mx-auto px-4 pt-2 pb-6">
+      <main className="flex-1 min-h-0 container max-w-lg md:max-w-2xl mx-auto px-4">
         <SleepTrendsChart
           events={sleepEvents ?? []}
           timezone={timezone}
