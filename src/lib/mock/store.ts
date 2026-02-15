@@ -42,7 +42,7 @@ export const mockStore = {
     },
   ] as FamilyMember[],
 
-  sleep_events: generateTodayEvents(),
+  sleep_events: [...generateHistoricalEvents(), ...generateTodayEvents()],
 
   chat_messages: generateSampleChatHistory(),
 
@@ -172,6 +172,171 @@ function generateSampleChatHistory(): ChatMessage[] {
   })
 
   return messages
+}
+
+/**
+ * Generate 30 days of realistic historical sleep events for the trends chart.
+ * Alternates daycare days (Mon/Wed/Fri) with home days.
+ * Daycare days have 1 nap; home days have 2 naps.
+ * Adds some natural variation to times and occasional night wakes.
+ */
+function generateHistoricalEvents(): SleepEvent[] {
+  const events: SleepEvent[] = []
+  const now = new Date()
+  let idCounter = 1000
+
+  for (let daysAgo = 30; daysAgo >= 1; daysAgo--) {
+    const day = new Date(now)
+    day.setDate(day.getDate() - daysAgo)
+    const dayOfWeek = day.getDay() // 0=Sun, 1=Mon, ...
+
+    // Daycare on Mon (1), Wed (3), Fri (5)
+    const isDaycare = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5
+
+    // Add some natural variation (±30 min)
+    const vary = () => Math.round((Math.random() - 0.5) * 60)
+
+    // Previous evening bedtime (belongs to this "overnight" period)
+    const prevDay = new Date(day)
+    prevDay.setDate(prevDay.getDate() - 1)
+    const bedtimeHour = 19
+    const bedtimeMin = 15 + vary()
+    const bedtime = new Date(prevDay)
+    bedtime.setHours(bedtimeHour, bedtimeMin, 0, 0)
+
+    events.push({
+      id: `hist-${++idCounter}`,
+      baby_id: MOCK_BABY_ID,
+      event_type: 'bedtime',
+      event_time: bedtime.toISOString(),
+      end_time: null,
+      context: 'home',
+      notes: null,
+      created_at: bedtime.toISOString(),
+    })
+
+    // Occasional night wake (~40% of nights)
+    if (Math.random() < 0.4) {
+      const nwHour = 1 + Math.floor(Math.random() * 4) // 1-4am
+      const nwMin = Math.floor(Math.random() * 60)
+      const nightWake = new Date(day)
+      nightWake.setHours(nwHour, nwMin, 0, 0)
+
+      events.push({
+        id: `hist-${++idCounter}`,
+        baby_id: MOCK_BABY_ID,
+        event_type: 'night_wake',
+        event_time: nightWake.toISOString(),
+        end_time: null,
+        context: 'home',
+        notes: null,
+        created_at: nightWake.toISOString(),
+      })
+    }
+
+    // Morning wake
+    const wakeHour = 7
+    const wakeMin = vary()
+    const wake = new Date(day)
+    wake.setHours(wakeHour, wakeMin, 0, 0)
+
+    events.push({
+      id: `hist-${++idCounter}`,
+      baby_id: MOCK_BABY_ID,
+      event_type: 'wake',
+      event_time: wake.toISOString(),
+      end_time: null,
+      context: 'home',
+      notes: null,
+      created_at: wake.toISOString(),
+    })
+
+    if (isDaycare) {
+      // Daycare: single long nap around 12:30pm-2:30pm
+      const napStart = new Date(day)
+      napStart.setHours(12, 30 + vary(), 0, 0)
+      const napEnd = new Date(napStart)
+      napEnd.setMinutes(napEnd.getMinutes() + 90 + vary())
+
+      events.push({
+        id: `hist-${++idCounter}`,
+        baby_id: MOCK_BABY_ID,
+        event_type: 'nap_start',
+        event_time: napStart.toISOString(),
+        end_time: null,
+        context: 'daycare',
+        notes: null,
+        created_at: napStart.toISOString(),
+      })
+      events.push({
+        id: `hist-${++idCounter}`,
+        baby_id: MOCK_BABY_ID,
+        event_type: 'nap_end',
+        event_time: napEnd.toISOString(),
+        end_time: null,
+        context: 'daycare',
+        notes: null,
+        created_at: napEnd.toISOString(),
+      })
+    } else {
+      // Home: two naps
+      // Nap 1: ~9:30am, 30-45 min
+      const nap1Start = new Date(day)
+      nap1Start.setHours(9, 30 + vary(), 0, 0)
+      const nap1End = new Date(nap1Start)
+      nap1End.setMinutes(nap1End.getMinutes() + 30 + Math.floor(Math.random() * 15))
+
+      events.push({
+        id: `hist-${++idCounter}`,
+        baby_id: MOCK_BABY_ID,
+        event_type: 'nap_start',
+        event_time: nap1Start.toISOString(),
+        end_time: null,
+        context: 'home',
+        notes: null,
+        created_at: nap1Start.toISOString(),
+      })
+      events.push({
+        id: `hist-${++idCounter}`,
+        baby_id: MOCK_BABY_ID,
+        event_type: 'nap_end',
+        event_time: nap1End.toISOString(),
+        end_time: null,
+        context: 'home',
+        notes: null,
+        created_at: nap1End.toISOString(),
+      })
+
+      // Nap 2: ~1pm, 60-90 min
+      const nap2Start = new Date(day)
+      nap2Start.setHours(13, vary(), 0, 0)
+      const nap2End = new Date(nap2Start)
+      nap2End.setMinutes(nap2End.getMinutes() + 60 + Math.floor(Math.random() * 30))
+
+      events.push({
+        id: `hist-${++idCounter}`,
+        baby_id: MOCK_BABY_ID,
+        event_type: 'nap_start',
+        event_time: nap2Start.toISOString(),
+        end_time: null,
+        context: 'home',
+        notes: null,
+        created_at: nap2Start.toISOString(),
+      })
+      events.push({
+        id: `hist-${++idCounter}`,
+        baby_id: MOCK_BABY_ID,
+        event_type: 'nap_end',
+        event_time: nap2End.toISOString(),
+        end_time: null,
+        context: 'home',
+        notes: null,
+        created_at: nap2End.toISOString(),
+      })
+    }
+  }
+
+  return events
 }
 
 function generateTodayEvents(): SleepEvent[] {

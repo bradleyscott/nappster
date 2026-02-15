@@ -116,13 +116,33 @@ export function groupEventsIntoSessions(events: SleepEvent[]): TimelineItem[] {
       consumed.add(event.id)
 
     } else if (event.event_type === 'bedtime') {
-      // Look ahead for matching wake (within 16 hours)
+      // If there are multiple bedtime events before the next wake (e.g., put down at 7pm,
+      // actually fell asleep at 7:30pm), use only the LAST bedtime before the wake.
+      let actualBedtime = event
+      for (let j = i + 1; j < events.length; j++) {
+        if (events[j].event_type === 'bedtime' && !consumed.has(events[j].id)) {
+          // Found a later bedtime before any wake - consume the earlier one
+          consumed.add(actualBedtime.id)
+          actualBedtime = events[j]
+        } else if (events[j].event_type === 'wake') {
+          // Stop searching when we hit a wake event
+          break
+        }
+      }
+
+      // If this bedtime was consumed by a later bedtime, skip creating a session for it
+      if (consumed.has(event.id)) {
+        continue
+      }
+
+      // Look ahead for matching wake (within 16 hours).
+      // night_wake events in between are ignored — they don't end the overnight session.
       let endEvent: SleepEvent | null = null
       for (let j = i + 1; j < events.length; j++) {
         if (events[j].event_type === 'wake' && !consumed.has(events[j].id)) {
           const hoursDiff = differenceInHours(
             parseISO(events[j].event_time),
-            parseISO(event.event_time)
+            parseISO(actualBedtime.event_time)
           )
           if (hoursDiff <= MAX_OVERNIGHT_HOURS) {
             endEvent = events[j]
@@ -134,14 +154,14 @@ export function groupEventsIntoSessions(events: SleepEvent[]): TimelineItem[] {
 
       const session: SleepSession = {
         type: 'overnight',
-        startEvent: event,
+        startEvent: actualBedtime,
         endEvent,
         durationMinutes: endEvent
-          ? calculateDurationMinutes(event.event_time, endEvent.event_time)
+          ? calculateDurationMinutes(actualBedtime.event_time, endEvent.event_time)
           : null
       }
       items.push({ kind: 'session', session })
-      consumed.add(event.id)
+      consumed.add(actualBedtime.id)
 
     } else {
       // Standalone event (wake not paired with bedtime, night_wake, or orphaned nap_end)
