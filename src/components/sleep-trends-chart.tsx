@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Building2, X, Moon, Sun, AlertCircle, BedDouble, Share2, Check } from 'lucide-react'
+import { Building2, X, Sun, AlertCircle, BedDouble, Share2, Check } from 'lucide-react'
 import { SleepEvent } from '@/types/database'
 import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock, type NightWakeMarker } from '@/lib/sleep-trends'
 
@@ -23,22 +23,21 @@ const EXPECTED_NAP_COLOR = 'var(--color-sky-300)'
 
 const CHART_WIDTH = SVG_WIDTH - LABEL_WIDTH - PADDING_RIGHT
 
-// Time axis labels (5pm to 5pm)
+// Time axis labels (midnight to midnight)
 const AXIS_LABELS = [
-  { hour: 0, label: '5p' },
-  { hour: 3, label: '8p' },
-  { hour: 6, label: '11p' },
-  { hour: 9, label: '2a' },
-  { hour: 12, label: '5a' },
-  { hour: 15, label: '8a' },
-  { hour: 18, label: '11a' },
-  { hour: 21, label: '2p' },
-  { hour: 24, label: '5p' },
+  { hour: 0, label: '12a' },
+  { hour: 3, label: '3a' },
+  { hour: 6, label: '6a' },
+  { hour: 9, label: '9a' },
+  { hour: 12, label: '12p' },
+  { hour: 15, label: '3p' },
+  { hour: 18, label: '6p' },
+  { hour: 21, label: '9p' },
+  { hour: 24, label: '12a' },
 ]
 
-// Gridline positions on the 5pm-5pm axis
-const MIDNIGHT_HOUR = 7  // midnight = 5pm + 7h
-const NOON_HOUR = 19     // noon = 5pm + 19h
+// Gridline position on the midnight-to-midnight axis
+const NOON_HOUR = 12
 
 interface SleepTrendsChartProps {
   events: SleepEvent[]
@@ -68,15 +67,10 @@ export function SleepTrendsChart({ events, timezone, babyName }: SleepTrendsChar
   const headerHeight = expectedEntries.length * (ROW_HEIGHT + ROW_GAP) + 4
 
   function handleSelectDayRow(row: DayRow) {
-    // Find tonight's bedtime from the next chronological day's overnight block
-    const rowIndex = dayRows.findIndex(r => r.dateKey === row.dateKey)
-    const nextRow = rowIndex >= 0 && rowIndex < dayRows.length - 1 ? dayRows[rowIndex + 1] : null
-    const overnightBlock = nextRow?.blocks.find(b => b.type === 'overnight')
     setDetailData({
       label: row.label,
       blocks: row.blocks,
       nightWakes: row.nightWakes,
-      bedtimeHour: overnightBlock?.startHour ?? null,
     })
   }
 
@@ -85,7 +79,6 @@ export function SleepTrendsChart({ events, timezone, babyName }: SleepTrendsChar
       label: expected.label,
       blocks: expected.blocks,
       nightWakes: [],
-      bedtimeHour: expected.bedtimeHour,
       isExpected: true,
     })
   }
@@ -180,7 +173,6 @@ function TimeAxis() {
 }
 
 function DayRowSVG({ row, y, onSelect }: { row: DayRow; y: number; onSelect: () => void }) {
-  const midnightX = LABEL_WIDTH + (MIDNIGHT_HOUR / 24) * CHART_WIDTH
   const noonX = LABEL_WIDTH + (NOON_HOUR / 24) * CHART_WIDTH
 
   return (
@@ -215,16 +207,6 @@ function DayRowSVG({ row, y, onSelect }: { row: DayRow; y: number; onSelect: () 
         height={ROW_HEIGHT - 2}
         rx={4}
         className="fill-muted/30"
-      />
-
-      {/* Midnight gridline */}
-      <line
-        x1={midnightX} x2={midnightX}
-        y1={1} y2={ROW_HEIGHT - 1}
-        stroke="var(--color-border)"
-        strokeWidth={0.5}
-        strokeDasharray="2 2"
-        opacity={0.5}
       />
 
       {/* Noon gridline */}
@@ -268,7 +250,7 @@ function SleepBlockRect({ block, opacity = 0.85 }: { block: SleepBlock; opacity?
   const width = ((block.endHour - block.startHour) / 24) * CHART_WIDTH
 
   let fill: string
-  if (block.type === 'overnight') {
+  if (block.type === 'bedtime' || block.type === 'wake') {
     fill = OVERNIGHT_COLOR
   } else if (block.isDaycare) {
     fill = NAP_DAYCARE_COLOR
@@ -319,7 +301,7 @@ function ExpectedDayRow({ expected, y, onSelect }: { expected: ExpectedDay; y: n
       {expected.blocks.map((block, i) => {
         const x = LABEL_WIDTH + (block.startHour / 24) * CHART_WIDTH
         const width = ((block.endHour - block.startHour) / 24) * CHART_WIDTH
-        const fill = block.type === 'overnight' ? EXPECTED_OVERNIGHT_COLOR : EXPECTED_NAP_COLOR
+        const fill = (block.type === 'bedtime' || block.type === 'wake') ? EXPECTED_OVERNIGHT_COLOR : EXPECTED_NAP_COLOR
 
         return (
           <rect
@@ -341,11 +323,9 @@ function ExpectedDayRow({ expected, y, onSelect }: { expected: ExpectedDay; y: n
   )
 }
 
-const AXIS_ORIGIN_HOUR = 17 // 5pm - must match sleep-trends.ts
-
-/** Convert an axis hour (offset from 5pm) to a formatted time string like "7:30 PM" */
+/** Convert an axis hour (offset from midnight) to a formatted time string like "7:30 PM" */
 function axisHourToTime(axisHour: number): string {
-  const totalMinutes = Math.round((axisHour + AXIS_ORIGIN_HOUR) * 60) % (24 * 60)
+  const totalMinutes = Math.round(axisHour * 60) % (24 * 60)
   const h = Math.floor(totalMinutes / 60) % 24
   const m = totalMinutes % 60
   const period = h >= 12 ? 'PM' : 'AM'
@@ -368,25 +348,21 @@ interface DetailData {
   label: string
   blocks: SleepBlock[]
   nightWakes: NightWakeMarker[]
-  bedtimeHour: number | null
   isExpected?: boolean
 }
 
 function formatExpectedDayForSharing(data: DetailData, babyName: string): string {
   const lines: string[] = []
-  const overnightBlocks = data.blocks.filter(b => b.type === 'overnight').sort((a, b) => a.startHour - b.startHour)
+  const wakeBlocks = data.blocks.filter(b => b.type === 'wake').sort((a, b) => a.endHour - b.endHour)
   const napBlocks = data.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
-  const mergedOvernight = overnightBlocks.length > 0
-    ? { startHour: overnightBlocks[0].startHour, endHour: overnightBlocks[overnightBlocks.length - 1].endHour }
-    : null
+  const bedtimeBlocks = data.blocks.filter(b => b.type === 'bedtime').sort((a, b) => a.startHour - b.startHour)
 
   lines.push(`😴 ${babyName}'s Usual Sleep Schedule`)
   lines.push(`(${data.label})`)
   lines.push('')
 
-  if (mergedOvernight) {
-    lines.push(`🌙 Nighttime Sleep`)
-    lines.push(`  ${axisHourToTime(mergedOvernight.startHour)} – ${axisHourToTime(mergedOvernight.endHour)} (${formatDuration(mergedOvernight.startHour, mergedOvernight.endHour)})`)
+  if (wakeBlocks.length > 0) {
+    lines.push(`🌅 Wake: ${axisHourToTime(wakeBlocks[wakeBlocks.length - 1].endHour)}`)
     lines.push('')
   }
 
@@ -400,8 +376,8 @@ function formatExpectedDayForSharing(data: DetailData, babyName: string): string
     lines.push('')
   }
 
-  if (data.bedtimeHour !== null) {
-    lines.push(`🛏️ Bedtime: ${axisHourToTime(data.bedtimeHour)}`)
+  if (bedtimeBlocks.length > 0) {
+    lines.push(`🛏️ Bedtime: ${axisHourToTime(bedtimeBlocks[bedtimeBlocks.length - 1].startHour)}`)
   }
 
   return lines.join('\n').trimEnd()
@@ -409,15 +385,10 @@ function formatExpectedDayForSharing(data: DetailData, babyName: string): string
 
 function DayDetailSheet({ data, babyName, onClose }: { data: DetailData; babyName: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
-  const overnightBlocks = data.blocks.filter(b => b.type === 'overnight').sort((a, b) => a.startHour - b.startHour)
+  const wakeBlocks = data.blocks.filter(b => b.type === 'wake').sort((a, b) => a.endHour - b.endHour)
   const napBlocks = data.blocks.filter(b => b.type === 'nap').sort((a, b) => a.startHour - b.startHour)
+  const bedtimeBlocks = data.blocks.filter(b => b.type === 'bedtime').sort((a, b) => a.startHour - b.startHour)
   const nightWakes = [...data.nightWakes].sort((a, b) => a.hour - b.hour)
-
-  // Merge multiple overnight blocks into one continuous range (earliest start to latest end).
-  // This handles rare edge cases with historical duplicate bedtime data.
-  const mergedOvernight = overnightBlocks.length > 0
-    ? { startHour: overnightBlocks[0].startHour, endHour: overnightBlocks[overnightBlocks.length - 1].endHour }
-    : null
 
   const handleShare = async () => {
     const text = formatExpectedDayForSharing(data, babyName)
@@ -454,19 +425,18 @@ function DayDetailSheet({ data, babyName, onClose }: { data: DetailData; babyNam
 
         {/* Content */}
         <div className="px-5 py-4 space-y-4">
-          {/* Overnight sleep (merged into single entry) */}
-          {mergedOvernight && (
-            <div className="flex items-start gap-3">
-              <Moon className="w-4.5 h-4.5 text-indigo-400 mt-0.5 shrink-0" />
+          {/* Wake */}
+          {wakeBlocks.map((block, i) => (
+            <div key={`wake-${i}`} className="flex items-start gap-3">
+              <Sun className="w-4.5 h-4.5 text-indigo-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium">Nighttime Sleep</p>
+                <p className="text-sm font-medium">Wake</p>
                 <p className="text-sm text-muted-foreground">
-                  {axisHourToTime(mergedOvernight.startHour)} – {axisHourToTime(mergedOvernight.endHour)}
-                  <span className="ml-2 text-xs">({formatDuration(mergedOvernight.startHour, mergedOvernight.endHour)})</span>
+                  {axisHourToTime(block.endHour)}
                 </p>
               </div>
             </div>
-          )}
+          ))}
 
           {/* Night wakes */}
           {nightWakes.length > 0 && (
@@ -500,20 +470,20 @@ function DayDetailSheet({ data, babyName, onClose }: { data: DetailData; babyNam
             </div>
           ))}
 
-          {/* Bedtime (tonight) */}
-          {data.bedtimeHour !== null && (
-            <div className="flex items-start gap-3">
+          {/* Bedtime */}
+          {bedtimeBlocks.map((block, i) => (
+            <div key={`bed-${i}`} className="flex items-start gap-3">
               <BedDouble className="w-4.5 h-4.5 text-indigo-400 mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium">Bedtime</p>
                 <p className="text-sm text-muted-foreground">
-                  {axisHourToTime(data.bedtimeHour)}
+                  {axisHourToTime(block.startHour)}
                 </p>
               </div>
             </div>
-          )}
+          ))}
 
-          {!mergedOvernight && napBlocks.length === 0 && nightWakes.length === 0 && data.bedtimeHour === null && (
+          {wakeBlocks.length === 0 && napBlocks.length === 0 && nightWakes.length === 0 && bedtimeBlocks.length === 0 && (
             <p className="text-sm text-muted-foreground">No sleep data for this day.</p>
           )}
 
