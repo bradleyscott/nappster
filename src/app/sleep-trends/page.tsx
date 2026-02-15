@@ -73,6 +73,7 @@ export default async function SleepTrendsPage() {
         <SleepTrendsChart
           events={sleepEvents ?? []}
           timezone={timezone}
+          babyName={baby.name}
         />
       </main>
     </div>
