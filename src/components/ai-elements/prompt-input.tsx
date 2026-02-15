@@ -916,7 +916,7 @@ export const PromptInputButton = ({
 
   return (
     <InputGroupButton
-      className={cn("min-h-11 text-base px-4", className)}
+      className={cn(className)}
       size={newSize}
       type="button"
       variant={variant}
