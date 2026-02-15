@@ -1,10 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { BackButton } from '@/components/back-button'
 import { getStartOfDaysAgoForTimezone } from '@/lib/timezone'
 import { SleepTrendsChart } from '@/components/sleep-trends-chart'
 
@@ -69,11 +67,7 @@ export default async function SleepTrendsPage() {
               <h1 className="text-lg font-semibold">{baby.name}</h1>
             </div>
           </div>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
+          <BackButton />
         </div>
       </header>
 
