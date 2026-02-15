@@ -167,7 +167,15 @@ function buildPreInjectedContext(context: ChatContext): string {
     );
   }
 
-  // Recent messages section
+  // Last session recap (compact summary of prior conversation for continuity)
+  if (context.lastSessionRecap) {
+    sections.push(
+      `## Last Session Recap\n${context.lastSessionRecap}`
+    );
+  }
+
+  // Recent messages section (only included on first turn; omitted once the
+  // model has live messages in context to avoid duplication)
   if (context.recentMessages && context.recentMessages.length > 0) {
     const msgs = context.recentMessages
       .map((m) => `${m.role === "user" ? "Parent" : "Assistant"}: ${m.text}`)
