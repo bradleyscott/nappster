@@ -96,7 +96,7 @@ export function SleepTrendsChart({ events, timezone, babyName }: SleepTrendsChar
       {expectedEntries.length > 0 && (
         <div className="border-b bg-background">
           <div className="px-1 pt-2">
-            <p className="text-sm text-muted-foreground font-medium mb-1 pl-1">Expected</p>
+            <p className="text-sm text-muted-foreground font-medium mb-1 pl-1">Typical</p>
             <svg
               width="100%"
               viewBox={`0 0 ${SVG_WIDTH} ${headerHeight}`}
