@@ -88,7 +88,7 @@ export function SleepTrendsChart({ events, timezone, babyName }: SleepTrendsChar
       {/* Sticky header: expected days + legend */}
       {expectedEntries.length > 0 && (
         <div className="border-b bg-background">
-          <div className="px-1 pt-2">
+          <div className="px-1 pt-1">
             <p className="text-sm text-muted-foreground font-medium mb-1 pl-1">Typical</p>
             <svg
               width="100%"
