@@ -69,7 +69,7 @@ export default async function SleepTrendsPage() {
         </div>
       </header>
 
-      <main className="container max-w-lg md:max-w-2xl mx-auto px-4 py-6">
+      <main className="container max-w-lg md:max-w-2xl mx-auto px-4 pt-2 pb-6">
         <SleepTrendsChart
           events={sleepEvents ?? []}
           timezone={timezone}
