@@ -12,8 +12,8 @@ import {
   PromptInputSubmit,
 } from '@/components/ai-elements/prompt-input'
 import { SleepEventButton } from '@/components/sleep-event-button'
-import { SleepEventDialog } from '@/components/sleep-event-dialog'
-import { EventType, Context } from '@/types/database'
+import { UnifiedEventDialog } from '@/components/unified-event-dialog'
+import { EventType, Context, SleepEvent } from '@/types/database'
 import type { SleepPlan } from '@/lib/ai/schemas/sleep-plan'
 import {
   getQuickEntryButtons,
@@ -26,10 +26,12 @@ import { Suggestion } from '@/components/ai-elements/suggestion'
 interface ChatInputProps {
   babyId: string
   babyName: string
+  allEvents: SleepEvent[]
   onSendMessage: (text: string) => void | Promise<void>
   onCreateEvent: (eventData: {
     event_type: EventType
     event_time: string
+    end_time?: string | null
     context: Context
     notes: string | null
   }) => void | Promise<void>
@@ -42,6 +44,7 @@ interface ChatInputProps {
 export function ChatInput({
   babyId,
   babyName,
+  allEvents,
   onSendMessage,
   onCreateEvent,
   status,
@@ -66,19 +69,13 @@ export function ChatInput({
   }
 
   const handleDialogSave = async (eventData: {
-    id?: string
     event_type: EventType
     event_time: string
+    end_time?: string | null
     context: Context
     notes: string | null
   }) => {
-    await onCreateEvent({
-      event_type: eventData.event_type,
-      event_time: eventData.event_time,
-      context: eventData.context,
-      notes: eventData.notes,
-    })
-    setDialogOpen(false)
+    await onCreateEvent(eventData)
   }
 
   // Determine which quick action buttons to show based on current state
@@ -134,10 +131,11 @@ export function ChatInput({
         </PromptInputFooter>
       </PromptInput>
 
-      <SleepEventDialog
+      <UnifiedEventDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         babyId={babyId}
+        allEvents={allEvents}
         onSave={handleDialogSave}
       />
     </>
