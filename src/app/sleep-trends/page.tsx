@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getStartOfDaysAgoForTimezone } from '@/lib/timezone'
@@ -54,16 +55,25 @@ export default async function SleepTrendsPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
-        <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/nappster.png"
+              alt="Nappster"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+            <div>
+              <p className="text-sm text-muted-foreground">Sleep Trends · Last 14 days</p>
+              <h1 className="text-lg font-semibold">{baby.name}</h1>
+            </div>
+          </div>
           <Button variant="ghost" size="icon" asChild>
             <Link href="/">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div>
-            <h1 className="text-lg font-semibold">Sleep Trends</h1>
-            <p className="text-sm text-muted-foreground">{baby.name} · Last 14 days</p>
-          </div>
         </div>
       </header>
 
