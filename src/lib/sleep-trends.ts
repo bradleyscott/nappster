@@ -36,6 +36,7 @@ export interface DayRow {
 export interface ExpectedDay {
   label: string
   blocks: SleepBlock[]
+  bedtimeHour: number | null
 }
 
 /**
@@ -197,13 +198,27 @@ export function computeExpectedDays(rows: DayRow[]): {
   const homeRows = rows.filter(r => !r.isDaycareDay && r.blocks.length > 0)
   const daycareRows = rows.filter(r => r.isDaycareDay && r.blocks.length > 0)
 
+  // Collect bedtimes for each day type by looking at the NEXT row's overnight start.
+  // The overnight block on a chart day row is from the previous night.
+  // Tonight's bedtime lives on the next day's row.
+  function collectBedtimes(matchingRows: DayRow[]): number[] {
+    const bedtimes: number[] = []
+    for (const row of matchingRows) {
+      const rowIndex = rows.indexOf(row)
+      const nextRow = rowIndex >= 0 && rowIndex < rows.length - 1 ? rows[rowIndex + 1] : null
+      const overnight = nextRow?.blocks.find(b => b.type === 'overnight')
+      if (overnight) bedtimes.push(overnight.startHour)
+    }
+    return bedtimes
+  }
+
   return {
-    home: computeMedianDay(homeRows, 'Home Day'),
-    daycare: computeMedianDay(daycareRows, 'Daycare Day'),
+    home: computeMedianDay(homeRows, 'Home Day', collectBedtimes(homeRows)),
+    daycare: computeMedianDay(daycareRows, 'Daycare Day', collectBedtimes(daycareRows)),
   }
 }
 
-function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
+function computeMedianDay(rows: DayRow[], label: string, bedtimes: number[]): ExpectedDay | null {
   if (rows.length < 2) return null
 
   const overnightStarts: number[] = []
@@ -249,7 +264,7 @@ function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
   }
 
   if (blocks.length === 0) return null
-  return { label, blocks }
+  return { label, blocks, bedtimeHour: bedtimes.length >= 2 ? median(bedtimes) : null }
 }
 
 function median(values: number[]): number {

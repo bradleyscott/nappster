@@ -80,12 +80,11 @@ export function SleepTrendsChart({ events, timezone }: SleepTrendsChartProps) {
   }
 
   function handleSelectExpected(expected: ExpectedDay) {
-    const overnightBlock = expected.blocks.find(b => b.type === 'overnight')
     setDetailData({
       label: expected.label,
       blocks: expected.blocks,
       nightWakes: [],
-      bedtimeHour: overnightBlock?.startHour ?? null,
+      bedtimeHour: expected.bedtimeHour,
     })
   }
 
