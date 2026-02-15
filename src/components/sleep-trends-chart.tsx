@@ -84,7 +84,7 @@ export function SleepTrendsChart({ events, timezone, babyName }: SleepTrendsChar
   }
 
   return (
-    <div className="flex flex-col max-w-lg md:max-w-2xl mx-auto" style={{ height: 'calc(100dvh - 53px)' }}>
+    <div className="flex flex-col h-full">
       {/* Sticky header: expected days + legend */}
       {expectedEntries.length > 0 && (
         <div className="border-b bg-background">
