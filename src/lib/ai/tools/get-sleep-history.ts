@@ -1,19 +1,75 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
-import { formatTime } from '@/lib/sleep-utils'
+import { formatTime, calculateDurationMinutes } from '@/lib/sleep-utils'
 import { getStartOfDaysAgoForTimezone } from '@/lib/timezone'
+
+interface DaySummary {
+  day: string
+  wakeTime: string | null
+  bedtime: string | null
+  napCount: number
+  totalNapMinutes: number
+  nightWakes: number
+  notes: string[]
+}
+
+/**
+ * Summarise one day's events into a compact object.
+ */
+function summariseDay(
+  dayKey: string,
+  events: Array<{ event_type: string; event_time: string; end_time: string | null; notes: string | null }>,
+  timezone: string
+): DaySummary {
+  let wakeTime: string | null = null
+  let bedtime: string | null = null
+  let napCount = 0
+  let totalNapMinutes = 0
+  let nightWakes = 0
+  const notes: string[] = []
+
+  let lastNapStart: string | null = null
+
+  for (const e of events) {
+    switch (e.event_type) {
+      case 'wake':
+        wakeTime = formatTime(e.event_time, timezone)
+        break
+      case 'bedtime':
+        bedtime = formatTime(e.event_time, timezone)
+        break
+      case 'nap_start':
+        lastNapStart = e.event_time
+        break
+      case 'nap_end':
+        napCount++
+        if (lastNapStart) {
+          totalNapMinutes += calculateDurationMinutes(lastNapStart, e.event_time)
+          lastNapStart = null
+        }
+        break
+      case 'night_wake':
+        nightWakes++
+        break
+    }
+    if (e.notes) {
+      notes.push(e.notes)
+    }
+  }
+
+  return { day: dayKey, wakeTime, bedtime, napCount, totalNapMinutes, nightWakes, notes }
+}
 
 /**
  * Creates a tool that retrieves sleep history for up to 30 days.
- * Use this when the user asks about sleep patterns, trends, or needs data
- * beyond the recent 7-day history.
+ * Returns day-level summaries to keep token usage low.
  */
 export function createGetSleepHistoryTool(context: ToolContext) {
   const { supabase, babyId, timezone } = context
 
   return tool({
-    description: `Retrieve sleep history for up to 30 days. Use this when the user asks about sleep patterns, trends, or needs data beyond the recent 7-day history.
+    description: `Retrieve sleep history for up to 30 days. Returns per-day summaries (wake time, bedtime, nap count, total nap minutes, night wakes). Use this when the user asks about sleep patterns, trends, or needs data beyond today.
 
 Examples of when to use:
 - "How has her sleep been this month?"
@@ -38,31 +94,31 @@ Examples of when to use:
         return { success: false, error: error.message }
       }
 
-      // Group events by day for easier analysis
-      const byDay = new Map<string, Array<{ type: string; time: string; notes?: string | null }>>()
+      // Group events by day
+      const byDay = new Map<string, Array<{ event_type: string; event_time: string; end_time: string | null; notes: string | null }>>()
       for (const event of historyEvents || []) {
         const date = new Date(event.event_time)
-        const dayKey = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        const dayKey = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: timezone })
         if (!byDay.has(dayKey)) {
           byDay.set(dayKey, [])
         }
         byDay.get(dayKey)!.push({
-          type: event.event_type,
-          time: formatTime(event.event_time, timezone),
-          notes: event.notes
+          event_type: event.event_type,
+          event_time: event.event_time,
+          end_time: event.end_time,
+          notes: event.notes,
         })
       }
 
-      const formattedHistory = Array.from(byDay.entries()).map(([day, dayEvents]) => ({
-        day,
-        events: dayEvents
-      }))
+      const summaries = Array.from(byDay.entries()).map(([dayKey, dayEvents]) =>
+        summariseDay(dayKey, dayEvents, timezone)
+      )
 
       return {
         success: true,
         days_retrieved: days,
         total_events: historyEvents?.length || 0,
-        history: formattedHistory
+        summaries,
       }
     },
   })
