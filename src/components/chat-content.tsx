@@ -79,11 +79,13 @@ export function ChatContent({
   })
 
   // Combine all sleep events for context (initial + local, excluding deleted)
-  // This runs before useTimelineBuilder to provide context for API calls
+  // This runs before useTimelineBuilder to provide context for API calls.
+  // localEvents is iterated first so that edited/updated versions of events
+  // take precedence over the stale initialSleepEvents versions.
   const allEventsForContext = useMemo(() => {
     const seen = new Set<string>()
     const combined: SleepEvent[] = []
-    for (const event of [...initialSleepEvents, ...localEvents]) {
+    for (const event of [...localEvents, ...initialSleepEvents]) {
       if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
         seen.add(event.id)
         combined.push(event)
