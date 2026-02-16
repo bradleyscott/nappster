@@ -60,13 +60,31 @@ export function ChatContent({
   // Get user's timezone for the AI to correctly parse times
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
 
+  // Sleep event CRUD hook (placed early so localEvents/deletedEventIds
+  // are available for building the API context sent with each chat message)
+  const {
+    localEvents,
+    deletedEventIds,
+    createEvent,
+    saveEvent,
+    deleteEvent,
+    saveSession,
+    deleteSession,
+    handleRealtimeEvent,
+    addToolCreatedEvent,
+    isEventTracked,
+    mergeRefreshedEvents,
+  } = useSleepEventCRUD({
+    babyId: baby.id,
+  })
+
   // Combine all sleep events for context (initial + local, excluding deleted)
   // This runs before useTimelineBuilder to provide context for API calls
   const allEventsForContext = useMemo(() => {
     const seen = new Set<string>()
     const combined: SleepEvent[] = []
-    for (const event of initialSleepEvents) {
-      if (!seen.has(event.id)) {
+    for (const event of [...initialSleepEvents, ...localEvents]) {
+      if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
         seen.add(event.id)
         combined.push(event)
       }
@@ -74,7 +92,7 @@ export function ChatContent({
     return combined.sort(
       (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
     )
-  }, [initialSleepEvents])
+  }, [initialSleepEvents, localEvents, deletedEventIds])
 
   // Filter to today's events for API context
   const todayEventsForApi = useMemo(() => {
@@ -135,23 +153,6 @@ export function ChatContent({
     babyId: baby.id,
     initialCursor,
     initialHasMore,
-  })
-
-  // Sleep event CRUD hook
-  const {
-    localEvents,
-    deletedEventIds,
-    createEvent,
-    saveEvent,
-    deleteEvent,
-    saveSession,
-    deleteSession,
-    handleRealtimeEvent,
-    addToolCreatedEvent,
-    isEventTracked,
-    mergeRefreshedEvents,
-  } = useSleepEventCRUD({
-    babyId: baby.id,
   })
 
   // Add a sleep plan created by AI tools to local state
