@@ -22,6 +22,7 @@ import { Json, SleepEvent } from "@/types/database";
 import {
   getStartOfDaysAgoForTimezone,
   getTodayBoundsForTimezone,
+  validateTimezone,
 } from "@/lib/timezone";
 import {
   computeSleepTrends,
@@ -60,7 +61,10 @@ const requestFieldsSchema = z.object({
     .array(
       z.object({
         role: z.enum(["user", "assistant"]),
-        parts: z.any(),
+        parts: z.array(z.object({
+          type: z.string(),
+          text: z.string().optional(),
+        }).catchall(z.unknown())).default([]),
       })
     )
     .optional(),
@@ -90,7 +94,7 @@ export async function POST(req: Request) {
     // Extract fields with defaults
     const messages = body.messages;
     const babyId = fieldsResult.data.babyId;
-    const timezone = fieldsResult.data.timezone ?? "UTC";
+    const timezone = validateTimezone(fieldsResult.data.timezone ?? "UTC");
     const showThinking = fieldsResult.data.showThinking ?? false;
     const babyProfile = fieldsResult.data.babyProfile;
     const todayEvents = fieldsResult.data.todayEvents;
@@ -111,12 +115,16 @@ export async function POST(req: Request) {
     // Fetch 30 days of sleep events (server-side, always fresh).
     // Used for both trend computation and extracting today's authoritative events.
     const startDate = getStartOfDaysAgoForTimezone(timezone, 30);
-    const { data: historyEvents } = await supabase
+    const { data: historyEvents, error: historyError } = await supabase
       .from("sleep_events")
       .select("*")
       .eq("baby_id", babyId)
       .gte("event_time", startDate)
       .order("event_time", { ascending: true });
+
+    if (historyError) {
+      console.error("Error fetching sleep history for trends:", historyError);
+    }
 
     let sleepTrendsFormatted: string | null = null;
     if (historyEvents && historyEvents.length > 0) {

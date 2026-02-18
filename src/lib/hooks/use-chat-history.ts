@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { SleepEvent, SleepPlanRow, Json } from '@/types/database'
 
 // Message type for chat history (compatible with useChat messages)
@@ -46,6 +46,15 @@ export function useChatHistory({
 
   // Use ref for synchronous loading guard to prevent race conditions
   const isLoadingRef = useRef(false)
+  // AbortController ref for cancelling in-flight fetch on unmount
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Clean up in-flight requests on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
 
   // Load more history when user scrolls to top or clicks button
   const loadMoreHistory = useCallback(async () => {
@@ -54,9 +63,16 @@ export function useChatHistory({
 
     isLoadingRef.current = true
     setIsLoadingHistory(true)
+
+    // Abort any previous in-flight request
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     try {
       const res = await fetch(
-        `/api/chat/messages?babyId=${babyId}&limit=50&before=${encodeURIComponent(historyCursor)}`
+        `/api/chat/messages?babyId=${babyId}&limit=50&before=${encodeURIComponent(historyCursor)}`,
+        { signal: controller.signal }
       )
 
       // Check response status before parsing JSON
@@ -84,6 +100,8 @@ export function useChatHistory({
         setHasMoreHistory(false)
       }
     } catch (error) {
+      // Don't log abort errors — they're expected on cleanup
+      if (error instanceof DOMException && error.name === 'AbortError') return
       console.error('Error loading history:', error)
       setHasMoreHistory(false)
     } finally {

@@ -2,6 +2,19 @@ import { startOfDay, endOfDay, subDays } from 'date-fns'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 
 /**
+ * Validate that a string is a valid IANA timezone identifier.
+ * Returns the timezone if valid, or 'UTC' as a safe fallback.
+ */
+export function validateTimezone(tz: string): string {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz })
+    return tz
+  } catch {
+    return 'UTC'
+  }
+}
+
+/**
  * Get a date 7 days ago for fetching recent history.
  */
 export function getWeekAgoDate(): Date {

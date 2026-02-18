@@ -43,8 +43,8 @@ function summariseDay(
         lastNapStart = e.event_time
         break
       case 'nap_end':
-        napCount++
         if (lastNapStart) {
+          napCount++
           totalNapMinutes += calculateDurationMinutes(lastNapStart, e.event_time)
           lastNapStart = null
         }
