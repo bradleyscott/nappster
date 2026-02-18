@@ -19,6 +19,14 @@ import {
   authErrorResponse,
 } from "@/lib/api";
 import { Json, SleepEvent } from "@/types/database";
+import {
+  getStartOfDaysAgoForTimezone,
+  getTodayBoundsForTimezone,
+} from "@/lib/timezone";
+import {
+  computeSleepTrends,
+  formatSleepTrends,
+} from "@/lib/sleep-trend-stats";
 
 // Schema for validating critical request fields
 // Messages are validated by the SDK itself
@@ -100,11 +108,46 @@ export async function POST(req: Request) {
       return authErrorResponse(auth);
     }
 
+    // Fetch 30 days of sleep events (server-side, always fresh).
+    // Used for both trend computation and extracting today's authoritative events.
+    const startDate = getStartOfDaysAgoForTimezone(timezone, 30);
+    const { data: historyEvents } = await supabase
+      .from("sleep_events")
+      .select("*")
+      .eq("baby_id", babyId)
+      .gte("event_time", startDate)
+      .order("event_time", { ascending: true });
+
+    let sleepTrendsFormatted: string | null = null;
+    if (historyEvents && historyEvents.length > 0) {
+      const trends = computeSleepTrends(
+        historyEvents as SleepEvent[],
+        timezone
+      );
+      sleepTrendsFormatted = formatSleepTrends(trends);
+    }
+
+    // Extract today's events from the server query — these are always fresh
+    // from the DB, unlike the client-provided todayEvents which can be stale
+    // (e.g. app was backgrounded, realtime lag, another caregiver logged events).
+    const { start: todayStart, end: todayEnd } =
+      getTodayBoundsForTimezone(timezone);
+    const serverTodayEvents = (historyEvents ?? [])
+      .filter(
+        (e) => e.event_time >= todayStart && e.event_time < todayEnd
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+      ) as SleepEvent[];
+
     // Build chat context from pre-injected data
     let chatContext: ChatContext | undefined;
-    if (babyProfile || todayEvents || recentMessages) {
-      const eventsContext = todayEvents
-        ? formatEventsContext(todayEvents as SleepEvent[], timezone)
+    const effectiveTodayEvents =
+      serverTodayEvents.length > 0 ? serverTodayEvents : todayEvents;
+    if (babyProfile || effectiveTodayEvents || recentMessages || sleepTrendsFormatted) {
+      const eventsContext = effectiveTodayEvents
+        ? formatEventsContext(effectiveTodayEvents as SleepEvent[], timezone)
         : undefined;
 
       const formattedMessages = recentMessages
@@ -135,6 +178,7 @@ export async function POST(req: Request) {
         eventSummary: eventsContext?.eventSummary,
         recentMessages: isFirstTurn ? formattedMessages : undefined,
         lastSessionRecap,
+        sleepTrends: sleepTrendsFormatted,
       };
     }
 

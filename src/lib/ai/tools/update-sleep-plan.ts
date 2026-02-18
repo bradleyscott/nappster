@@ -45,12 +45,11 @@ Mark completed naps/events with status "completed", current activity as "in_prog
         // Get current user for created_by field
         const { data: { user } } = await supabase.auth.getUser()
 
-        // Mark existing active plans as inactive
+        // Delete all existing plans for this baby (only the new plan matters)
         await supabase
           .from('sleep_plans')
-          .update({ is_active: false })
+          .delete()
           .eq('baby_id', babyId)
-          .eq('is_active', true)
 
         // Insert the new plan
         const { data: savedPlan, error } = await supabase

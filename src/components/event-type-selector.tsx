@@ -1,9 +1,7 @@
 'use client'
 
-import { EventType, Context } from '@/types/database'
-import { Button } from '@/components/ui/button'
+import { Context } from '@/types/database'
 import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import { formatDuration } from '@/lib/sleep-utils'
 
 export type EventCategory = 'nap' | 'sleep' | 'night_wake'
