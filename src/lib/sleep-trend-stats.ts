@@ -155,6 +155,7 @@ function extractDayStats(events: SleepEvent[], timezone: string): DayStats[] {
     let nightWakeCount = 0
     const naps: NapSlot[] = []
     let lastNapStartHour: number | null = null
+    let lastNapStartTime: Date | null = null
 
     for (const event of sorted) {
       const zonedTime = toZonedTime(parseISO(event.event_time), timezone)
@@ -170,16 +171,20 @@ function extractDayStats(events: SleepEvent[], timezone: string): DayStats[] {
           break
         case 'nap_start':
           lastNapStartHour = hour
+          lastNapStartTime = new Date(event.event_time)
           break
         case 'nap_end':
-          if (lastNapStartHour !== null) {
-            const dur = (hour - lastNapStartHour) * 60
+          if (lastNapStartHour !== null && lastNapStartTime !== null) {
+            // Compute duration from absolute timestamps to handle midnight-crossing naps
+            const durMs = new Date(event.event_time).getTime() - lastNapStartTime.getTime()
+            const durMinutes = Math.max(0, durMs / 60000)
             naps.push({
               startHour: lastNapStartHour,
               endHour: hour,
-              durationMinutes: Math.max(0, dur),
+              durationMinutes: durMinutes,
             })
             lastNapStartHour = null
+            lastNapStartTime = null
           }
           break
         case 'night_wake':
@@ -338,8 +343,10 @@ export function computeSleepTrends(
 // --- Formatting for prompt injection ---
 
 function fractionalHourToTime(hour: number): string {
-  const h = Math.floor(hour)
-  const m = Math.round((hour - h) * 60)
+  // Use floor+round with overflow handling to avoid displaying "X:60"
+  let h = Math.floor(hour)
+  let m = Math.round((hour - h) * 60)
+  if (m === 60) { h += 1; m = 0 }
   const period = h >= 12 ? 'pm' : 'am'
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h
   return m === 0
@@ -348,8 +355,9 @@ function fractionalHourToTime(hour: number): string {
 }
 
 function minutesToDuration(minutes: number): string {
-  const h = Math.floor(minutes / 60)
-  const m = Math.round(minutes % 60)
+  const totalMinutes = Math.round(minutes)
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
   if (h === 0) return `${m}m`
   if (m === 0) return `${h}h`
   return `${h}h ${m}m`

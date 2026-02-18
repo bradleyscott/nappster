@@ -126,25 +126,30 @@ export function useSleepEventCRUD({
       const existingIds = new Set(prev.map(e => e.id))
       const updatedEvents = [...prev]
 
-      for (const event of events) {
-        // Skip deleted events
-        if (deletedEventIds.has(event.id)) continue
+      // Read current deletedEventIds inside the state updater to avoid stale closure
+      setDeletedEventIds(currentDeletedIds => {
+        for (const event of events) {
+          // Skip deleted events
+          if (currentDeletedIds.has(event.id)) continue
 
-        if (existingIds.has(event.id)) {
-          // Update existing event
-          const index = updatedEvents.findIndex(e => e.id === event.id)
-          if (index !== -1) {
-            updatedEvents[index] = event
+          if (existingIds.has(event.id)) {
+            // Update existing event
+            const index = updatedEvents.findIndex(e => e.id === event.id)
+            if (index !== -1) {
+              updatedEvents[index] = event
+            }
+          } else {
+            // Add new event
+            updatedEvents.push(event)
           }
-        } else {
-          // Add new event
-          updatedEvents.push(event)
         }
-      }
+        // Return the same set (no mutation)
+        return currentDeletedIds
+      })
 
       return updatedEvents
     })
-  }, [deletedEventIds])
+  }, [])
 
   // Create a new sleep event
   const createEvent = useCallback(async (data: CreateEventData): Promise<SleepEvent | null> => {
@@ -255,14 +260,10 @@ export function useSleepEventCRUD({
       return false
     }
 
-    setLocalEvents(prev => {
-      const updated = prev.filter(e => e.id !== startData.id)
-      return [...updated, startData]
-    })
-
-    // Update end event if present
+    // Update end event if present — do this before committing to state
+    let endData = null
     if (data.endEvent) {
-      const { data: endData, error: endError } = await supabase
+      const { data: endResult, error: endError } = await supabase
         .from('sleep_events')
         .update({
           event_time: data.endEvent.event_time,
@@ -275,18 +276,36 @@ export function useSleepEventCRUD({
 
       if (endError) {
         console.error('Error updating end event:', endError)
+        // Revert start event to maintain consistency
+        const originalStart = localEvents.find(e => e.id === data.startEvent.id)
+        if (originalStart) {
+          await supabase
+            .from('sleep_events')
+            .update({
+              event_time: originalStart.event_time,
+              context: originalStart.context,
+              notes: originalStart.notes,
+            })
+            .eq('id', data.startEvent.id)
+        }
         return false
       }
 
-      setLocalEvents(prev => {
-        const updated = prev.filter(e => e.id !== endData.id)
-        return [...updated, endData]
-      })
+      endData = endResult
     }
+
+    // Both updates succeeded — commit to local state
+    setLocalEvents(prev => {
+      let updated = prev.map(e => e.id === startData.id ? startData : e)
+      if (endData) {
+        updated = updated.map(e => e.id === endData.id ? endData : e)
+      }
+      return updated
+    })
 
     onEventChange?.()
     return true
-  }, [supabase, onEventChange])
+  }, [supabase, onEventChange, localEvents])
 
   // Delete a session (both start and end events)
   const deleteSession = useCallback(async (
@@ -321,7 +340,15 @@ export function useSleepEventCRUD({
 
       if (endError) {
         console.error('Error deleting end event:', endError)
-      } else if (broadcastDelete && endEvent) {
+        // End event delete failed but start is already gone.
+        // Still mark start as deleted and update state to stay consistent.
+        setDeletedEventIds(prev => new Set(prev).add(startId))
+        setLocalEvents(prev => prev.filter(e => e.id !== startId))
+        onEventChange?.()
+        return false
+      }
+
+      if (broadcastDelete && endEvent) {
         await broadcastDelete('sleep_events', endEvent)
       }
     }
