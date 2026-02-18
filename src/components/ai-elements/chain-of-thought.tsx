@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, memo, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, memo, useContext, useMemo, useSyncExternalStore } from "react";
 
 interface ChainOfThoughtContextValue {
   isOpen: boolean;
@@ -51,16 +51,16 @@ export const ChainOfThought = memo(
     children,
     ...props
   }: ChainOfThoughtProps) => {
-    const [isMounted, setIsMounted] = useState(false);
+    const isMounted = useSyncExternalStore(
+      () => () => {},
+      () => true,
+      () => false
+    );
     const [isOpen, setIsOpen] = useControllableState({
       prop: open,
       defaultProp: defaultOpen,
       onChange: onOpenChange,
     });
-
-    useEffect(() => {
-      setIsMounted(true);
-    }, []);
 
     const chainOfThoughtContext = useMemo(
       () => ({ isOpen: isOpen ?? false, setIsOpen }),

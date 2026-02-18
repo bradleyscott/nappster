@@ -55,7 +55,7 @@ export function UnifiedEditDialog({
   onDeleteEvent,
   onDeleteSession,
 }: UnifiedEditDialogProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [, setIsDeleting] = useState(false)
 
   const handleSaveNap = useCallback(async (data: {
     startEventId?: string
