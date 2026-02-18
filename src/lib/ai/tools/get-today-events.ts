@@ -2,9 +2,11 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
 import { getTodayBoundsForTimezone } from '@/lib/timezone'
-import { calculateDurationMinutes, formatDuration, formatTime, countNaps } from '@/lib/sleep-utils'
+import { countNaps } from '@/lib/sleep-utils'
+import { formatEventForPrompt } from '@/lib/ai/format-context'
 import { computeCurrentState } from '@/lib/state-machine'
 import type { SleepEvent } from '@/types/database'
+import { formatTime } from '@/lib/sleep-utils'
 
 /**
  * Creates a tool that fetches today's sleep events.
@@ -48,31 +50,13 @@ This is essential for making recommendations about the next nap or bedtime.`,
         }
       }
 
-      // Format events for display
-      const formattedEvents = events.map(e => {
-        const time = formatTime(e.event_time, timezone)
-        const type = e.event_type.replace('_', ' ')
-        let description = `${time}: ${type}`
-
-        if (e.context) {
-          description += ` (${e.context})`
-        }
-        if (e.end_time && e.event_type === 'night_wake') {
-          const endTime = formatTime(e.end_time, timezone)
-          const duration = calculateDurationMinutes(e.event_time, e.end_time)
-          description += ` -> back to sleep ${endTime} (${formatDuration(duration)} awake)`
-        }
-        if (e.notes) {
-          description += ` - ${e.notes}`
-        }
-
+      // Format events for display using shared formatting function
+      const formattedEvents = (events as SleepEvent[]).map(e => {
+        const formatted = formatEventForPrompt(e, timezone)
         return {
-          id: e.id,
-          type: e.event_type,
-          time,
-          description,
+          ...formatted,
           context: e.context,
-          notes: e.notes
+          notes: e.notes,
         }
       })
 

@@ -32,6 +32,8 @@ Do NOT use this for:
         .describe('A concise description of the pattern or preference to remember, written in third person (e.g., "Usually wakes around 7am", "Needs white noise to sleep")'),
     }),
     execute: async ({ pattern_info }) => {
+      const MAX_NOTES_LENGTH = 2000
+
       // Fetch current baby to get pattern notes
       const { data: baby, error: fetchError } = await supabase
         .from('babies')
@@ -43,11 +45,23 @@ Do NOT use this for:
         return { success: false, error: fetchError.message }
       }
 
+      if (!baby) {
+        return { success: false, error: 'Baby not found' }
+      }
+
       // Append new info (the AI should provide non-duplicate info)
-      const currentNotes = baby?.pattern_notes || ''
+      const currentNotes = baby.pattern_notes || ''
       const updatedNotes = currentNotes
         ? `${currentNotes}. ${pattern_info}`
         : pattern_info
+
+      if (updatedNotes.length > MAX_NOTES_LENGTH) {
+        return {
+          success: false,
+          error: `Pattern notes are too long (${updatedNotes.length}/${MAX_NOTES_LENGTH} chars). Consider summarizing or replacing existing notes instead of appending.`,
+          current_notes: currentNotes,
+        }
+      }
 
       const { error } = await supabase
         .from('babies')

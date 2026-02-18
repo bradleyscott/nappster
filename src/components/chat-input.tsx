@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { PlusIcon } from 'lucide-react'
 import type { ChatStatus } from 'ai'
 import {
@@ -53,20 +53,28 @@ export function ChatInput({
   disabled = false,
 }: ChatInputProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const quickActionInFlight = useRef(false)
 
   const handleSubmit = async ({ text }: { text: string }) => {
     if (!text.trim()) return
     await onSendMessage(text.trim())
   }
 
-  const handleQuickAction = async (eventType: EventType) => {
-    await onCreateEvent({
-      event_type: eventType,
-      event_time: new Date().toISOString(),
-      context: 'home',
-      notes: null,
-    })
-  }
+  const handleQuickAction = useCallback(async (eventType: EventType) => {
+    // Prevent duplicate events from rapid taps
+    if (quickActionInFlight.current) return
+    quickActionInFlight.current = true
+    try {
+      await onCreateEvent({
+        event_type: eventType,
+        event_time: new Date().toISOString(),
+        context: 'home',
+        notes: null,
+      })
+    } finally {
+      quickActionInFlight.current = false
+    }
+  }, [onCreateEvent])
 
   const handleDialogSave = async (eventData: {
     event_type: EventType
