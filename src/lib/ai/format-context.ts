@@ -36,6 +36,8 @@ export interface ChatContext {
   eventSummary?: EventSummary
   recentMessages?: Array<{ role: 'user' | 'assistant'; text: string }>
   lastSessionRecap?: string
+  /** Pre-formatted sleep trends string for prompt injection */
+  sleepTrends?: string | null
 }
 
 /**

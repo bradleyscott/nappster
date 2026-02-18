@@ -199,7 +199,7 @@ export function buildDayRows(
 /**
  * Compute the "expected" / typical day from historical data.
  * Returns separate expected days for daycare and non-daycare.
- * Uses simple averages of wake and bedtime timestamps.
+ * Uses medians of wake and bedtime timestamps.
  */
 export function computeExpectedDays(rows: DayRow[]): {
   home: ExpectedDay | null
@@ -209,12 +209,12 @@ export function computeExpectedDays(rows: DayRow[]): {
   const daycareRows = rows.filter(r => r.isDaycareDay && r.blocks.length > 0)
 
   return {
-    home: computeAverageDay(homeRows, 'Home Day'),
-    daycare: computeAverageDay(daycareRows, 'Daycare Day'),
+    home: computeMedianDay(homeRows, 'Home Day'),
+    daycare: computeMedianDay(daycareRows, 'Daycare Day'),
   }
 }
 
-function computeAverageDay(rows: DayRow[], label: string): ExpectedDay | null {
+function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
   if (rows.length < 2) return null
 
   const bedtimeHours: number[] = []
@@ -247,7 +247,7 @@ function computeAverageDay(rows: DayRow[], label: string): ExpectedDay | null {
 
   if (bedtimeHours.length >= 2) {
     blocks.push({
-      startHour: average(bedtimeHours),
+      startHour: median(bedtimeHours),
       endHour: 24,
       type: 'bedtime',
       isDaycare: false,
@@ -257,7 +257,7 @@ function computeAverageDay(rows: DayRow[], label: string): ExpectedDay | null {
   if (wakeHours.length >= 2) {
     blocks.push({
       startHour: 0,
-      endHour: average(wakeHours),
+      endHour: median(wakeHours),
       type: 'wake',
       isDaycare: false,
     })
@@ -266,8 +266,8 @@ function computeAverageDay(rows: DayRow[], label: string): ExpectedDay | null {
   for (const slot of napSlots) {
     if (slot.starts.length >= 2) {
       blocks.push({
-        startHour: average(slot.starts),
-        endHour: average(slot.ends),
+        startHour: median(slot.starts),
+        endHour: median(slot.ends),
         type: 'nap',
         isDaycare: false,
       })
@@ -279,6 +279,11 @@ function computeAverageDay(rows: DayRow[], label: string): ExpectedDay | null {
   return { label, blocks }
 }
 
-function average(values: number[]): number {
-  return values.reduce((sum, v) => sum + v, 0) / values.length
+function median(values: number[]): number {
+  if (values.length === 0) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 !== 0
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2
 }
