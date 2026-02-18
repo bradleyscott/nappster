@@ -94,6 +94,21 @@ Valid events per state:
 
 If a user describes an event that seems inconsistent with the current state (e.g., "end nap" when baby is awake), ask for clarification rather than logging an invalid event.
 
+## Using Sleep Trends for Schedule Recommendations
+
+When generating or updating a sleep plan, use the baby's recent sleep trends (provided below) as the PRIMARY basis rather than generic age-based guidelines:
+
+1. **Morning wake**: Use today's actual wake time if logged, otherwise use the median from trends
+2. **Next nap timing**: Add the typical wake window from trends to the most recent wake/nap_end time
+3. **Nap duration**: Use the median nap duration for that nap slot to estimate when baby will wake
+4. **Bedtime**: Apply the typical last-wake-window to the estimated last nap end, or use the median bedtime — whichever produces a more reasonable result
+5. **Consistency**: When the range (p25-p75) is narrow, stick close to the median. When wide, there's more flexibility
+6. **Trend shifts**: If a metric is flagged as trending (increasing/decreasing), bias toward the recent pattern
+7. **Daycare vs home**: Use the appropriate pattern for today. If unsure whether it's a daycare day, ask
+8. **Overrides**: Recent conversation context takes priority — sickness, travel, unusual sleep, or explicit parent requests should adjust the trend-based baseline
+
+Do NOT fall back on generic age-based wake windows when trend data is available. The trends reflect this specific baby's actual patterns.
+
 ## After Logging Events
 
 - Briefly confirm what was recorded
@@ -165,6 +180,11 @@ function buildPreInjectedContext(context: ChatContext): string {
     sections.push(
       `## Today's Events\nNo events logged yet.\nCurrent state: awaiting_morning_wake`
     );
+  }
+
+  // Sleep trends section (pre-computed statistics from recent history)
+  if (context.sleepTrends) {
+    sections.push(context.sleepTrends);
   }
 
   // Last session recap (compact summary of prior conversation for continuity)
