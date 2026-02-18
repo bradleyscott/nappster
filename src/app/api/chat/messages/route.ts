@@ -7,15 +7,18 @@ import {
   authErrorResponse,
 } from '@/lib/api'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const babyId = searchParams.get('babyId')
-    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const rawLimit = parseInt(searchParams.get('limit') || '50', 10)
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 50, 1), 100)
     const before = searchParams.get('before') // ISO timestamp for cursor-based pagination
 
-    if (!babyId) {
-      return apiError('babyId required', 400)
+    if (!babyId || !UUID_RE.test(babyId)) {
+      return apiError('Valid babyId (UUID) required', 400)
     }
 
     const supabase = await createClient()
@@ -43,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error('Error fetching chat messages:', error)
-      return apiError(error.message, 500)
+      return apiError('Failed to fetch messages', 500)
     }
 
     // Reverse to get chronological order (oldest first)
@@ -90,7 +93,7 @@ export async function GET(req: NextRequest) {
     if (before && cursor) {
       // Get sleep events logged between cursor (oldest fetched) and before (previous cursor)
       // Use created_at (when logged) not event_time (when occurred) to align with chat message pagination
-      const { data: events } = await supabase
+      const { data: events, error: eventsError } = await supabase
         .from('sleep_events')
         .select('*')
         .eq('baby_id', babyId)
@@ -98,10 +101,13 @@ export async function GET(req: NextRequest) {
         .lt('created_at', before)
         .order('event_time', { ascending: true })
 
+      if (eventsError) {
+        console.error('Error fetching sleep events for history:', eventsError)
+      }
       sleepEvents = events || []
 
       // Get sleep plans between cursor (oldest fetched) and before (previous cursor)
-      const { data: plans } = await supabase
+      const { data: plans, error: plansError } = await supabase
         .from('sleep_plans')
         .select('*')
         .eq('baby_id', babyId)
@@ -109,6 +115,9 @@ export async function GET(req: NextRequest) {
         .lt('created_at', before)
         .order('created_at', { ascending: true })
 
+      if (plansError) {
+        console.error('Error fetching sleep plans for history:', plansError)
+      }
       sleepPlans = plans || []
     }
 

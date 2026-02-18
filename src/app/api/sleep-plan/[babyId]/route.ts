@@ -77,12 +77,17 @@ export async function GET(
     }
 
     // Compute current events hash for staleness check
-    const { data: events } = await supabase
+    const { data: events, error: eventsError } = await supabase
       .from('sleep_events')
       .select('id, event_time, event_type')
       .eq('baby_id', babyId)
       .gte('event_time', `${today}T00:00:00`)
       .order('event_time', { ascending: true })
+
+    if (eventsError) {
+      console.error('Error fetching events for hash:', eventsError)
+      return apiError('Failed to compute events hash', 500)
+    }
 
     const currentEventsHash = computeEventsHash(events || [])
 

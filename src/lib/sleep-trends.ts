@@ -134,12 +134,17 @@ export function buildDayRows(
             : startHour + 0.5
         }
 
-        blocks.push({
-          startHour,
-          endHour: Math.min(endHour, 24),
-          type: 'nap',
-          isDaycare: event.context === 'daycare',
-        })
+        // Validate hours are within chart bounds [0, 24]
+        const clampedStart = Math.max(0, Math.min(startHour, 24))
+        const clampedEnd = Math.max(0, Math.min(endHour, 24))
+        if (clampedStart < clampedEnd) {
+          blocks.push({
+            startHour: clampedStart,
+            endHour: clampedEnd,
+            type: 'nap',
+            isDaycare: event.context === 'daycare',
+          })
+        }
       } else if (event.event_type === 'night_wake') {
         nightWakes.push({ hour: toAxisHour(toZonedTime(parseISO(event.event_time), timezone)) })
       }
@@ -265,12 +270,16 @@ function computeMedianDay(rows: DayRow[], label: string): ExpectedDay | null {
 
   for (const slot of napSlots) {
     if (slot.starts.length >= 2) {
-      blocks.push({
-        startHour: median(slot.starts),
-        endHour: median(slot.ends),
-        type: 'nap',
-        isDaycare: false,
-      })
+      const medStart = Math.max(0, Math.min(median(slot.starts), 24))
+      const medEnd = Math.max(0, Math.min(median(slot.ends), 24))
+      if (medStart < medEnd) {
+        blocks.push({
+          startHour: medStart,
+          endHour: medEnd,
+          type: 'nap',
+          isDaycare: false,
+        })
+      }
     }
   }
 

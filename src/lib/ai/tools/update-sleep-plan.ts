@@ -3,6 +3,9 @@ import { ToolContext } from './types'
 import { computeEventsHash } from '@/lib/sleep-utils'
 import { computeCurrentState } from '@/lib/state-machine'
 import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
+import { getTodayBoundsForTimezone } from '@/lib/timezone'
+import { format } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
 import type { SleepEvent } from '@/types/database'
 
 /**
@@ -10,7 +13,7 @@ import type { SleepEvent } from '@/types/database'
  * Use this when the AI recommends a different schedule than what's currently shown.
  */
 export function createUpdateSleepPlanTool(context: ToolContext) {
-  const { supabase, babyId } = context
+  const { supabase, babyId, timezone } = context
 
   return tool({
     description: `Update the displayed sleep plan when recommending a different schedule than what the baby currently has.
@@ -28,15 +31,28 @@ Mark completed naps/events with status "completed", current activity as "in_prog
     inputSchema: sleepPlanSchema,
     execute: async (plan) => {
       try {
-        const today = new Date().toISOString().split('T')[0]
+        // Use timezone-aware day bounds (consistent with other tools)
+        const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)
+        const planDate = format(toZonedTime(new Date(), timezone), 'yyyy-MM-dd')
 
         // Get today's events to compute hash and current state
-        const { data: events } = await supabase
+        const { data: events, error: eventsError } = await supabase
           .from('sleep_events')
           .select('*')
           .eq('baby_id', babyId)
-          .gte('event_time', `${today}T00:00:00`)
+          .gte('event_time', todayStart)
+          .lt('event_time', todayEnd)
           .order('event_time', { ascending: true })
+
+        if (eventsError) {
+          console.error('Error fetching events for sleep plan:', eventsError)
+          return {
+            success: false,
+            plan,
+            persisted: false,
+            error: 'Failed to fetch today\'s events for plan generation',
+          }
+        }
 
         const eventsHash = computeEventsHash(events || [])
         // Compute state deterministically from events, don't trust LLM's value
@@ -45,11 +61,13 @@ Mark completed naps/events with status "completed", current activity as "in_prog
         // Get current user for created_by field
         const { data: { user } } = await supabase.auth.getUser()
 
-        // Delete all existing plans for this baby (only the new plan matters)
+        // Deactivate existing plans instead of deleting, then insert.
+        // This avoids a window where no plan exists if the insert fails.
         await supabase
           .from('sleep_plans')
-          .delete()
+          .update({ is_active: false })
           .eq('baby_id', babyId)
+          .eq('is_active', true)
 
         // Insert the new plan
         const { data: savedPlan, error } = await supabase
@@ -62,7 +80,7 @@ Mark completed naps/events with status "completed", current activity as "in_prog
             target_bedtime: plan.targetBedtime,
             summary: plan.summary,
             events_hash: eventsHash,
-            plan_date: today,
+            plan_date: planDate,
             is_active: true,
             created_by: user?.id ?? null,
           })
@@ -71,12 +89,11 @@ Mark completed naps/events with status "completed", current activity as "in_prog
 
         if (error) {
           console.error('Error persisting sleep plan from chat:', error)
-          // Return the plan anyway for UI update, even if persistence failed
           return {
-            success: true,
+            success: false,
             plan,
             persisted: false,
-            message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
+            error: 'Failed to save the sleep plan to the database. The plan was generated but not persisted.',
           }
         }
 
@@ -88,12 +105,11 @@ Mark completed naps/events with status "completed", current activity as "in_prog
         }
       } catch (err) {
         console.error('Error in updateSleepPlan tool:', err)
-        // Return the plan for UI update even if persistence failed
         return {
-          success: true,
+          success: false,
           plan,
           persisted: false,
-          message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
+          error: 'An unexpected error occurred while updating the sleep plan.',
         }
       }
     },
