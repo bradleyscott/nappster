@@ -47,16 +47,17 @@ export default function OnboardingPage() {
       return
     }
 
-    const { data: baby, error: babyError } = await supabase
+    const babyId = crypto.randomUUID()
+
+    const { error: babyError } = await supabase
       .from('babies')
       .insert({
+        id: babyId,
         name,
         birth_date: birthDate,
         sleep_training_method: sleepMethod || null,
         pattern_notes: patternNotes || null,
       })
-      .select()
-      .single()
 
     if (babyError) {
       setError(babyError.message)
@@ -68,7 +69,7 @@ export default function OnboardingPage() {
       .from('family_members')
       .insert({
         user_id: user.id,
-        baby_id: baby.id,
+        baby_id: babyId,
         role: 'parent',
       })
 
