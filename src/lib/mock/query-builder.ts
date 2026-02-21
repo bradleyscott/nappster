@@ -1,6 +1,6 @@
 import { mockStore, insertRecord } from './store'
 
-type TableName = 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans'
+type TableName = 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans' | 'invite_codes'
 type FilterOp = 'eq' | 'gte' | 'lt' | 'in'
 
 interface Filter {

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { ArrowLeft, Baby, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,22 +21,25 @@ const sleepMethods = [
   { value: 'Other', label: 'Other' },
 ]
 
+type Step = 'choice' | 'create' | 'join'
+
 export default function OnboardingPage() {
+  const [step, setStep] = useState<Step>('choice')
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [sleepMethod, setSleepMethod] = useState('')
   const [patternNotes, setPatternNotes] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setError('You must be logged in')
@@ -43,17 +47,17 @@ export default function OnboardingPage() {
       return
     }
 
-    // Create baby
-    const { data: baby, error: babyError } = await supabase
+    const babyId = crypto.randomUUID()
+
+    const { error: babyError } = await supabase
       .from('babies')
       .insert({
+        id: babyId,
         name,
         birth_date: birthDate,
         sleep_training_method: sleepMethod || null,
         pattern_notes: patternNotes || null,
       })
-      .select()
-      .single()
 
     if (babyError) {
       setError(babyError.message)
@@ -61,12 +65,11 @@ export default function OnboardingPage() {
       return
     }
 
-    // Link user to baby
     const { error: linkError } = await supabase
       .from('family_members')
       .insert({
         user_id: user.id,
-        baby_id: baby.id,
+        baby_id: babyId,
         role: 'parent',
       })
 
@@ -80,24 +83,165 @@ export default function OnboardingPage() {
     router.refresh()
   }
 
+  const handleJoinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/invite/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: inviteCode }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to redeem invite code')
+        setLoading(false)
+        return
+      }
+
+      router.push('/')
+      router.refresh()
+    } catch {
+      setError('Failed to redeem invite code')
+      setLoading(false)
+    }
+  }
+
+  const handleBack = () => {
+    setStep('choice')
+    setError(null)
+  }
+
+  if (step === 'choice') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-2">
+              <Image
+                src="/nappster.png"
+                alt="Nappster Logo"
+                width={80}
+                height={80}
+              />
+            </div>
+            <CardTitle className="text-2xl">Welcome to Nappster</CardTitle>
+            <CardDescription>
+              How would you like to get started?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full h-20 justify-start gap-4 px-4"
+              onClick={() => setStep("create")}
+            >
+              <Baby className="h-8 w-8 shrink-0" />
+              <div className="text-left">
+                <div className="font-semibold">Add a new baby</div>
+                <div className="text-sm text-muted-foreground font-normal">
+                  Set up a new profile for your baby
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-20 justify-start gap-4 px-4"
+              onClick={() => setStep("join")}
+            >
+              <Users className="h-8 w-8 shrink-0" />
+              <div className="text-left">
+                <div className="font-semibold">I am family</div>
+                <div className="text-sm text-muted-foreground font-normal">
+                  Enter an invite code from your partner
+                </div>
+              </div>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 'join') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <button
+              onClick={handleBack}
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </button>
+            <CardTitle className="text-2xl">I`&apos;`m family</CardTitle>
+            <CardDescription>
+              Enter the 6-digit invite code from your partner
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleJoinSubmit}>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="code">Invite code</Label>
+                <Input
+                  id="code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={inviteCode}
+                  onChange={(e) =>
+                    setInviteCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  className="text-center text-2xl tracking-[0.5em] font-mono"
+                  required
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || inviteCode.length !== 6}
+              >
+                {loading ? "Joining..." : "Join"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    );
+  }
+
+  // step === 'create'
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-2">
-            <Image
-              src="/nappster.png"
-              alt="Nappster Logo"
-              width={80}
-              height={80}
-            />
-          </div>
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </button>
           <CardTitle className="text-2xl">Set up your baby&apos;s profile</CardTitle>
           <CardDescription>
             This helps us give you personalized sleep recommendations
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleCreateSubmit}>
           <CardContent className="space-y-4">
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
