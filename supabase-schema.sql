@@ -201,6 +201,104 @@ create policy "Users can update sleep plans for their babies"
     )
   );
 
+-- Invite codes table (for sharing baby access with family members)
+create table if not exists public.invite_codes (
+  id uuid primary key default gen_random_uuid(),
+  baby_id uuid references public.babies(id) on delete cascade not null,
+  code text not null,
+  created_by uuid references auth.users(id) on delete cascade not null,
+  expires_at timestamp with time zone not null,
+  used_by uuid references auth.users(id),
+  used_at timestamp with time zone,
+  created_at timestamp with time zone default now()
+);
+
+-- Unique index on code for fast lookup during redemption
+create unique index if not exists idx_invite_codes_code on public.invite_codes(code);
+-- Index for finding codes by creator
+create index if not exists idx_invite_codes_created_by on public.invite_codes(created_by);
+
+-- Enable Row Level Security
+alter table public.invite_codes enable row level security;
+
+-- RLS Policies for invite_codes table
+create policy "Users can view their own invite codes"
+  on public.invite_codes for select
+  using (created_by = auth.uid());
+
+create policy "Family members can create invite codes"
+  on public.invite_codes for insert
+  with check (
+    created_by = auth.uid()
+    and baby_id in (
+      select baby_id from public.family_members
+      where user_id = auth.uid()
+    )
+  );
+
+-- Database function for redeeming invite codes
+-- Uses SECURITY DEFINER to bypass RLS so the redeeming user can look up
+-- a code they didn't create, and atomically create a family_members entry
+create or replace function public.redeem_invite_code(
+  invite_code text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_code_row invite_codes%rowtype;
+  v_user_id uuid;
+  v_existing_member family_members%rowtype;
+begin
+  v_user_id := auth.uid();
+  if v_user_id is null then
+    return jsonb_build_object('success', false, 'error', 'Not authenticated');
+  end if;
+
+  -- Look up and lock the code row
+  select * into v_code_row
+  from invite_codes
+  where code = invite_code
+  for update;
+
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Invalid invite code');
+  end if;
+
+  if v_code_row.used_by is not null then
+    return jsonb_build_object('success', false, 'error', 'This invite code has already been used');
+  end if;
+
+  if v_code_row.expires_at < now() then
+    return jsonb_build_object('success', false, 'error', 'This invite code has expired');
+  end if;
+
+  -- Check if user is already a family member of this baby
+  select * into v_existing_member
+  from family_members
+  where user_id = v_user_id and baby_id = v_code_row.baby_id;
+
+  if found then
+    return jsonb_build_object('success', false, 'error', 'You are already linked to this baby');
+  end if;
+
+  -- Create family_members link
+  insert into family_members (user_id, baby_id, role)
+  values (v_user_id, v_code_row.baby_id, 'parent');
+
+  -- Mark code as used
+  update invite_codes
+  set used_by = v_user_id, used_at = now()
+  where id = v_code_row.id;
+
+  return jsonb_build_object(
+    'success', true,
+    'baby_id', v_code_row.baby_id
+  );
+end;
+$$;
+
 -- Enable Realtime for multi-family member synchronization
 -- This allows changes made by one family member to appear in realtime for others
 -- Note: Can also be enabled via Supabase Dashboard > Database > Replication

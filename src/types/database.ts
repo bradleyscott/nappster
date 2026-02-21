@@ -197,12 +197,58 @@ export type Database = {
           }
         ]
       }
+      invite_codes: {
+        Row: {
+          id: string
+          baby_id: string
+          code: string
+          created_by: string
+          expires_at: string
+          used_by: string | null
+          used_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          baby_id: string
+          code: string
+          created_by: string
+          expires_at: string
+          used_by?: string | null
+          used_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          baby_id?: string
+          code?: string
+          created_by?: string
+          expires_at?: string
+          used_by?: string | null
+          used_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_baby_id_fkey"
+            columns: ["baby_id"]
+            isOneToOne: false
+            referencedRelation: "babies"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      redeem_invite_code: {
+        Args: {
+          invite_code: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -247,6 +293,7 @@ export type TimelineItem =
 
 // Chat message types
 export type ChatMessage = Database['public']['Tables']['chat_messages']['Row']
+export type InviteCode = Database['public']['Tables']['invite_codes']['Row']
 
 // Chat history for AI context
 export interface ChatHistoryMessage {

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TimezoneProvider } from "@/components/timezone-provider";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { MockUserToggle } from "@/components/mock-user-toggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
         <ServiceWorkerRegister />
+        <MockUserToggle />
         <TimezoneProvider>{children}</TimezoneProvider>
       </body>
     </html>
