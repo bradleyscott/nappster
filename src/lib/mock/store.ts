@@ -1,4 +1,4 @@
-import { Baby, FamilyMember, SleepEvent, ChatMessage, SleepPlan } from '@/types/database'
+import { Baby, FamilyMember, SleepEvent, ChatMessage, SleepPlan, InviteCode } from '@/types/database'
 import { computeEventsHash } from '@/lib/sleep-utils'
 
 // Mock user matching Supabase auth user structure
@@ -13,6 +13,17 @@ export const MOCK_USER = {
 }
 
 export const MOCK_USER_ID = MOCK_USER.id
+
+export const MOCK_USER_2 = {
+  id: 'mock-user-456',
+  email: 'dev2@example.com',
+  aud: 'authenticated',
+  role: 'authenticated',
+  email_confirmed_at: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+}
+
 export const MOCK_BABY_ID = 'mock-baby-456'
 
 // Calculate birth date for a ~7 month old baby
@@ -47,6 +58,8 @@ export const mockStore = {
   chat_messages: generateSampleChatHistory(),
 
   sleep_plans: [] as SleepPlan[],
+
+  invite_codes: [] as InviteCode[],
 }
 
 // Generate initial sleep plan based on today's events
@@ -432,7 +445,7 @@ function generateTodayEvents(): SleepEvent[] {
 let eventIdCounter = 100
 
 export function insertRecord<T>(
-  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans',
+  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans' | 'invite_codes',
   record: Record<string, unknown>
 ): T {
   const newRecord = {
@@ -446,7 +459,7 @@ export function insertRecord<T>(
 }
 
 export function updateRecord<T>(
-  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans',
+  table: 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans' | 'invite_codes',
   filter: Record<string, unknown>,
   updates: Record<string, unknown>
 ): T[] {

@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Copy, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Baby } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 
 const sleepMethods = [
   { value: '', label: 'Select a method (optional)' },
@@ -34,6 +35,10 @@ export function SettingsForm({ baby }: SettingsFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [isNavigatingBack, setIsNavigatingBack] = useState(false)
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteCopied, setInviteCopied] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -66,6 +71,38 @@ export function SettingsForm({ baby }: SettingsFormProps) {
     e.preventDefault()
     setIsNavigatingBack(true)
     router.push('/')
+  }
+
+  const handleGenerateCode = async () => {
+    setInviteLoading(true)
+    setInviteError(null)
+
+    try {
+      const res = await fetch('/api/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ babyId: baby.id }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setInviteCode(data.code)
+      } else {
+        setInviteError(data.error || 'Failed to generate invite code')
+      }
+    } catch {
+      setInviteError('Failed to generate invite code')
+    }
+
+    setInviteLoading(false)
+  }
+
+  const handleCopyCode = async () => {
+    if (!inviteCode) return
+    await navigator.clipboard.writeText(inviteCode)
+    setInviteCopied(true)
+    setTimeout(() => setInviteCopied(false), 2000)
   }
 
   return (
@@ -156,6 +193,60 @@ export function SettingsForm({ baby }: SettingsFormProps) {
             </Button>
           </CardFooter>
         </form>
+
+        <Separator className="my-2" />
+
+        <CardHeader className="text-center pt-4">
+          <CardTitle className="text-lg">Family</CardTitle>
+          <CardDescription>
+            Invite someone to help track {baby.name}&apos;s sleep
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pb-6">
+          {inviteError && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+              {inviteError}
+            </div>
+          )}
+          {!inviteCode ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleGenerateCode}
+              disabled={inviteLoading}
+            >
+              {inviteLoading ? 'Generating...' : 'Generate invite code'}
+            </Button>
+          ) : (
+            <div className="text-center space-y-3">
+              <div className="text-3xl font-mono tracking-[0.5em] font-bold py-2">
+                {inviteCode}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCopyCode}
+              >
+                {inviteCopied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-1" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy code
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                This code expires in 24 hours and can be used once.
+              </p>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   )
