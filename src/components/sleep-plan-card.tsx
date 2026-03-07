@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useSyncExternalStore } from 'react'
+import { motion } from 'motion/react'
 import {
   Collapsible,
   CollapsibleContent,
@@ -117,8 +118,11 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
   }
 
   return (
-    <div
-      className="flex justify-center min-w-0 w-full animate-in fade-in slide-in-from-bottom-1 duration-200"
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex justify-center min-w-0 w-full"
     >
       <Collapsible open={isOpen} onOpenChange={setIsOpen} className="min-w-0 w-full max-w-lg">
         <div className="w-full border rounded-lg bg-card shadow-sm overflow-hidden">
@@ -222,6 +226,6 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
           </CollapsibleContent>
         </div>
       </Collapsible>
-    </div>
+    </motion.div>
   )
 }
