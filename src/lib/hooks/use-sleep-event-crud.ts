@@ -28,7 +28,8 @@ export interface SaveSessionData {
     notes: string | null
   }
   endEvent?: {
-    id: string
+    id?: string
+    event_type?: EventType
     event_time: string
     context: Context
     notes: string | null
@@ -260,45 +261,87 @@ export function useSleepEventCRUD({
       return false
     }
 
-    // Update end event if present — do this before committing to state
+    // Update or create end event if present — do this before committing to state
     let endData = null
     if (data.endEvent) {
-      const { data: endResult, error: endError } = await supabase
-        .from('sleep_events')
-        .update({
-          event_time: data.endEvent.event_time,
-          context: data.endEvent.context,
-          notes: data.endEvent.notes,
-        })
-        .eq('id', data.endEvent.id)
-        .select()
-        .single()
+      if (data.endEvent.id) {
+        // Update existing end event
+        const { data: endResult, error: endError } = await supabase
+          .from('sleep_events')
+          .update({
+            event_time: data.endEvent.event_time,
+            context: data.endEvent.context,
+            notes: data.endEvent.notes,
+          })
+          .eq('id', data.endEvent.id)
+          .select()
+          .single()
 
-      if (endError) {
-        console.error('Error updating end event:', endError)
-        // Revert start event to maintain consistency
-        const originalStart = localEvents.find(e => e.id === data.startEvent.id)
-        if (originalStart) {
-          await supabase
-            .from('sleep_events')
-            .update({
-              event_time: originalStart.event_time,
-              context: originalStart.context,
-              notes: originalStart.notes,
-            })
-            .eq('id', data.startEvent.id)
+        if (endError) {
+          console.error('Error updating end event:', endError)
+          // Revert start event to maintain consistency
+          const originalStart = localEvents.find(e => e.id === data.startEvent.id)
+          if (originalStart) {
+            await supabase
+              .from('sleep_events')
+              .update({
+                event_time: originalStart.event_time,
+                context: originalStart.context,
+                notes: originalStart.notes,
+              })
+              .eq('id', data.startEvent.id)
+          }
+          return false
         }
-        return false
-      }
 
-      endData = endResult
+        endData = endResult
+      } else {
+        // Create new end event
+        const { data: endResult, error: endError } = await supabase
+          .from('sleep_events')
+          .insert({
+            baby_id: babyId,
+            event_type: data.endEvent.event_type!,
+            event_time: data.endEvent.event_time,
+            context: data.endEvent.context,
+            notes: data.endEvent.notes,
+          })
+          .select()
+          .single()
+
+        if (endError) {
+          console.error('Error creating end event:', endError)
+          // Revert start event to maintain consistency
+          const originalStart = localEvents.find(e => e.id === data.startEvent.id)
+          if (originalStart) {
+            await supabase
+              .from('sleep_events')
+              .update({
+                event_time: originalStart.event_time,
+                context: originalStart.context,
+                notes: originalStart.notes,
+              })
+              .eq('id', data.startEvent.id)
+          }
+          return false
+        }
+
+        // Track locally created event to avoid duplicate from realtime
+        locallyCreatedEventIds.current.add(endResult.id)
+        endData = endResult
+      }
     }
 
     // Both updates succeeded — commit to local state
     setLocalEvents(prev => {
       let updated = prev.map(e => e.id === startData.id ? startData : e)
       if (endData) {
-        updated = updated.map(e => e.id === endData.id ? endData : e)
+        const exists = updated.some(e => e.id === endData.id)
+        if (exists) {
+          updated = updated.map(e => e.id === endData.id ? endData : e)
+        } else {
+          updated = [...updated, endData]
+        }
       }
       return updated
     })

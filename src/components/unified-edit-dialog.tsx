@@ -32,7 +32,8 @@ interface UnifiedEditDialogProps {
       notes: string | null
     }
     endEvent?: {
-      id: string
+      id?: string
+      event_type?: EventType
       event_time: string
       context: Context
       notes: string | null
@@ -73,9 +74,9 @@ export function UnifiedEditDialog({
         context: data.context,
         notes: data.notes,
       },
-      ...(item.endEvent && data.endTime ? {
+      ...(data.endTime ? {
         endEvent: {
-          id: item.endEvent.id,
+          ...(item.endEvent ? { id: item.endEvent.id } : { event_type: 'nap_end' as EventType }),
           event_time: data.endTime,
           context: data.context,
           notes: null,
@@ -103,9 +104,9 @@ export function UnifiedEditDialog({
         context: data.context,
         notes: data.notes,
       },
-      ...(item.endEvent && data.endTime ? {
+      ...(data.endTime ? {
         endEvent: {
-          id: item.endEvent.id,
+          ...(item.endEvent ? { id: item.endEvent.id } : { event_type: 'wake' as EventType }),
           event_time: data.endTime,
           context: data.context,
           notes: null,
