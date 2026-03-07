@@ -68,28 +68,31 @@ export default async function Home() {
   // Get the first baby (we can add multi-baby support later)
   const babyId = (familyMembers[0] as { baby_id: string }).baby_id;
 
-  const { data: baby } = await supabase
-    .from("babies")
-    .select("*")
-    .eq("id", babyId)
-    .single();
-
-  if (!baby) {
-    redirect("/onboarding");
-  }
-
   // Get timezone from cookie
   const cookieStore = await cookies()
   const timezone = cookieStore.get('timezone')?.value || 'UTC'
   const { start: yesterdayStart } = getYesterdayBoundsForTimezone(timezone)
 
-  // Fetch initial chat messages (most recent 50, newest first)
-  const { data: chatMessages } = await supabase
-    .from('chat_messages')
-    .select('*')
-    .eq('baby_id', babyId)
-    .order('created_at', { ascending: false })
-    .limit(50)
+  // Run baby profile + chat messages queries in parallel (both only need babyId)
+  const [{ data: baby }, { data: chatMessages }] = await Promise.all([
+    supabase
+      .from("babies")
+      .select("*")
+      .eq("id", babyId)
+      .single(),
+
+    // Fetch initial chat messages (most recent 50, newest first)
+    supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('baby_id', babyId)
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ])
+
+  if (!baby) {
+    redirect("/onboarding");
+  }
 
   // Get cursor for loading more history (oldest message's timestamp)
   // Must access before .reverse() mutates the array
