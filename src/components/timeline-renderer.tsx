@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'motion/react'
 import Image from 'next/image'
 import { Baby, SleepEvent, SleepPlanRow } from '@/types/database'
 import { formatTime, calculateDurationMinutes } from '@/lib/sleep-utils'
@@ -275,11 +274,8 @@ export function TimelineRenderer({
       )}
 
       {allMessages.length === 0 && allSleepEvents.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex flex-col items-center justify-center py-12 text-center"
+        <div
+          className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
           <Image
             src="/nappster.png"
@@ -311,7 +307,7 @@ export function TimelineRenderer({
               />
             </Suggestions>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {timelineItems.map((item, index) => {
@@ -332,11 +328,9 @@ export function TimelineRenderer({
           }
 
           return (
-            <motion.div
+            <div
               key={`event-${event.id}`}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
+              className="animate-in fade-in zoom-in-95 duration-200"
             >
               {showDateHeader && (
                 <div className="flex items-center gap-3 my-6">
@@ -371,7 +365,7 @@ export function TimelineRenderer({
                   )}
                 </button>
               </div>
-            </motion.div>
+            </div>
           )
         }
 
@@ -400,11 +394,9 @@ export function TimelineRenderer({
         const messageTime = message.createdAt ? formatTime(message.createdAt) : null
 
         return (
-          <motion.div
+          <div
             key={message.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
+            className="animate-in fade-in slide-in-from-bottom-1 duration-200"
           >
             {showDateHeader && (
               <div className="flex items-center gap-3 my-6">
@@ -433,7 +425,7 @@ export function TimelineRenderer({
                 </span>
               )}
             </Message>
-          </motion.div>
+          </div>
         )
       })}
     </>
