@@ -113,21 +113,26 @@ export default async function Home() {
     ? oldestTimestamp
     : yesterdayStart
 
-  const { data: sleepEvents } = await supabase
-    .from("sleep_events")
-    .select("*")
-    .eq("baby_id", babyId)
-    .gte("event_time", eventStartTime)
-    .order("event_time", { ascending: true })
+  // Run sleep events and sleep plans queries in parallel
+  const [{ data: sleepEvents }, { data: sleepPlans }] = await Promise.all([
+    supabase
+      .from("sleep_events")
+      .select("*")
+      .eq("baby_id", babyId)
+      .gte("event_time", eventStartTime)
+      .order("event_time", { ascending: true })
+      .limit(200),
 
-  // Fetch initial sleep plans from the same time range as messages
-  // This ensures sleep plans and messages paginate together
-  const { data: sleepPlans } = await supabase
-    .from('sleep_plans')
-    .select('*')
-    .eq('baby_id', babyId)
-    .gte('created_at', oldestTimestamp || new Date(0).toISOString())
-    .order('created_at', { ascending: true })
+    // Fetch recent sleep plans that align with the loaded messages window
+    // When no messages exist, only fetch the most recent plans instead of all since epoch
+    supabase
+      .from('sleep_plans')
+      .select('*')
+      .eq('baby_id', babyId)
+      .gte('created_at', oldestTimestamp || yesterdayStart)
+      .order('created_at', { ascending: true })
+      .limit(50),
+  ])
 
   const initialSleepPlans = sleepPlans || []
 
