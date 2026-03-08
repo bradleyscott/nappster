@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Building2, X, Sun, AlertCircle, BedDouble, Share2, Check } from 'lucide-react'
+import { BarChart3, Building2, X, Sun, AlertCircle, BedDouble, Share2, Check } from 'lucide-react'
 import { SleepEvent } from '@/types/database'
 import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock, type NightWakeMarker } from '@/lib/sleep-trends'
 
@@ -111,29 +111,44 @@ export function SleepTrendsChart({ events, timezone, babyName }: SleepTrendsChar
 
       {expectedEntries.length === 0 && <Legend />}
 
-      {/* Scrollable history: most recent first */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <svg
-          width="100%"
-          viewBox={`0 0 ${SVG_WIDTH} ${mainHeight}`}
-          className="block"
-          role="img"
-          aria-label="Sleep trends chart showing daily sleep patterns"
-        >
-          <TimeAxis />
+      {activeRows.length > 0 && expectedEntries.length === 0 && (
+        <p className="text-xs text-muted-foreground px-3 py-2">
+          Typical patterns will appear after a few days of logging.
+        </p>
+      )}
 
-          <g transform={`translate(0, ${AXIS_HEIGHT})`}>
-            {activeRows.map((row, i) => (
-              <DayRowSVG
-                key={row.dateKey}
-                row={row}
-                y={i * (ROW_HEIGHT + ROW_GAP)}
-                onSelect={() => handleSelectDayRow(row)}
-              />
-            ))}
-          </g>
-        </svg>
-      </div>
+      {activeRows.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+          <BarChart3 className="h-10 w-10 text-muted-foreground/50 mb-3" />
+          <p className="font-medium text-muted-foreground">No sleep data yet</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">
+            Log sleep events on the home screen to see patterns here.
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <svg
+            width="100%"
+            viewBox={`0 0 ${SVG_WIDTH} ${mainHeight}`}
+            className="block"
+            role="img"
+            aria-label="Sleep trends chart showing daily sleep patterns"
+          >
+            <TimeAxis />
+
+            <g transform={`translate(0, ${AXIS_HEIGHT})`}>
+              {activeRows.map((row, i) => (
+                <DayRowSVG
+                  key={row.dateKey}
+                  row={row}
+                  y={i * (ROW_HEIGHT + ROW_GAP)}
+                  onSelect={() => handleSelectDayRow(row)}
+                />
+              ))}
+            </g>
+          </svg>
+        </div>
+      )}
 
       {detailData && (
         <DayDetailSheet data={detailData} babyName={babyName} onClose={() => setDetailData(null)} />

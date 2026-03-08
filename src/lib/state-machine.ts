@@ -225,7 +225,8 @@ function parseTimeWindowStartHour(timeWindow: string): number | null {
  */
 export function getSuggestedQuestions(
   state: SleepState,
-  babyName: string
+  babyName: string,
+  options?: { hasSleepPlan?: boolean }
 ): string[] {
   switch (state) {
     case 'awaiting_morning_wake':
@@ -233,7 +234,9 @@ export function getSuggestedQuestions(
     case 'daytime_awake':
       return [
         `When is ${babyName}'s next nap?`,
-        `When should ${babyName} go to bed?`,
+        options?.hasSleepPlan === false
+          ? `Create a sleep plan for today`
+          : `When should ${babyName} go to bed?`,
       ]
     case 'daytime_napping':
       return [

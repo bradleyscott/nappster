@@ -295,12 +295,12 @@ export function TimelineRenderer({
           <div className="flex flex-col gap-2 w-full max-w-sm">
             <Suggestions className="flex-wrap justify-center">
               <Suggestion
-                suggestion="She woke up at 7am this morning"
+                suggestion={`${baby.name} woke up at 7am this morning`}
                 onClick={onSendMessage}
                 className="whitespace-normal h-auto py-2"
               />
               <Suggestion
-                suggestion="Just put her down for a nap"
+                suggestion={`Just put ${baby.name} down for a nap`}
                 onClick={onSendMessage}
                 className="whitespace-normal h-auto py-2"
               />

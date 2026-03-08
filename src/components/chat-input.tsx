@@ -95,7 +95,7 @@ export function ChatInput({
   const quickActions = getQuickEntryButtons(currentState, { showBedtimeOverNap: showBedtime })
 
   // Get contextual suggested questions based on current sleep state
-  const suggestedQuestions = getSuggestedQuestions(currentState, babyName)
+  const suggestedQuestions = getSuggestedQuestions(currentState, babyName, { hasSleepPlan: !!sleepPlan })
 
   return (
     <>
