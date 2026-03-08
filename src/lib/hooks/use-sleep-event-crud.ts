@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 export interface CreateEventData {
   event_type: EventType
   event_time: string
+  end_time?: string | null
   context: Context
   notes: string | null
 }
@@ -160,6 +161,7 @@ export function useSleepEventCRUD({
         baby_id: babyId,
         event_type: data.event_type,
         event_time: data.event_time,
+        end_time: data.end_time ?? null,
         context: data.context,
         notes: data.notes,
       })
