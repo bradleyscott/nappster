@@ -400,15 +400,17 @@ export function ChatContent({
     notes: string | null
   }) => {
     // Create start event
+    // For night_wake, end_time is stored on the single event record
     await createEvent({
       event_type: eventData.event_type as EventType,
       event_time: eventData.event_time,
+      end_time: eventData.event_type === 'night_wake' ? (eventData.end_time ?? null) : null,
       context: eventData.context as Context,
       notes: eventData.notes,
     })
 
-    // If end_time is provided, create the corresponding end event
-    if (eventData.end_time) {
+    // If end_time is provided, create the corresponding end event (for paired event types)
+    if (eventData.end_time && eventData.event_type !== 'night_wake') {
       const endEventType: EventType | null = eventData.event_type === 'nap_start' ? 'nap_end' :
                            eventData.event_type === 'bedtime' ? 'wake' : null
 
