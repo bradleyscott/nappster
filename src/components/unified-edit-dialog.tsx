@@ -168,7 +168,8 @@ export function UnifiedEditDialog({
     if (isSession(item)) {
       return item.type === 'nap' ? '😴 Edit Nap' : '🌙 Edit Overnight Sleep'
     }
-    return '👀 Edit Night Wake'
+    if (item.event_type === 'night_wake') return '👀 Edit Night Wake'
+    return '✏️ Edit Event'
   }
 
   return (
@@ -207,7 +208,7 @@ export function UnifiedEditDialog({
             />
           )}
 
-          {item && !isSession(item) && item.event_type === 'night_wake' && (
+          {item && !isSession(item) && (
             <NightWakeForm
               mode="edit"
               eventId={item.id}
