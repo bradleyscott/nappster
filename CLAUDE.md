@@ -38,7 +38,6 @@ Tools are defined in [src/lib/ai/tools/](src/lib/ai/tools/):
 | ------------------------------ | ------------------------------------------ |
 | `POST /api/chat`               | Streaming chat with tool calling (GPT-5.2) |
 | `POST /api/chat/messages`      | Paginated chat history                     |
-| `POST /api/sleep-plan`         | Generate structured sleep schedule         |
 | `GET /api/sleep-plan/[babyId]` | Fetch active sleep plan                    |
 
 ### Supabase Clients

@@ -2,6 +2,16 @@
 
 A Progressive Web App for tracking baby sleep with AI-powered schedule recommendations. Built to replace ad-hoc ChatGPT conversations with a purpose-built experience that multiple caregivers can share.
 
+## Screenshots
+
+<p align="center">
+  <img src="chat_page.png" alt="AI chat with sleep plan recommendations" width="300" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="trends_page.png" alt="Sleep trends visualization over 14 days" width="300" />
+</p>
+
+**Left:** AI chat interface — log events, ask questions, and get a generated sleep plan with recommended nap times and bedtime. **Right:** Sleep trends view — visualize 14 days of sleep patterns across home and daycare contexts.
+
 ## Features
 
 - **Quick Entry UI** - Large tap targets for one-handed use while holding a baby
@@ -16,7 +26,7 @@ A Progressive Web App for tracking baby sleep with AI-powered schedule recommend
 |-------|------------|
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript 5 (strict mode) |
-| AI | Vercel AI SDK 6 + OpenAI GPT-5 |
+| AI | Vercel AI SDK 6 + OpenAI GPT-5.2 |
 | Styling | Tailwind CSS 4 + shadcn/ui |
 | Database | Supabase (PostgreSQL + Realtime) |
 | Auth | Supabase Auth with RLS |

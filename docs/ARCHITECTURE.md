@@ -37,7 +37,7 @@ Nappster is a Progressive Web App for tracking baby sleep patterns and generatin
 ┌─────────────────────────────────────────────────────────────┐
 │                      API Routes                             │
 │  /api/chat - Streaming chat with tool calling               │
-│  /api/sleep-plan - Structured schedule generation           │
+│  /api/sleep-plan/[babyId] - Fetch active sleep plan         │
 └─────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┴───────────────┐
@@ -71,7 +71,7 @@ src/
 │           └── [babyId]/route.ts     # GET: Fetch active plan
 │
 ├── components/
-│   ├── ui/                           # shadcn/ui primitives (14 components)
+│   ├── ui/                           # shadcn/ui primitives (13 components)
 │   │   ├── button.tsx
 │   │   ├── dialog.tsx
 │   │   ├── input.tsx
@@ -180,16 +180,16 @@ Compute events hash (djb2 algorithm)
          │
          ├── Hash unchanged? → Use cached plan
          │
-         └── Hash changed? → POST /api/sleep-plan
+         └── Hash changed? → AI chat generates new plan
                    │
                    ▼
-              AI calls read-only tools:
-                ├── getBabyProfile
-                ├── getTodayEvents
-                └── getSleepHistory
+              AI uses updateSleepPlan tool:
+                ├── Computes events hash
+                ├── Deactivates existing plans
+                └── Inserts new plan
                    │
                    ▼
-              Stream structured output:
+              Saved to sleep_plans table:
                 {
                   currentState: 'daytime_awake' | ...
                   nextAction: { label, timeWindow, isUrgent }
@@ -197,9 +197,6 @@ Compute events hash (djb2 algorithm)
                   targetBedtime: string
                   summary: string
                 }
-                   │
-                   ▼
-              Save to sleep_plans table
               (with events_hash for cache invalidation)
 ```
 
@@ -287,18 +284,9 @@ streamText({
 })
 ```
 
-### Sleep Plan Route Implementation
+### Sleep Plan Generation
 
-```typescript
-// src/app/api/sleep-plan/route.ts
-streamText({
-  model: openai("gpt-5.2"),
-  output: Output.object({ schema: sleepPlanSchema }),
-  system: buildToolBasedSystemPrompt(timezone),
-  tools: createReadOnlyTools(toolContext),  // No write tools
-  stopWhen: stepCountIs(4),
-})
-```
+Sleep plans are generated via the `updateSleepPlan` AI tool during chat, not through a separate API endpoint. The `GET /api/sleep-plan/[babyId]` route fetches the active plan and checks staleness against current events.
 
 ## Database Schema
 
