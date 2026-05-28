@@ -421,8 +421,8 @@ function formatTrendShifts(trends: SleepTrends): string | null {
     if (pattern.wakeTime.trend !== 'stable') {
       shifts.push(`${prefix}Morning wake ${pattern.wakeTime.trend}`)
     }
-    if (pattern.bedtime?.trend !== 'stable') {
-      shifts.push(`${prefix}Bedtime ${pattern.bedtime!.trend}`)
+    if (pattern.bedtime && pattern.bedtime.trend !== 'stable') {
+      shifts.push(`${prefix}Bedtime ${pattern.bedtime.trend}`)
     }
     for (const nap of pattern.naps) {
       if (nap.duration.trend !== 'stable') {
