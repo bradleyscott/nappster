@@ -24,6 +24,7 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message'
 import { Loader } from '@/components/ai-elements/loader'
+import ReactMarkdown from 'react-markdown'
 import type { SleepPlanRow } from '@/types/database'
 
 interface ChatContentProps {
@@ -314,7 +315,20 @@ export function ChatContent({
                     : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
                   }
                 >
-                  <p className="whitespace-pre-wrap text-sm">{text}</p>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="m-0 whitespace-pre-wrap text-sm">{children}</p>,
+                      a: ({ children, href }) => <a href={href} className="underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      ul: ({ children }) => <ul className="my-1 list-disc pl-4">{children}</ul>,
+                      ol: ({ children }) => <ol className="my-1 list-decimal pl-4">{children}</ol>,
+                      li: ({ children }) => <li className="my-0.5">{children}</li>,
+                      code: ({ children }) => <code className="rounded bg-black/10 px-1 py-0.5 text-xs">{children}</code>,
+                    }}
+                  >
+                    {text}
+                  </ReactMarkdown>
                 </MessageContent>
               </Message>
             </div>
