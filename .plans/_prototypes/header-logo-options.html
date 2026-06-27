@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Header Logo Options</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-bg: #F5EEFF;
+      --text: #2D2B3A;
+      --text-secondary: #8B88A0;
+      --text-muted: #B8B5CC;
+      --bg: #FFF8F0;
+      --shadow-sm: 0 2px 8px rgba(45,43,58,0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F0EDF5;
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; }
+    p.subtitle { text-align: center; color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .option-label {
+      font-size: 0.75rem; font-weight: 800; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;
+    }
+    .phone {
+      background: var(--bg);
+      border-radius: 32px; overflow: hidden;
+      border: 6px solid #fff;
+      box-shadow: 0 12px 40px rgba(45,43,58,0.12);
+      position: relative; height: 240px;
+    }
+    .screen { padding: 0.75rem 1rem; }
+
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; color: #fff;
+      flex-shrink: 0;
+    }
+    .logo-icon.sm { width: 28px; height: 28px; border-radius: 8px; font-size: 0.9rem; }
+    .logo-icon.lg { width: 44px; height: 44px; border-radius: 12px; font-size: 1.5rem; }
+
+    /* Option A */
+    .header-a {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: #fff; border-radius: 22px;
+      padding: 0.6rem 1rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-a-title { font-weight: 900; font-size: 1.05rem; }
+    .header-a-sub { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); }
+    .header-a-actions {
+      margin-left: auto;
+      display: flex; gap: 0.5rem;
+    }
+    .header-a-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--lavender-bg); display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; color: var(--text-secondary);
+    }
+
+    /* Option B */
+    .header-b {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-radius: 22px;
+      padding: 0.75rem 1rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-b-center { text-align: center; }
+    .header-b-title { font-weight: 900; font-size: 1.1rem; }
+    .header-b-sub { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); }
+
+    /* Option C */
+    .header-c {
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; border-radius: 22px;
+      padding: 0.6rem 1rem;
+      box-shadow: var(--shadow-sm);
+      gap: 0.75rem;
+    }
+    .header-c-text { text-align: left; }
+
+    /* Option D */
+    .header-d {
+      background: #fff; border-radius: 22px;
+      padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+      box-shadow: var(--shadow-sm);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-d-left { display: flex; align-items: center; gap: 0.6rem; }
+    .header-d-badge {
+      background: var(--lavender-bg); color: var(--lavender);
+      font-size: 0.6rem; font-weight: 900; padding: 0.15rem 0.5rem; border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Header Logo Options</h1>
+  <p class="subtitle">Ways to incorporate the Nappster logo into every page header.</p>
+
+  <div class="grid">
+    <!-- A -->
+    <div>
+      <div class="option-label">A · Logo left of title</div>
+      <div class="phone">
+        <div class="screen">
+          <div class="header-a">
+            <div class="logo-icon">🌙</div>
+            <div>
+              <div class="header-a-title">Luna</div>
+              <div class="header-a-sub">Good evening · 7 months</div>
+            </div>
+            <div class="header-a-actions">
+              <div class="header-a-btn">📊</div>
+              <div class="header-a-btn">👤</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div>
+      <div class="option-label">B · Logo as floating home button</div>
+      <div class="phone">
+        <div class="screen">
+          <div style="position:relative;">
+            <div class="header-b">
+              <div class="logo-icon sm" style="cursor:pointer;">🌙</div>
+              <div class="header-b-center">
+                <div class="header-b-title">Sleep Trends</div>
+                <div class="header-b-sub">Last 14 days · Luna</div>
+              </div>
+              <div style="width:28px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div>
+      <div class="option-label">C · Logo centered with title</div>
+      <div class="phone">
+        <div class="screen">
+          <div class="header-c">
+            <div class="logo-icon">🌙</div>
+            <div class="header-c-text">
+              <div style="font-weight:900;font-size:1.05rem;">Profile & Family</div>
+              <div style="font-size:0.65rem;font-weight:800;color:var(--text-muted);">Luna · 7 months</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D -->
+    <div>
+      <div class="option-label">D · Compact logo + badge</div>
+      <div class="phone">
+        <div class="screen">
+          <div class="header-d">
+            <div class="header-d-left">
+              <div class="logo-icon sm">🌙</div>
+              <div>
+                <div style="font-weight:900;font-size:0.95rem;">Luna</div>
+                <div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);">Good evening</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              <div class="header-a-btn">📊</div>
+              <div class="header-a-btn">👤</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

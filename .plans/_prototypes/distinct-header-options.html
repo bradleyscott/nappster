@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Distinct Header Options</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-bg: #F3EDFF;
+      --lavender-light: #D8C6FF;
+      --peach: #FFB07C;
+      --mint: #6FCF97;
+      --rose: #FF8FAB;
+      --bg: #FAF8FF;
+      --card: #FFFFFF;
+      --text: #2D2B3A;
+      --text-secondary: #6E6B7B;
+      --text-muted: #9B98A8;
+      --shadow-sm: 0 2px 12px rgba(45, 43, 58, 0.06);
+      --shadow-md: 0 8px 28px rgba(45, 43, 58, 0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F0EDF5;
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.5rem; }
+    p.subtitle { text-align: center; color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .phone {
+      background: var(--bg);
+      border-radius: 32px;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      border: 8px solid #fff;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .label {
+      background: #fff;
+      padding: 0.6rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #F0EDF5;
+    }
+    .screen { min-height: 520px; padding: 1rem; }
+
+    .actions {
+      position: absolute; right: 1rem; top: 1.25rem;
+      display: flex; gap: 0.45rem;
+    }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      background: var(--card); color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; cursor: pointer; box-shadow: var(--shadow-sm);
+    }
+
+    /* Option A: Soft Pill Card */
+    .optA { position: relative; margin-bottom: 1rem; }
+    .optA-inner {
+      background: var(--card);
+      border-radius: 999px;
+      padding: 0.7rem 1.2rem;
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+      display: inline-flex; flex-direction: column; align-items: center;
+      width: 100%;
+    }
+    .optA-greet { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .optA-name { font-size: 1.15rem; font-weight: 900; }
+    .optA-age { margin-top: 0.25rem; font-size: 0.65rem; font-weight: 800; color: var(--lavender); background: var(--lavender-bg); padding: 0.2rem 0.7rem; border-radius: 999px; }
+
+    /* Option B: Gradient Header Band */
+    .optB { position: relative; margin: -1rem -1rem 1rem -1rem; padding: 1.2rem 1rem 1rem; background: linear-gradient(180deg, var(--lavender-bg) 0%, rgba(243,237,255,0) 100%); }
+    .optB-content { text-align: center; }
+    .optB-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--lavender), var(--peach));
+      margin: 0 auto 0.5rem; color: white; font-weight: 900; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(180,139,255,0.25);
+    }
+    .optB-greet { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); }
+    .optB-name { font-size: 1.15rem; font-weight: 900; }
+    .optB-age { margin-top: 0.3rem; font-size: 0.7rem; font-weight: 800; color: var(--lavender); }
+
+    /* Option C: Floating Card with Avatar */
+    .optC { position: relative; margin-bottom: 1rem; }
+    .optC-inner {
+      background: linear-gradient(135deg, #fff 0%, var(--lavender-bg) 100%);
+      border-radius: 24px;
+      padding: 1rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--lavender-light);
+      display: flex; align-items: center; justify-content: center; gap: 0.9rem;
+    }
+    .optC-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--lavender), var(--peach));
+      color: white; font-weight: 900; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .optC-greet { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); }
+    .optC-name { font-size: 1.1rem; font-weight: 900; }
+    .optC-age { margin-top: 0.2rem; font-size: 0.65rem; font-weight: 800; color: var(--lavender); background: #fff; padding: 0.2rem 0.6rem; border-radius: 999px; display: inline-block; }
+
+    .hero {
+      background: linear-gradient(135deg, var(--lavender), #9B7BFF);
+      border-radius: 28px;
+      padding: 1.5rem;
+      color: white;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(180,139,255,0.25);
+    }
+    .hero-icon { font-size: 2rem; }
+    .hero-title { font-weight: 900; font-size: 1.3rem; margin-top: 0.5rem; }
+    .hero-pills { display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.75rem; }
+    .pill { background: rgba(255,255,255,0.2); padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; backdrop-filter: blur(8px); }
+    .fake-btn {
+      background: linear-gradient(135deg, var(--sunset), var(--rose));
+      border-radius: 20px;
+      padding: 1.1rem 1rem;
+      color: white;
+      font-weight: 800;
+      margin-top: 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 8px 22px rgba(255,143,107,0.25);
+    }
+  </style>
+</head>
+<body>
+  <h1>Distinct Header Options</h1>
+  <p class="subtitle">Three ways to separate the header from the dashboard body.</p>
+  <div class="grid">
+    <!-- A -->
+    <div class="phone">
+      <div class="label">A. Soft Pill Card</div>
+      <div class="screen">
+        <div class="optA">
+          <div class="actions">
+            <button class="icon-btn">📊</button>
+            <button class="icon-btn">👤</button>
+          </div>
+          <div class="optA-inner">
+            <span class="optA-greet">Good evening</span>
+            <span class="optA-name">Luna</span>
+            <span class="optA-age">7 months old</span>
+          </div>
+        </div>
+        <div class="hero">
+          <div class="hero-icon">🌙</div>
+          <div class="hero-title">Sleeping Soundly</div>
+          <div class="hero-pills"><span class="pill">Bedtime 7:32pm</span><span class="pill">Sleeping 2h 18m</span></div>
+        </div>
+        <div class="fake-btn"><span>Start Bedtime! →</span></div>
+      </div>
+    </div>
+    <!-- B -->
+    <div class="phone">
+      <div class="label">B. Gradient Header Band</div>
+      <div class="screen">
+        <div class="optB">
+          <div class="actions">
+            <button class="icon-btn">📊</button>
+            <button class="icon-btn">👤</button>
+          </div>
+          <div class="optB-content">
+            <div class="optB-avatar">L</div>
+            <div class="optB-greet">Good evening</div>
+            <div class="optB-name">Luna</div>
+            <div class="optB-age">7 months old</div>
+          </div>
+        </div>
+        <div class="hero">
+          <div class="hero-icon">🌙</div>
+          <div class="hero-title">Sleeping Soundly</div>
+          <div class="hero-pills"><span class="pill">Bedtime 7:32pm</span><span class="pill">Sleeping 2h 18m</span></div>
+        </div>
+        <div class="fake-btn"><span>Start Bedtime! →</span></div>
+      </div>
+    </div>
+    <!-- C -->
+    <div class="phone">
+      <div class="label">C. Floating Card with Avatar</div>
+      <div class="screen">
+        <div class="optC">
+          <div class="actions">
+            <button class="icon-btn">📊</button>
+            <button class="icon-btn">👤</button>
+          </div>
+          <div class="optC-inner">
+            <div class="optC-avatar">L</div>
+            <div style="text-align:left">
+              <div class="optC-greet">Good evening</div>
+              <div class="optC-name">Luna</div>
+              <div class="optC-age">7 months old</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero">
+          <div class="hero-icon">🌙</div>
+          <div class="hero-title">Sleeping Soundly</div>
+          <div class="hero-pills"><span class="pill">Bedtime 7:32pm</span><span class="pill">Sleeping 2h 18m</span></div>
+        </div>
+        <div class="fake-btn"><span>Start Bedtime! →</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

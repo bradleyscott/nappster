@@ -5,14 +5,12 @@ export interface CreateBabyInput {
   id?: string
   name: string
   birth_date: string
-  sleep_training_method?: string | null
   pattern_notes?: string | null
 }
 
 export interface UpdateBabyInput {
   name?: string
   birth_date?: string
-  sleep_training_method?: string | null
   pattern_notes?: string | null
 }
 
@@ -39,7 +37,6 @@ export async function createBaby(
       id: input.id,
       name: input.name,
       birth_date: input.birth_date,
-      sleep_training_method: input.sleep_training_method ?? null,
       pattern_notes: input.pattern_notes ?? null,
     })
     .select()
@@ -58,7 +55,6 @@ export async function updateBaby(
     .update({
       name: input.name,
       birth_date: input.birth_date,
-      sleep_training_method: input.sleep_training_method,
       pattern_notes: input.pattern_notes,
     })
     .eq('id', babyId)

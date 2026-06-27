@@ -122,8 +122,8 @@ export function useTimelineBuilder({
         if (kindCompare !== 0) return kindCompare
       }
 
-      // Otherwise (or if same kind), sort by timestamp
-      return timeA - timeB
+      // Otherwise (or if same kind), sort by timestamp descending (newest first)
+      return timeB - timeA
     })
 
     return items

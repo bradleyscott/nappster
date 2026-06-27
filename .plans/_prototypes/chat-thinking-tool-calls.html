@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Thinking & Tool Calls</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-bg: #F3EDFF;
+      --lavender-light: #D8C6FF;
+      --mint: #6FCF97;
+      --peach: #FFB07C;
+      --text: #2D2B3A;
+      --text-secondary: #6E6B7B;
+      --text-muted: #9B98A8;
+      --shadow-lg: 0 -8px 40px rgba(45, 43, 58, 0.15);
+      --radius-xl: 28px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F0EDF5;
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.5rem; }
+    p.subtitle { text-align: center; color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .option-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+    }
+    .phone {
+      background: #fff;
+      border-radius: 32px;
+      overflow: hidden;
+      border: 6px solid #fff;
+      box-shadow: 0 12px 40px rgba(45,43,58,0.12);
+      position: relative;
+      height: 640px;
+    }
+    .drawer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 100%;
+      background: #fff;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: var(--shadow-lg);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(180deg, var(--lavender-bg) 0%, #fff 100%);
+      padding: 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ai-card { display: flex; align-items: center; gap: 0.75rem; }
+    .ai-avatar {
+      width: 42px; height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+    }
+    .ai-title { font-weight: 900; font-size: 1rem; }
+    .ai-sub { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; }
+    .close { width: 36px; height: 36px; border-radius: 12px; background: #fff; border: 1.5px solid var(--lavender-light); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: var(--text); }
+    .messages { flex: 1; padding: 0.75rem 1rem; overflow-y: auto; background: #fff; }
+
+    .msg-row { display: flex; margin-bottom: 0.75rem; }
+    .msg-row.user { justify-content: flex-end; }
+    .msg {
+      max-width: 82%;
+      padding: 0.75rem 1rem;
+      border-radius: 18px;
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+    .msg-ai { background: var(--lavender-bg); color: var(--text); border-bottom-left-radius: 4px; }
+    .msg-user { background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: #fff; border-bottom-right-radius: 4px; }
+    .timestamp { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); margin-top: 0.3rem; }
+    .timestamp.user { text-align: right; }
+
+    /* Thinking indicators */
+    .thinking-pill {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      background: var(--lavender-bg);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 800;
+      margin-top: 0.5rem;
+    }
+    .spinner { width: 12px; height: 12px; border: 2px solid var(--lavender); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tool-card {
+      max-width: 90%;
+      margin-top: 0.5rem;
+      border-radius: 16px;
+      border: 1.5px solid var(--lavender-light);
+      background: linear-gradient(135deg, #fff, var(--lavender-bg));
+      padding: 0.75rem 1rem;
+      box-shadow: 0 2px 10px rgba(124,77,255,0.06);
+    }
+    .tool-header {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.8rem; font-weight: 800; color: var(--text);
+      cursor: pointer;
+    }
+    .tool-steps { margin-top: 0.5rem; }
+    .tool-step {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.35rem 0;
+      font-size: 0.75rem; font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .tool-step.complete { color: var(--text); }
+    .tool-step.active { color: var(--lavender); }
+    .step-icon {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--lavender-bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem;
+    }
+    .step-icon.active { background: var(--lavender); color: #fff; }
+    .step-icon.complete { background: var(--mint); color: #fff; }
+    .tool-result {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-top: 0.5rem; padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      background: #E9F9F0;
+      color: #2D7A4E;
+      font-size: 0.75rem; font-weight: 800;
+    }
+
+    .typing { display: flex; gap: 4px; padding: 0.6rem 0; }
+    .t-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lavender); animation: bounce 1.2s infinite; }
+    .t-dot:nth-child(2) { animation-delay: 0.15s; }
+    .t-dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px); } }
+  </style>
+</head>
+<body>
+  <h1>Thinking & Tool Calls in Chat Drawer</h1>
+  <p class="subtitle">Three ways to show the AI is working.</p>
+
+  <div class="grid">
+    <!-- Option A -->
+    <div>
+      <div class="option-label">A · Simple thinking pill</div>
+      <div class="phone">
+        <div class="drawer">
+          <div class="header">
+            <div class="ai-card"><div class="ai-avatar">🌙</div><div><div class="ai-title">Nappster</div><div class="ai-sub">Sleep coach</div></div></div>
+            <button class="close">×</button>
+          </div>
+          <div class="messages">
+            <div class="msg-row user"><div><div class="msg msg-user">When should I expect Luna to wake?</div><div class="timestamp user">9:16 PM</div></div></div>
+            <div class="msg-row"><div><div class="msg msg-ai"></div><div class="thinking-pill"><span class="spinner"></span>Thinking...</div><div class="timestamp">9:16 PM</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option B -->
+    <div>
+      <div class="option-label">B · Tool call progress card</div>
+      <div class="phone">
+        <div class="drawer">
+          <div class="header">
+            <div class="ai-card"><div class="ai-avatar">🌙</div><div><div class="ai-title">Nappster</div><div class="ai-sub">Sleep coach</div></div></div>
+            <button class="close">×</button>
+          </div>
+          <div class="messages">
+            <div class="msg-row user"><div><div class="msg msg-user">When should I expect Luna to wake?</div><div class="timestamp user">9:16 PM</div></div></div>
+            <div class="msg-row"><div>
+              <div class="tool-card">
+                <div class="tool-header"><span>🧠 Thinking</span><span>▼</span></div>
+                <div class="tool-steps">
+                  <div class="tool-step complete"><div class="step-icon complete">✓</div>Getting baby profile</div>
+                  <div class="tool-step complete"><div class="step-icon complete">✓</div>Checking today's events</div>
+                  <div class="tool-step active"><div class="step-icon active"><span class="spinner" style="width:8px;height:8px;border-width:1.5px;"></span></div>Analyzing sleep history</div>
+                </div>
+              </div>
+              <div class="timestamp">9:16 PM</div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option C -->
+    <div>
+      <div class="option-label">C · Collapsed progress + result</div>
+      <div class="phone">
+        <div class="drawer">
+          <div class="header">
+            <div class="ai-card"><div class="ai-avatar">🌙</div><div><div class="ai-title">Nappster</div><div class="ai-sub">Sleep coach</div></div></div>
+            <button class="close">×</button>
+          </div>
+          <div class="messages">
+            <div class="msg-row user"><div><div class="msg msg-user">Log a nap from 2pm to 3pm</div><div class="timestamp user">2:05 PM</div></div></div>
+            <div class="msg-row"><div>
+              <div class="tool-card">
+                <div class="tool-header"><span>🧠 Used 2 tools</span><span>▲</span></div>
+                <div class="tool-steps">
+                  <div class="tool-step complete"><div class="step-icon complete">✓</div>Recording sleep event</div>
+                  <div class="tool-step complete"><div class="step-icon complete">✓</div>Updating schedule</div>
+                </div>
+                <div class="tool-result">✓ Nap logged</div>
+              </div>
+              <div class="timestamp">2:05 PM</div>
+            </div></div>
+            <div class="msg-row"><div><div class="msg msg-ai">Done! I've logged Luna's nap and updated today's schedule.</div><div class="timestamp">2:05 PM</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

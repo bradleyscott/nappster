@@ -6,7 +6,6 @@ create table if not exists public.babies (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   birth_date date not null,
-  sleep_training_method text,
   pattern_notes text,
   created_at timestamp with time zone default now()
 );

@@ -2,9 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { NappsterLogo } from '@/components/nappster-logo'
 import { ChatContent } from '@/components/chat-content'
 import { getYesterdayBoundsForTimezone } from '@/lib/timezone'
 import { getFamilyMembersForUser } from '@/lib/services/family-members'
@@ -22,39 +20,33 @@ export default async function Home() {
   // If not logged in, show landing page
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader className="pb-2">
-            <div className="flex justify-center mb-4">
-              <Image
-                src="/nappster.png"
-                alt="Nappster Logo"
-                width={120}
-                height={120}
-                priority
-              />
-            </div>
-            <CardTitle className="text-3xl">Nappster</CardTitle>
-            <CardDescription className="text-lg">
-              Track your baby&apos;s sleep and get AI-powered recommendations
-              for nap times and bedtime
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Replace your ChatGPT conversation with a purpose-built app for
-              both parents to use.
-            </p>
-            <div className="flex flex-col gap-2">
-              <Button asChild size="lg">
-                <Link href="/auth/signup">Get Started</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/auth/login">Sign In</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
+        <NappsterLogo size={120} />
+        <h1 className="mt-6 text-4xl font-black text-[var(--text)]">Nappster</h1>
+        <p className="mt-2 max-w-xs text-center text-base font-bold leading-snug text-[var(--text-secondary)]">
+          Track your baby&apos;s sleep and get AI-powered recommendations for nap times and bedtime.
+        </p>
+
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">🌙 Sleep tracking</span>
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">🤖 AI coach</span>
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">👨‍👩‍👧 Family sync</span>
+        </div>
+
+        <div className="mt-8 w-full max-w-xs space-y-3">
+          <Link
+            href="/auth/signup"
+            className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-4 text-base font-extrabold text-white shadow-[0_4px_16px_rgba(124,77,255,0.3)] transition-transform active:scale-[0.97]"
+          >
+            Get Started
+          </Link>
+          <Link
+            href="/auth/login"
+            className="flex w-full items-center justify-center rounded-2xl border-2 border-[var(--lavender-light)] bg-white py-4 text-base font-extrabold text-[var(--text)] transition-colors active:bg-[var(--lavender-bg)]"
+          >
+            Sign In
+          </Link>
+        </div>
       </div>
     );
   }

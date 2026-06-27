@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Timestamps + Day Dividers</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-bg: #F3EDFF;
+      --lavender-light: #D8C6FF;
+      --text: #2D2B3A;
+      --text-secondary: #6E6B7B;
+      --text-muted: #9B98A8;
+      --shadow-lg: 0 -8px 40px rgba(45, 43, 58, 0.15);
+      --radius-xl: 28px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F0EDF5;
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.5rem; }
+    p.subtitle { text-align: center; color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .option-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+    }
+    .phone {
+      background: #fff;
+      border-radius: 32px;
+      overflow: hidden;
+      border: 6px solid #fff;
+      box-shadow: 0 12px 40px rgba(45,43,58,0.12);
+      position: relative;
+      height: 620px;
+    }
+    .drawer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 100%;
+      background: #fff;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: var(--shadow-lg);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(180deg, var(--lavender-bg) 0%, #fff 100%);
+      padding: 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ai-card { display: flex; align-items: center; gap: 0.75rem; }
+    .ai-avatar {
+      width: 42px; height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+    }
+    .ai-title { font-weight: 900; font-size: 1rem; }
+    .ai-sub { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; }
+    .close {
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1.5px solid var(--lavender-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+      color: var(--text);
+    }
+    .messages {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      overflow-y: auto;
+      background: #fff;
+    }
+
+    .day-group {
+      display: flex; align-items: center;
+      gap: 0.75rem;
+      margin: 1.25rem 0 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .day-group::before, .day-group::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #F0EDF5;
+    }
+
+    .msg-row { display: flex; margin-bottom: 0.75rem; }
+    .msg-row.user { justify-content: flex-end; }
+    .msg {
+      max-width: 82%;
+      padding: 0.75rem 1rem;
+      border-radius: 18px;
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+    .msg-ai { background: var(--lavender-bg); color: var(--text); border-bottom-left-radius: 4px; }
+    .msg-user { background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: #fff; border-bottom-right-radius: 4px; }
+    .timestamp {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+    .timestamp.user { text-align: right; }
+  </style>
+</head>
+<body>
+  <h1>Combined: Day Divider + Timestamp Below Bubble</h1>
+  <p class="subtitle">Best of both options.</p>
+
+  <div class="grid">
+    <div>
+      <div class="option-label">Combined Design</div>
+      <div class="phone">
+        <div class="drawer">
+          <div class="header">
+            <div class="ai-card">
+              <div class="ai-avatar">🌙</div>
+              <div><div class="ai-title">Nappster</div><div class="ai-sub">Sleep coach</div></div>
+            </div>
+            <button class="close">×</button>
+          </div>
+          <div class="messages">
+            <div class="day-group"><span>Yesterday</span></div>
+            <div class="msg-row"><div><div class="msg msg-ai">Hi! I'm here to help with Luna's sleep.</div><div class="timestamp">7:32 PM</div></div></div>
+            <div class="msg-row user"><div><div class="msg msg-user">Thanks!</div><div class="timestamp user">7:33 PM</div></div></div>
+
+            <div class="day-group"><span>Today</span></div>
+            <div class="msg-row"><div><div class="msg msg-ai">Luna has been asleep for 2 hours now.</div><div class="timestamp">9:15 PM</div></div></div>
+            <div class="msg-row user"><div><div class="msg msg-user">When should I expect her to wake?</div><div class="timestamp user">9:16 PM</div></div></div>
+            <div class="msg-row"><div><div class="msg msg-ai">Based on her pattern, likely around 6:30am.</div><div class="timestamp">9:16 PM</div></div></div>
+            <div class="msg-row user"><div><div class="msg msg-user">Great, thanks!</div><div class="timestamp user">9:17 PM</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

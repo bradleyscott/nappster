@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nappster · Profile</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FFF8F0; --card-bg: #FFFFFF; --text: #2D2B3A; --text-secondary: #8B88A0; --text-muted: #B8B5CC;
+    --rose: #FF8FAB; --rose-light: #FFE0E8; --rose-bg: #FFF0F3;
+    --lavender: #B48BFF; --lavender-light: #E8D8FF; --lavender-bg: #F5EEFF; --lavender-ghost: #F0EAFF;
+    --mint: #6FCF97; --mint-light: #C8F0D9; --mint-bg: #EDFBF3;
+    --peach: #FFB07C; --peach-light: #FFE0CC; --peach-bg: #FFF3EA;
+    --sky: #7EC8E3; --sunset: #FF8F6B; --sunset-gradient: linear-gradient(135deg, #FF8F6B, #FF6B8A);
+    --shadow-sm: 0 2px 8px rgba(45,43,58,0.06);
+    --shadow-md: 0 4px 16px rgba(45,43,58,0.08);
+    --radius-sm: 12px; --radius-md: 20px; --radius-lg: 28px; --radius-xl: 36px;
+  }
+
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; overflow: hidden; height: 100dvh; width: 100vw; }
+
+  .phone-frame { width: 393px; height: 852px; background: linear-gradient(180deg, var(--bg) 0%, #FFF5EB 100%); border-radius: 44px; overflow: hidden; position: relative; box-shadow: 0 20px 60px rgba(45,43,58,0.15); margin: 20px auto; display: flex; flex-direction: column; }
+  @media (max-width: 420px) { .phone-frame { width: 100vw; height: 100dvh; border-radius: 0; margin: 0; } }
+
+  .status-bar { padding: 14px 28px 8px; display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+
+  /* Page header */
+  .page-header { display: flex; align-items: center; gap: 10px; padding: 2px 16px 12px; flex-shrink: 0; }
+  .back-btn { width: 38px; height: 38px; border-radius: 19px; border: 2px solid #EEE; background: var(--card-bg); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: var(--shadow-sm); transition: all 0.12s; }
+  .back-btn:active { transform: scale(0.9); }
+  .page-title { font-size: 20px; font-weight: 800; }
+
+  .main-content { flex: 1; overflow-y: auto; padding: 0 16px 20px; }
+  .main-content::-webkit-scrollbar { width: 4px; }
+  .main-content::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
+
+  /* ===== PROFILE CARD ===== */
+  .profile-card { background: var(--card-bg); border-radius: var(--radius-lg); padding: 24px 20px 20px; box-shadow: var(--shadow-sm); margin-bottom: 16px; }
+
+  .baby-avatar { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px; background: linear-gradient(135deg, var(--peach-light), var(--peach-bg)); border: 3px solid var(--peach); }
+
+  .profile-field { margin-bottom: 16px; }
+  .profile-field:last-child { margin-bottom: 0; }
+
+  .field-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+
+  .field-input { width: 100%; padding: 14px 16px; border-radius: var(--radius-sm); border: 2px solid #EEE; font-family: inherit; font-size: 15px; font-weight: 700; color: var(--text); background: var(--card-bg); outline: none; transition: border-color 0.15s; }
+  .field-input:focus { border-color: var(--lavender); }
+  .field-input::placeholder { color: var(--text-muted); font-weight: 600; }
+
+  .field-date-input { width: 100%; padding: 14px 16px; border-radius: var(--radius-sm); border: 2px solid #EEE; font-family: inherit; font-size: 15px; font-weight: 700; color: var(--text); background: var(--card-bg); outline: none; appearance: none; -webkit-appearance: none; transition: border-color 0.15s; }
+  .field-date-input:focus { border-color: var(--lavender); }
+
+  .field-textarea { width: 100%; padding: 14px 16px; border-radius: var(--radius-sm); border: 2px solid #EEE; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text); background: var(--card-bg); outline: none; resize: vertical; min-height: 100px; transition: border-color 0.15s; }
+  .field-textarea:focus { border-color: var(--lavender); }
+  .field-textarea::placeholder { color: var(--text-muted); font-weight: 600; }
+  .field-hint { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
+
+  .save-btn { width: 100%; padding: 16px; border: none; border-radius: 16px; background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: white; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(124,77,255,0.25); transition: all 0.12s; margin-top: 8px; }
+  .save-btn:active { transform: scale(0.97); }
+  .save-btn.loading { opacity: 0.7; pointer-events: none; }
+
+  /* ===== FAMILY CARD (visually separate) ===== */
+  .family-card { background: linear-gradient(145deg, #FFFFFF, var(--lavender-bg)); border-radius: var(--radius-lg); padding: 24px 20px 20px; box-shadow: var(--shadow-sm); margin-bottom: 16px; border: 1.5px solid var(--lavender-light); }
+
+  .family-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .family-icon-circle { width: 40px; height: 40px; border-radius: 50%; background: var(--lavender-bg); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .family-header-text { flex: 1; }
+  .family-header-text .fh-title { font-size: 17px; font-weight: 800; }
+  .family-header-text .fh-sub { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+
+  /* Current members list */
+  .family-members { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .fm-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: var(--radius-sm); box-shadow: 0 1px 4px rgba(45,43,58,0.04); }
+  .fm-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--lavender-bg); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--lavender); flex-shrink: 0; }
+  .fm-info { flex: 1; }
+  .fm-name { font-size: 14px; font-weight: 700; }
+  .fm-role { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .fm-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--mint-bg); color: var(--mint); }
+  .fm-badge.you { background: var(--lavender-bg); color: var(--lavender); }
+
+  .family-divider { height: 1px; background: linear-gradient(90deg, var(--lavender-light), transparent); margin: 4px 0 14px; }
+
+  .invite-section { text-align: center; }
+  .invite-label { font-size: 14px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  .generate-btn { width: 100%; padding: 16px; border: 0; border-radius: 16px; background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: white; font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(124,77,255,0.2); transition: all 0.12s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .generate-btn:active { transform: scale(0.97); }
+  .generate-btn.loading { opacity: 0.7; pointer-events: none; }
+  .generate-btn.outline { background: var(--card-bg); color: var(--text); border: 2px solid var(--lavender-light); box-shadow: none; }
+
+  .invite-result { margin-top: 14px; }
+  .code-display { background: linear-gradient(135deg, var(--lavender-bg), #F0EAFF); border-radius: 16px; padding: 20px; border: 2px dashed var(--lavender-light); position: relative; }
+  .code-emoji { font-size: 28px; margin-bottom: 8px; }
+  .code-text { font-size: 28px; font-weight: 900; letter-spacing: 0.2em; font-family: 'Nunito', sans-serif; color: #5B2ED9; }
+  .code-expiry { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-top: 6px; }
+  .code-copy-row { display: flex; gap: 8px; margin-top: 12px; }
+  .code-copy-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.12s; }
+  .code-copy-btn.primary { background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: white; box-shadow: 0 4px 12px rgba(124,77,255,0.2); }
+  .code-copy-btn.secondary { background: white; color: var(--text-secondary); border: 2px solid var(--lavender-light); }
+  .code-copy-btn:active { transform: scale(0.96); }
+  .code-copy-btn.copied { background: linear-gradient(135deg, var(--mint), #4CAF74); box-shadow: 0 4px 12px rgba(111,207,151,0.2); }
+
+  /* ===== DELETE ACCOUNT ===== */
+  .danger-zone { background: var(--card-bg); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); border: 1.5px solid var(--rose-light); }
+  .danger-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .danger-header .dh-icon { font-size: 18px; }
+  .danger-header .dh-title { font-size: 14px; font-weight: 800; color: var(--rose); }
+  .danger-text { font-size: 12px; font-weight: 600; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px; }
+
+  .prototype-container { display: flex; gap: 24px; padding: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .phone-annotation { text-align: center; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+  @media (max-width: 420px) { .prototype-container { padding: 0; gap: 12px; } }
+</style>
+</head>
+<body>
+
+<div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 8px 0;">
+  <div style="text-align: center; padding: 6px 16px 0; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6);">
+    ⬇ Profile & Family — Sleep training removed · Family in separate lavender card ⬇
+  </div>
+  <div class="prototype-container">
+    <div>
+      <div class="phone-frame" id="phoneProfile">
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+
+        <div class="page-header">
+          <button class="back-btn">←</button>
+          <div class="page-title">Profile & Family</div>
+        </div>
+
+        <div class="main-content">
+
+          <!-- ===== PROFILE CARD ===== -->
+          <div class="profile-card">
+            <div class="baby-avatar">👶</div>
+
+            <div class="profile-field">
+              <div class="field-label">👤 Baby's name</div>
+              <input class="field-input" type="text" value="Luna" placeholder="Baby's name" />
+            </div>
+
+            <div class="profile-field">
+              <div class="field-label">🎂 Birth date</div>
+              <input class="field-date-input" type="date" value="2025-11-15" />
+            </div>
+
+            <div class="profile-field">
+              <div class="field-label">📝 Known patterns</div>
+              <textarea class="field-textarea" placeholder="e.g., 30-minute naps are normal, doesn't do well with early bedtime">Tends to wake around 6:30am, two naps per day around 9am and 1pm</textarea>
+              <div class="field-hint">The AI coach uses these notes for personalised recommendations</div>
+            </div>
+
+            <button class="save-btn">💾 Save Changes</button>
+          </div>
+
+          <!-- ===== FAMILY CARD (visually separate lavender section) ===== -->
+          <div class="family-card">
+            <div class="family-header">
+              <div class="family-icon-circle">👨‍👩‍👧‍👧</div>
+              <div class="family-header-text">
+                <div class="fh-title">Family</div>
+                <div class="fh-sub">Caregivers who help track Luna's sleep</div>
+              </div>
+            </div>
+
+            <!-- Current family members -->
+            <div class="family-members">
+              <div class="fm-item">
+                <div class="fm-avatar">YB</div>
+                <div class="fm-info">
+                  <div class="fm-name">You</div>
+                  <div class="fm-role">you@email.com</div>
+                </div>
+                <span class="fm-badge you">You</span>
+              </div>
+              <div class="fm-item">
+                <div class="fm-avatar" style="background:#EDFBF3;color:var(--mint);">AP</div>
+                <div class="fm-info">
+                  <div class="fm-name">Alex P.</div>
+                  <div class="fm-role">alex@email.com</div>
+                </div>
+                <span class="fm-badge">Connected</span>
+              </div>
+            </div>
+
+            <div class="family-divider"></div>
+
+            <!-- Invite section -->
+            <div class="invite-section" id="inviteSection">
+              <div class="invite-label">🤝 Invite a caregiver</div>
+
+              <!-- Before generating code -->
+              <div id="preGenerate">
+                <button class="generate-btn" onclick="showInviteCode()">
+                  ✨ Generate Invite Code
+                </button>
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-top:8px;line-height:1.3;">
+                  Share this code with anyone who helps care for Luna. They'll enter it during sign-up.
+                </div>
+              </div>
+
+              <!-- After generating code -->
+              <div id="postGenerate" style="display:none;">
+                <div class="invite-result">
+                  <div class="code-display">
+                    <div class="code-emoji">🔑</div>
+                    <div class="code-text" id="inviteCodeDisplay">NAPP-LUNA-XK4M</div>
+                    <div class="code-expiry">⏰ Expires in 24 hours · One-time use</div>
+                    <div class="code-copy-row">
+                      <button class="code-copy-btn secondary" onclick="resetInvite()">↻ New Code</button>
+                      <button class="code-copy-btn primary" id="copyBtn" onclick="copyCode()">📋 Copy Code</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== DANGER ZONE ===== -->
+          <div class="danger-zone">
+            <div class="danger-header">
+              <span class="dh-icon">⚠️</span>
+              <span class="dh-title">Danger Zone</span>
+            </div>
+            <div class="danger-text">
+              Delete all sleep data for Luna. This action cannot be undone.
+            </div>
+            <button style="width:100%;padding:12px;border-radius:12px;border:2px solid var(--rose-light);background:var(--rose-bg);color:var(--rose);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;" onclick="alert('Delete confirmation flow')">
+              Delete Luna's Data
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+      <div class="phone-annotation">
+        👤 Profile card (white) · 👨‍👩‍👧‍👧 Family card (lavender) — visually distinct · No sleep training method field
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showInviteCode() {
+    document.getElementById('preGenerate').style.display = 'none';
+    document.getElementById('postGenerate').style.display = 'block';
+  }
+
+  function resetInvite() {
+    // Simulates generating a new code
+    const codes = ['NAPP-LUNA-XK4M', 'NAPP-LUNA-7B2P', 'NAPP-LUNA-3F9R', 'NAPP-LUNA-W6DV'];
+    document.getElementById('inviteCodeDisplay').textContent = codes[Math.floor(Math.random() * codes.length)];
+    const copyBtn = document.getElementById('copyBtn');
+    copyBtn.className = 'code-copy-btn primary';
+    copyBtn.textContent = '📋 Copy Code';
+  }
+
+  function copyCode() {
+    const btn = document.getElementById('copyBtn');
+    btn.className = 'code-copy-btn copied';
+    btn.innerHTML = '✅ Copied!';
+    setTimeout(() => {
+      btn.className = 'code-copy-btn primary';
+      btn.innerHTML = '📋 Copy Code';
+    }, 2000);
+  }
+</script>
+
+</body>
+</html>
