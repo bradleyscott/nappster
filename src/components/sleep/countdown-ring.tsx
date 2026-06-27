@@ -14,6 +14,8 @@ interface CountdownRingProps {
   timeLabel: string
   /** Diameter in px (default 150) */
   size?: number
+  /** Stroke width of the ring (default 8) */
+  strokeWidth?: number
   className?: string
 }
 
@@ -23,10 +25,11 @@ export function CountdownRing({
   timeRemaining,
   timeLabel,
   size = 150,
+  strokeWidth = 8,
   className,
 }: CountdownRingProps) {
   const id = useId()
-  const stroke = 8
+  const stroke = strokeWidth
   const radius = (size - stroke) / 2 - 4
   const circumference = 2 * Math.PI * radius
   const clamped = Math.min(1, Math.max(0, progress))

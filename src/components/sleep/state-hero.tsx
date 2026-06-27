@@ -112,6 +112,7 @@ export function StateHero({
           timeRemaining={countdown.timeRemaining}
           timeLabel={countdown.timeLabel}
           size={ringSize}
+          strokeWidth={ringSize >= 220 ? 14 : ringSize >= 190 ? 12 : 8}
         />
       </div>
 
