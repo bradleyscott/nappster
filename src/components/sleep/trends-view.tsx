@@ -100,7 +100,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
         isNavigatingBack={isNavigatingBack}
       />
 
-      <div className="mx-auto max-w-md px-4 pt-2">
+      <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
         {/* ===== AVERAGE DAY CARD ===== */}
       {activeExpected && expectedStats && (
         <div className="mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
