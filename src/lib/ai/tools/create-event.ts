@@ -2,9 +2,9 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
 import { formatTime } from '@/lib/sleep-utils'
-import { getTodayBoundsForTimezone } from '@/lib/timezone'
 import { computeCurrentState, isValidEvent, VALID_EVENTS } from '@/lib/state-machine'
 import type { SleepEvent, EventType } from '@/types/database'
+import { getTodaySleepEvents, createSleepEvent } from '@/lib/services/sleep-events'
 
 /**
  * Creates a tool that logs sleep events to the database.
@@ -43,15 +43,7 @@ Do NOT use this tool for questions or hypothetical scenarios.`,
     execute: async ({ event_type, event_time, end_time, context: eventContext, notes, force }) => {
       // Validate event against current state unless force is true
       if (!force) {
-        const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)
-
-        const { data: existingEvents } = await supabase
-          .from('sleep_events')
-          .select('*')
-          .eq('baby_id', babyId)
-          .gte('event_time', todayStart)
-          .lt('event_time', todayEnd)
-          .order('event_time', { ascending: true })
+        const { data: existingEvents } = await getTodaySleepEvents(supabase, babyId, timezone)
 
         const currentState = computeCurrentState((existingEvents || []) as SleepEvent[])
 
@@ -69,21 +61,17 @@ Do NOT use this tool for questions or hypothetical scenarios.`,
         }
       }
 
-      const { data, error } = await supabase
-        .from('sleep_events')
-        .insert({
-          baby_id: babyId,
-          event_type,
-          event_time,
-          end_time: event_type === 'night_wake' ? (end_time ?? null) : null,
-          context: eventContext ?? null,
-          notes: notes ?? null,
-        })
-        .select()
-        .single()
+      const { data, error } = await createSleepEvent(supabase, {
+        baby_id: babyId,
+        event_type: event_type as EventType,
+        event_time,
+        end_time: event_type === 'night_wake' ? (end_time ?? null) : null,
+        context: eventContext,
+        notes: notes ?? null,
+      })
 
-      if (error) {
-        return { success: false, error: error.message }
+      if (error || !data) {
+        return { success: false, error: error?.message ?? 'Failed to create event' }
       }
 
       let message = `Logged ${event_type.replace('_', ' ')} at ${formatTime(event_time, timezone)}`

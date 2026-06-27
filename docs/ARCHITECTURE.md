@@ -107,10 +107,20 @@ src/
 │   │   ├── client.ts                 # Mock Supabase client
 │   │   ├── auth.ts                   # Mock auth provider
 │   │   └── query-builder.ts          # Mock query builder
-│   ├── hooks/
-│   │   └── use-realtime-sync.ts      # Multi-user sync hook
+│   ├── hooks/                        # React hooks
+│   │   ├── use-realtime-sync.ts      # Multi-user sync hook
+│   │   ├── use-sleep-event-crud.ts   # Local + server event state
+│   │   ├── use-sleep-plan-sync.ts    # Local sleep plan state
+│   │   ├── use-background-refresh.ts # Missed-event recovery
+│   │   ├── use-chat-transport.ts     # Chat API transport setup
+│   │   ├── use-timeline-builder.ts   # Prepare timeline props
+│   │   ├── use-tool-outputs.ts       # Extract AI tool results
+│   │   ├── use-today-sleep-state.ts  # Current sleep state
+│   │   └── use-event-dialog-handlers.ts # Dialog save/delete helpers
 │   ├── sleep-utils.ts                # Event grouping, formatting
 │   ├── timezone.ts                   # Timezone utilities
+│   ├── error-reporting.ts            # Configurable error reporting
+│   ├── env.ts                        # Environment validation
 │   └── utils.ts                      # General utilities (cn, etc.)
 │
 ├── types/
@@ -287,6 +297,28 @@ streamText({
 ### Sleep Plan Generation
 
 Sleep plans are generated via the `updateSleepPlan` AI tool during chat, not through a separate API endpoint. The `GET /api/sleep-plan/[babyId]` route fetches the active plan and checks staleness against current events.
+
+## Data Access Layer
+
+All direct Supabase queries live in `src/lib/services/`. Components, hooks, API routes, and AI tools consume these services instead of calling `supabase.from(...)` directly.
+
+### Service Modules
+
+| Service | Responsibility |
+| ------- | -------------- |
+| `sleep-events.ts` | Create/read/update/delete sleep events; today/recent/since queries. |
+| `sleep-plans.ts` | Active plan lookup, create plan, deactivate old plans, recent plans. |
+| `chat-messages.ts` | Persist and paginate chat messages. |
+| `babies.ts` | Baby profile CRUD. |
+| `family-members.ts` | Membership lookup, access checks, invite redemption. |
+| `invite-codes.ts` | Invite code generation. |
+
+### Design Rules
+
+1. Services accept an injected `SupabaseClient` so mock mode works without code changes.
+2. No `supabase.from('...')` calls outside `src/lib/services/`.
+3. Services return `{ data, error }` shapes with typed errors.
+4. Complex queries (filters, ordering, pagination) are encapsulated in services, not duplicated in callers.
 
 ## Database Schema
 
@@ -490,45 +522,47 @@ await channel.send({
 
 ## State Management
 
-### Client State (ChatContent)
+### State Synchronization Contract
+
+`ChatContent` receives initial server-rendered data and then merges four asynchronous streams:
+
+1. **Local edits** – optimistic updates from `useSleepEventCRUD`.
+2. **AI tool outputs** – new events/plans extracted from streaming assistant messages via `useToolOutputs`.
+3. **Realtime changes** – `useRealtimeSync` pushes INSERT/UPDATE/DELETE events from other caregivers.
+4. **Background refresh** – `useBackgroundRefresh` refetches recent events/messages/plans when the tab becomes visible or reconnects after disconnect.
+
+Merging is centralized in `src/lib/merge-data.ts`:
 
 ```typescript
-// Live chat session
-const { messages: liveMessages, sendMessage } = useChat({ transport })
+// Events: initial + history + local + realtime + refresh
+const allSleepEvents = mergeEvents(initialEvents, historyEvents, localEvents, deletedIds)
 
-// Sleep events (local + realtime)
-const [localEvents, setLocalEvents] = useState<SleepEvent[]>(initialEvents)
+// Messages: live + history + refreshed
+const allMessages = mergeMessages(liveMessages, historyMessages, refreshedMessages)
 
-// Historical data (paginated)
-const [historyMessages, setHistoryMessages] = useState<ChatMessage[]>([])
-const [historySleepEvents, setHistorySleepEvents] = useState<SleepEvent[]>([])
-
-// Current sleep plan
-const [sleepPlan, setSleepPlan] = useState<SleepPlan | null>(initialPlan)
-
-// Modal state
-const [selectedEvent, setSelectedEvent] = useState<SleepEvent | null>(null)
-const [selectedSession, setSelectedSession] = useState<Session | null>(null)
-
-// Plan refresh trigger
-const [refreshKey, setRefreshKey] = useState(0)
+// Plans: initial + local + refreshed
+const allSleepPlans = mergeSleepPlans(initialPlans, localPlans, refreshedPlans)
 ```
 
-### Deduplication Refs
+### Deduplication Rules
 
-```typescript
-// Prevent duplicate events from AI tool + realtime
-const processedToolEventIds = useRef<Set<string>>(new Set())
+- `useSleepEventCRUD` tracks locally-created IDs and deleted IDs.
+- `useToolOutputs` processes each assistant message once, adding tool-created events/plans to local state.
+- `useSleepPlanSync` ignores duplicate tool-created plans by ID.
+- Deleted IDs are filtered out by `mergeEvents` so a background refresh does not resurrect deleted records.
 
-// Track manually created events
-const locallyCreatedEventIds = useRef<Set<string>>(new Set())
+### Extracted Hooks
 
-// Process tool outputs once
-const processedSleepPlanMsgIds = useRef<Set<string>>(new Set())
-
-// Track deleted events for filtering
-const deletedEventIds = useRef<Set<string>>(new Set())
-```
+| Hook | Responsibility |
+| ---- | -------------- |
+| `useSleepEventCRUD` | Optimistic create/update/delete for events and sessions. |
+| `useSleepPlanSync` | Local plan state, active-plan selection, realtime plan handling. |
+| `useBackgroundRefresh` | Refetch missed data on reconnect/visibility change. |
+| `useChatTransport` | Build `DefaultChatTransport` with pre-injected context. |
+| `useToolOutputs` | Extract `createSleepEvent`/`updateSleepPlan` results from message parts. |
+| `useTodaySleepState` | Compute current sleep state from today's events. |
+| `useEventDialogHandlers` | Wrap save/delete handlers with dialog close logic. |
+| `useTimelineBuilder` | Merge all data streams into `TimelineRenderer` props. |
 
 ## Component Architecture
 

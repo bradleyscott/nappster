@@ -46,6 +46,25 @@ const statusConfig: Record<
 // Empty subscription for useSyncExternalStore - never triggers updates
 const emptySubscribe = () => () => {}
 
+// Validate schedule data from JSON with fallback to empty array
+function validateSchedule(raw: unknown): ScheduleItem[] {
+  if (!Array.isArray(raw)) return []
+  return raw.filter((item): item is ScheduleItem =>
+    item !== null &&
+    typeof item === 'object' &&
+    'type' in item &&
+    'label' in item &&
+    'timeWindow' in item &&
+    'status' in item
+  )
+}
+
+// Validate next_action from JSON with fallback to null
+function validateNextAction(raw: unknown): NextAction | null {
+  if (raw == null || typeof raw !== 'object') return null
+  return raw as NextAction
+}
+
 function formatPlanForSharing(plan: SleepPlanRow, schedule: ScheduleItem[]): string {
   const lines: string[] = []
 
@@ -80,8 +99,8 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
     () => false  // Server: not mounted
   )
 
-  const schedule = plan.schedule as unknown as ScheduleItem[]
-  const nextAction = plan.next_action as unknown as NextAction
+  const schedule = validateSchedule(plan.schedule)
+  const nextAction = validateNextAction(plan.next_action)
   const planTime = formatTime(plan.created_at)
 
   const handleShare = async () => {
@@ -107,7 +126,7 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
                 <span className="text-xs text-muted-foreground shrink-0">{planTime}</span>
               </div>
               <p className="text-xs text-muted-foreground truncate">
-                {nextAction.label} · Bedtime {plan.target_bedtime}
+                {nextAction?.label ?? 'Plan'} · Bedtime {plan.target_bedtime}
               </p>
             </div>
             <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -145,7 +164,7 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
                 </div>
                 {!isOpen && (
                   <p className="text-xs text-muted-foreground truncate">
-                    {nextAction.label} · Bedtime {plan.target_bedtime}
+                    {nextAction?.label ?? 'Plan'} · Bedtime {plan.target_bedtime}
                   </p>
                 )}
               </div>

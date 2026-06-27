@@ -1,8 +1,8 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
-import { getTodayBoundsForTimezone } from '@/lib/timezone'
 import { countNaps } from '@/lib/sleep-utils'
+import { getTodaySleepEvents } from '@/lib/services/sleep-events'
 import { formatEventForPrompt } from '@/lib/ai/format-context'
 import { computeCurrentState } from '@/lib/state-machine'
 import type { SleepEvent } from '@/types/database'
@@ -21,18 +21,10 @@ Call this to see the current day's schedule including wake time, naps, and any l
 This is essential for making recommendations about the next nap or bedtime.`,
     inputSchema: z.object({}),
     execute: async () => {
-      const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)
-
-      const { data: events, error } = await supabase
-        .from('sleep_events')
-        .select('*')
-        .eq('baby_id', babyId)
-        .gte('event_time', todayStart)
-        .lt('event_time', todayEnd)
-        .order('event_time', { ascending: true })
+      const { data: events, error } = await getTodaySleepEvents(supabase, babyId, timezone)
 
       if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: error.message } as const
       }
 
       if (!events || events.length === 0) {
@@ -47,7 +39,7 @@ This is essential for making recommendations about the next nap or bedtime.`,
             isNapInProgress: false,
             isOvernight: false
           }
-        }
+        } as const
       }
 
       // Format events for display using shared formatting function
@@ -78,7 +70,7 @@ This is essential for making recommendations about the next nap or bedtime.`,
           lastEventType: lastEvent?.event_type,
           lastEventTime: lastEvent ? formatTime(lastEvent.event_time, timezone) : null
         }
-      }
+      } as const
     },
   })
 }

@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChatContent } from '@/components/chat-content'
 import { getYesterdayBoundsForTimezone } from '@/lib/timezone'
+import { getFamilyMembersForUser } from '@/lib/services/family-members'
+import { getBabyById } from '@/lib/services/babies'
+import { getChatMessages } from '@/lib/services/chat-messages'
+import { getSleepEvents } from '@/lib/services/sleep-events'
+import { getSleepPlansSinceCreatedAt } from '@/lib/services/sleep-plans'
 
 export default async function Home() {
   const supabase = await createClient();
@@ -55,10 +60,7 @@ export default async function Home() {
   }
 
   // Get user's baby (or babies)
-  const { data: familyMembers } = await supabase
-    .from("family_members")
-    .select("baby_id")
-    .eq("user_id", user.id);
+  const { data: familyMembers } = await getFamilyMembersForUser(supabase, user.id)
 
   // If no baby setup, redirect to onboarding
   if (!familyMembers || familyMembers.length === 0) {
@@ -66,7 +68,7 @@ export default async function Home() {
   }
 
   // Get the first baby (we can add multi-baby support later)
-  const babyId = (familyMembers[0] as { baby_id: string }).baby_id;
+  const babyId = familyMembers[0].baby_id;
 
   // Get timezone from cookie
   const cookieStore = await cookies()
@@ -75,19 +77,13 @@ export default async function Home() {
 
   // Run baby profile + chat messages queries in parallel (both only need babyId)
   const [{ data: baby }, { data: chatMessages }] = await Promise.all([
-    supabase
-      .from("babies")
-      .select("*")
-      .eq("id", babyId)
-      .single(),
+    getBabyById(supabase, babyId),
 
     // Fetch initial chat messages (most recent 50, newest first)
-    supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('baby_id', babyId)
-      .order('created_at', { ascending: false })
-      .limit(50),
+    getChatMessages(supabase, {
+      babyId,
+      limit: 50,
+    }),
   ])
 
   if (!baby) {
@@ -118,23 +114,16 @@ export default async function Home() {
 
   // Run sleep events and sleep plans queries in parallel
   const [{ data: sleepEvents }, { data: sleepPlans }] = await Promise.all([
-    supabase
-      .from("sleep_events")
-      .select("*")
-      .eq("baby_id", babyId)
-      .gte("event_time", eventStartTime)
-      .order("event_time", { ascending: true })
-      .limit(200),
+    getSleepEvents(supabase, {
+      babyId,
+      from: eventStartTime,
+      order: { column: 'event_time', ascending: true },
+      limit: 200,
+    }),
 
     // Fetch recent sleep plans that align with the loaded messages window
     // When no messages exist, only fetch the most recent plans instead of all since epoch
-    supabase
-      .from('sleep_plans')
-      .select('*')
-      .eq('baby_id', babyId)
-      .gte('created_at', oldestTimestamp || yesterdayStart)
-      .order('created_at', { ascending: true })
-      .limit(50),
+    getSleepPlansSinceCreatedAt(supabase, babyId, oldestTimestamp || yesterdayStart),
   ])
 
   const initialSleepPlans = sleepPlans || []

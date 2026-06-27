@@ -6,6 +6,9 @@ import {
   apiSuccess,
   authErrorResponse,
 } from '@/lib/api'
+import { getChatMessages } from '@/lib/services/chat-messages'
+import { getSleepEvents } from '@/lib/services/sleep-events'
+import { getSleepPlansByCreatedAtRange } from '@/lib/services/sleep-plans'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -30,19 +33,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Build query - fetch in descending order, then reverse for chronological
-    let query = supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('baby_id', babyId)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-
-    // Support cursor-based pagination for loading older messages
-    if (before) {
-      query = query.lt('created_at', before)
-    }
-
-    const { data: messages, error } = await query
+    const { data: messages, error } = await getChatMessages(supabase, {
+      babyId,
+      limit,
+      before: before ?? undefined,
+    })
 
     if (error) {
       console.error('Error fetching chat messages:', error)
@@ -93,13 +88,13 @@ export async function GET(req: NextRequest) {
     if (before && cursor) {
       // Get sleep events logged between cursor (oldest fetched) and before (previous cursor)
       // Use created_at (when logged) not event_time (when occurred) to align with chat message pagination
-      const { data: events, error: eventsError } = await supabase
-        .from('sleep_events')
-        .select('*')
-        .eq('baby_id', babyId)
-        .gte('created_at', cursor)
-        .lt('created_at', before)
-        .order('event_time', { ascending: true })
+      const { data: events, error: eventsError } = await getSleepEvents(supabase, {
+        babyId,
+        from: cursor,
+        to: before,
+        dateColumn: 'created_at',
+        order: { column: 'event_time', ascending: true },
+      })
 
       if (eventsError) {
         console.error('Error fetching sleep events for history:', eventsError)
@@ -107,13 +102,12 @@ export async function GET(req: NextRequest) {
       sleepEvents = events || []
 
       // Get sleep plans between cursor (oldest fetched) and before (previous cursor)
-      const { data: plans, error: plansError } = await supabase
-        .from('sleep_plans')
-        .select('*')
-        .eq('baby_id', babyId)
-        .gte('created_at', cursor)
-        .lt('created_at', before)
-        .order('created_at', { ascending: true })
+      const { data: plans, error: plansError } = await getSleepPlansByCreatedAtRange(
+        supabase,
+        babyId,
+        cursor,
+        before
+      )
 
       if (plansError) {
         console.error('Error fetching sleep plans for history:', plansError)

@@ -1,6 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
+import { getBabyById, updateBaby } from '@/lib/services/babies'
 
 /**
  * Creates a tool that updates the baby's pattern notes.
@@ -35,11 +36,7 @@ Do NOT use this for:
       const MAX_NOTES_LENGTH = 2000
 
       // Fetch current baby to get pattern notes
-      const { data: baby, error: fetchError } = await supabase
-        .from('babies')
-        .select('pattern_notes')
-        .eq('id', babyId)
-        .single()
+      const { data: baby, error: fetchError } = await getBabyById(supabase, babyId)
 
       if (fetchError) {
         return { success: false, error: fetchError.message }
@@ -63,10 +60,7 @@ Do NOT use this for:
         }
       }
 
-      const { error } = await supabase
-        .from('babies')
-        .update({ pattern_notes: updatedNotes })
-        .eq('id', babyId)
+      const { error } = await updateBaby(supabase, babyId, { pattern_notes: updatedNotes })
 
       if (error) {
         return { success: false, error: error.message }
