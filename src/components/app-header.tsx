@@ -42,7 +42,7 @@ export function AppHeader({ baby }: AppHeaderProps) {
   return (
     <header className="relative px-4 pt-3 pb-1">
       {/* Floating action buttons — vertically centered against the pill */}
-      <div className="absolute right-6 top-1/2 flex -translate-y-1/2 gap-2">
+      <div className="absolute right-8 top-1/2 flex -translate-y-1/2 gap-2">
         <Link
           href="/sleep-trends"
           onClick={handleTrendsClick}
