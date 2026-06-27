@@ -41,10 +41,10 @@ export function TimelineSection({ items, onAddEvent, onEditEvent, className }: T
     <section className={cn('', className)}>
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-base font-800 text-[var(--text)]">Timeline</h3>
+        <h3 className="text-base font-extrabold text-[var(--text)]">Timeline</h3>
         <button
           onClick={onAddEvent}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--lavender-light)] bg-white px-4 py-1.5 text-sm font-700 text-[var(--lavender)] active:bg-[var(--lavender-bg)] active:scale-95 transition-all duration-100"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--lavender-light)] bg-white px-4 py-1.5 text-sm font-bold text-[var(--lavender)] active:bg-[var(--lavender-bg)] active:scale-95 transition-all duration-100"
         >
           <span className="text-base leading-none">+</span>
           Log past event
@@ -55,8 +55,8 @@ export function TimelineSection({ items, onAddEvent, onEditEvent, className }: T
       {items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-[#F0EDF5] py-10 text-center">
           <span className="text-2xl">📋</span>
-          <p className="text-sm font-700 text-[var(--text-muted)]">No events yet today</p>
-          <p className="text-xs font-600 text-[var(--text-muted)]">Tap above to log a past event</p>
+          <p className="text-sm font-bold text-[var(--text-muted)]">No events yet today</p>
+          <p className="text-xs font-semibold text-[var(--text-muted)]">Tap above to log a past event</p>
         </div>
       ) : (
         <div className="flex flex-col gap-0">
@@ -87,21 +87,21 @@ export function TimelineSection({ items, onAddEvent, onEditEvent, className }: T
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{item.icon}</span>
-                      <span className="truncate text-sm font-700 text-[var(--text)]">
+                      <span className="truncate text-sm font-bold text-[var(--text)]">
                         {item.label}
                       </span>
-                      <span className="ml-auto shrink-0 text-xs font-700 text-[var(--text-muted)]">
+                      <span className="ml-auto shrink-0 text-xs font-bold text-[var(--text-muted)]">
                         {item.time}
                       </span>
                     </div>
                     {item.detail && (
-                      <div className="mt-0.5 truncate text-xs font-600 text-[var(--text-muted)] pl-[1.6rem]">
+                      <div className="mt-0.5 truncate text-xs font-semibold text-[var(--text-muted)] pl-[1.6rem]">
                         {item.detail}
                       </div>
                     )}
                   </div>
                   {/* Edit hint — subtle chevrons */}
-                  <span className="shrink-0 text-xs font-700 text-[var(--text-muted)] opacity-0 transition-opacity duration-100 group-hover:opacity-40">
+                  <span className="shrink-0 text-xs font-bold text-[var(--text-muted)] opacity-0 transition-opacity duration-100 group-hover:opacity-40">
                     ››
                   </span>
                 </div>

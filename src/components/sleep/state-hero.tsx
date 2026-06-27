@@ -89,7 +89,7 @@ export function StateHero({
       {/* Icon + Title row */}
       <div className="mb-3 flex items-center gap-3">
         <span className="text-2xl">{icon}</span>
-        <h2 className="text-[22px] font-900 leading-tight text-[var(--text)]">
+        <h2 className="text-[22px] font-black leading-tight text-[var(--text)]">
           {title}
         </h2>
       </div>
@@ -108,10 +108,10 @@ export function StateHero({
       </div>
 
       {/* Expected label */}
-      <div className="mt-4 flex items-center justify-center gap-2 rounded-full border border-[#F0EDF5] bg-[var(--bg)] px-4 py-2 text-center text-sm font-700 text-[var(--text-secondary)]">
+      <div className="mt-4 flex items-center justify-center gap-2 rounded-full border border-[#F0EDF5] bg-[var(--bg)] px-4 py-2 text-center text-sm font-bold text-[var(--text-secondary)]">
         <span>{expectedLabel.icon}</span>
         <span>{expectedLabel.text}</span>
-        <span className="font-800 text-[var(--text)]">{expectedLabel.time}</span>
+        <span className="font-extrabold text-[var(--text)]">{expectedLabel.time}</span>
       </div>
     </div>
   )

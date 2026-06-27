@@ -47,17 +47,17 @@ export const PrimaryActionButton = forwardRef<HTMLButtonElement, PrimaryActionBu
         <span className="pointer-events-none absolute inset-0 rounded-[22px] bg-gradient-to-b from-white/15 to-transparent" />
         <span className="text-2xl">{icon}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-base font-800 leading-tight">{label}</div>
+          <div className="text-base font-extrabold leading-tight">{label}</div>
           {subtitle && (
-            <div className="mt-0.5 text-sm font-600 text-white/70">{subtitle}</div>
+            <div className="mt-0.5 text-sm font-semibold text-white/70">{subtitle}</div>
           )}
         </div>
         {timeBadge && (
-          <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-sm font-700 backdrop-blur-sm">
+          <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-sm font-bold backdrop-blur-sm">
             {timeBadge}
           </span>
         )}
-        <span className="shrink-0 text-lg font-700 transition-transform duration-150 group-hover:translate-x-0.5">
+        <span className="shrink-0 text-lg font-bold transition-transform duration-150 group-hover:translate-x-0.5">
           →
         </span>
       </button>
@@ -85,12 +85,12 @@ export const SecondaryActionButton = forwardRef<HTMLButtonElement, SecondaryActi
       >
         <span className="text-xl">{icon}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-800 leading-tight">{label}</div>
+          <div className="text-sm font-extrabold leading-tight">{label}</div>
           {subtitle && (
-            <div className="mt-0.5 text-xs font-600 text-[var(--text-muted)]">{subtitle}</div>
+            <div className="mt-0.5 text-xs font-semibold text-[var(--text-muted)]">{subtitle}</div>
           )}
         </div>
-        <span className="shrink-0 text-sm font-700 text-[var(--text-muted)]">→</span>
+        <span className="shrink-0 text-sm font-bold text-[var(--text-muted)]">→</span>
       </button>
     )
   }
