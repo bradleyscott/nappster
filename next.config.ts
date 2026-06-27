@@ -1,16 +1,17 @@
 import type { NextConfig } from "next";
-import withPWAInit from "next-pwa";
+import withSerwistInit from "@serwist/next";
 
-const withPWA = withPWAInit({
-  dest: "public",
+// Note: the previous next-pwa setup used `publicExcludes` to keep manifest.json
+// and icons/ out of the precache manifest. Serwist precaches everything in
+// `public/` by default, which is fine for a PWA (offline manifest + icons).
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
   disable: process.env.NODE_ENV === "development",
-  register: false, // We register manually in ServiceWorkerRegister component
-  skipWaiting: true,
-  publicExcludes: ["!manifest.json", "!icons/**/*"],
 });
 
 const nextConfig: NextConfig = {
-  turbopack: {}, // Silence Turbopack warning (next-pwa uses webpack, but is disabled in dev)
+  turbopack: {},
 };
 
-export default withPWA(nextConfig);
+export default withSerwist(nextConfig);
