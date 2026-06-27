@@ -110,9 +110,11 @@ describe('AI tools', () => {
 
   describe('getSleepHistory', () => {
     it('returns day summaries', async () => {
-      const yesterday = new Date()
-      yesterday.setDate(yesterday.getDate() - 1)
-      yesterday.setHours(7, 0, 0, 0)
+      // Build events at UTC noon and UTC midnight so both land on the same
+      // calendar day in America/Chicago (CDT = UTC-5).
+      const todayUtc = new Date()
+      const wakeUtc = new Date(Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate(), 12, 0, 0))
+      const bedtimeUtc = new Date(wakeUtc.getTime() + 12 * 60 * 60 * 1000)
 
       mockSupabase._setSelectResponse({
         data: [
@@ -120,21 +122,21 @@ describe('AI tools', () => {
             id: 'evt-1',
             baby_id: 'test-baby-123',
             event_type: 'wake',
-            event_time: yesterday.toISOString(),
+            event_time: wakeUtc.toISOString(),
             end_time: null,
             context: 'home',
             notes: null,
-            created_at: yesterday.toISOString(),
+            created_at: wakeUtc.toISOString(),
           },
           {
             id: 'evt-2',
             baby_id: 'test-baby-123',
             event_type: 'bedtime',
-            event_time: new Date(yesterday.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+            event_time: bedtimeUtc.toISOString(),
             end_time: null,
             context: 'home',
             notes: null,
-            created_at: new Date(yesterday.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+            created_at: bedtimeUtc.toISOString(),
           },
         ],
         error: null,
