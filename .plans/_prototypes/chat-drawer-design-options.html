@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Drawer Design Options</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-bg: #F3EDFF;
+      --lavender-light: #D8C6FF;
+      --mint: #6FCF97;
+      --rose: #FF8FAB;
+      --sunset: #FF8F6B;
+      --text: #2D2B3A;
+      --text-secondary: #6E6B7B;
+      --text-muted: #9B98A8;
+      --shadow-lg: 0 -8px 40px rgba(45, 43, 58, 0.15);
+      --shadow-md: 0 4px 20px rgba(124, 77, 255, 0.35);
+      --radius-xl: 28px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F0EDF5;
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.5rem; }
+    p.subtitle { text-align: center; color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .option-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+    }
+    .phone {
+      background: linear-gradient(180deg, #F8F6FF 0%, #FFF 100%);
+      border-radius: 32px;
+      overflow: hidden;
+      border: 6px solid #fff;
+      box-shadow: 0 12px 40px rgba(45,43,58,0.12);
+      position: relative;
+      height: 620px;
+    }
+
+    /* Option A: Gradient Header */
+    .drawer-a {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 85%;
+      background: #fff;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: var(--shadow-lg);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .header-a {
+      background: linear-gradient(135deg, var(--lavender) 0%, #7C4DFF 100%);
+      color: #fff;
+      padding: 1.25rem 1.25rem 1rem;
+      position: relative;
+    }
+    .close-a {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: #fff;
+      font-size: 1.25rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .ai-row-a { display: flex; align-items: center; gap: 0.75rem; }
+    .ai-avatar-a {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      border: 2px solid rgba(255,255,255,0.4);
+    }
+    .ai-title-a { font-weight: 900; font-size: 1.1rem; }
+    .ai-sub-a { font-size: 0.75rem; opacity: 0.85; font-weight: 600; }
+    .handle-a {
+      position: absolute;
+      top: 0.5rem; left: 50%; transform: translateX(-50%);
+      width: 40px; height: 4px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+    }
+    .messages-a {
+      flex: 1;
+      padding: 1rem 1.25rem;
+      overflow-y: auto;
+    }
+    .msg {
+      max-width: 80%;
+      padding: 0.75rem 1rem;
+      border-radius: 18px;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+    .msg-ai { background: var(--lavender-bg); color: var(--text); border-bottom-left-radius: 4px; }
+    .msg-user { background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+    .input-area-a {
+      padding: 0.75rem 1rem 1rem;
+      border-top: 1px solid #F0EDF5;
+      display: flex; gap: 0.5rem;
+      align-items: flex-end;
+    }
+    .input-a {
+      flex: 1;
+      border: 2px solid #EEE;
+      border-radius: 16px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .send-a {
+      width: 42px; height: 42px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Option B: Glassmorphism Floating */
+    .drawer-b {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 85%;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: var(--shadow-lg);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .header-b {
+      padding: 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-pill-b {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: linear-gradient(135deg, var(--lavender-bg), #fff);
+      border: 1.5px solid var(--lavender-light);
+      border-radius: 999px;
+      padding: 0.4rem 1rem 0.4rem 0.4rem;
+      box-shadow: 0 2px 10px rgba(124,77,255,0.08);
+    }
+    .ai-avatar-b {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+    }
+    .ai-title-b { font-weight: 900; font-size: 0.95rem; }
+    .ai-sub-b { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; }
+    .close-b {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1.5px solid #EEE;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(45,43,58,0.06);
+    }
+    .messages-b { flex: 1; padding: 0.5rem 1.25rem 1rem; overflow-y: auto; }
+    .input-area-b {
+      margin: 0 1rem 1rem;
+      padding: 0.5rem;
+      background: #fff;
+      border-radius: 24px;
+      border: 1.5px solid var(--lavender-light);
+      box-shadow: 0 4px 16px rgba(124,77,255,0.08);
+      display: flex; gap: 0.5rem;
+      align-items: flex-end;
+    }
+    .input-b { flex: 1; border: none; background: transparent; padding: 0.6rem 0.5rem; outline: none; font-size: 0.9rem; }
+    .send-b {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Option C: Full Immersive */
+    .drawer-c {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, var(--lavender-bg) 0%, #fff 35%);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .header-c {
+      padding: 3rem 1.25rem 1rem;
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    .ai-card-c {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .ai-avatar-c {
+      width: 52px; height: 52px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.75rem;
+      box-shadow: 0 6px 20px rgba(124,77,255,0.25);
+    }
+    .ai-title-c { font-weight: 900; font-size: 1.25rem; }
+    .ai-sub-c { font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; }
+    .close-c {
+      width: 40px; height: 40px;
+      border-radius: 14px;
+      background: #fff;
+      border: none;
+      box-shadow: 0 4px 12px rgba(45,43,58,0.08);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+    .wave-c {
+      height: 40px;
+      background: #fff;
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+      margin-top: -20px;
+    }
+    .messages-c { flex: 1; padding: 0.5rem 1.25rem; overflow-y: auto; background: #fff; }
+    .input-area-c {
+      padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+      background: #fff;
+      border-top: 1px solid #F0EDF5;
+      display: flex; gap: 0.75rem;
+      align-items: flex-end;
+    }
+    .input-c {
+      flex: 1;
+      border: 2px solid var(--lavender-light);
+      border-radius: 20px;
+      padding: 0.85rem 1.1rem;
+      font-size: 0.95rem;
+      outline: none;
+      background: var(--lavender-bg);
+    }
+    .send-c {
+      width: 48px; height: 48px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(124,77,255,0.25);
+    }
+
+    .typing { display: flex; gap: 4px; padding: 0.75rem 1rem; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lavender); animation: bounce 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.15s; }
+    .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px); } }
+  </style>
+</head>
+<body>
+  <h1>Chat Drawer — More Impressive Designs</h1>
+  <p class="subtitle">Three options that fix the close/send overlap and add more visual impact.</p>
+
+  <div class="grid">
+    <!-- Option A -->
+    <div>
+      <div class="option-label">A · Gradient Header + Header Close</div>
+      <div class="phone">
+        <div class="drawer-a">
+          <div class="handle-a"></div>
+          <div class="header-a">
+            <button class="close-a">×</button>
+            <div class="ai-row-a">
+              <div class="ai-avatar-a">🌙</div>
+              <div>
+                <div class="ai-title-a">Chat with Nappster</div>
+                <div class="ai-sub-a">AI sleep coach · Online</div>
+              </div>
+            </div>
+          </div>
+          <div class="messages-a">
+            <div class="msg msg-ai">Hi! Luna has been asleep for 2 hours. How can I help?</div>
+            <div class="msg msg-user">When should I expect her to wake?</div>
+            <div class="msg msg-ai">Based on her pattern, likely around 6:30am.</div>
+            <div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          </div>
+          <div class="input-area-a">
+            <input class="input-a" placeholder="Ask about sleep..." value="Should I wake her?" />
+            <button class="send-a">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option B -->
+    <div>
+      <div class="option-label">B · Glassmorphism Floating Header</div>
+      <div class="phone">
+        <div class="drawer-b">
+          <div class="header-b">
+            <div class="header-pill-b">
+              <div class="ai-avatar-b">🌙</div>
+              <div>
+                <div class="ai-title-b">Nappster</div>
+                <div class="ai-sub-b">Online now</div>
+              </div>
+            </div>
+            <button class="close-b">×</button>
+          </div>
+          <div class="messages-b">
+            <div class="msg msg-ai">Luna's last nap ended at 3pm. Bedtime window opens at 7pm.</div>
+            <div class="msg msg-user">Is she getting enough day sleep?</div>
+            <div class="msg msg-ai">Yes! 2h 45m today is right on target for her age.</div>
+          </div>
+          <div class="input-area-b">
+            <input class="input-b" placeholder="Ask about sleep..." />
+            <button class="send-b">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option C -->
+    <div>
+      <div class="option-label">C · Full Immersive + Top Close</div>
+      <div class="phone">
+        <div class="drawer-c">
+          <div class="header-c">
+            <div class="ai-card-c">
+              <div class="ai-avatar-c">🌙</div>
+              <div>
+                <div class="ai-title-c">Nappster</div>
+                <div class="ai-sub-c">Sleep coach</div>
+              </div>
+            </div>
+            <button class="close-c">×</button>
+          </div>
+          <div class="wave-c"></div>
+          <div class="messages-c">
+            <div class="msg msg-ai">Good evening! Luna went down at 7:15pm.</div>
+            <div class="msg msg-user">Any night wake risk tonight?</div>
+            <div class="msg msg-ai">Low. She's had good naps and an on-time bedtime.</div>
+          </div>
+          <div class="input-area-c">
+            <input class="input-c" placeholder="Ask about sleep..." />
+            <button class="send-c">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
