@@ -24,7 +24,6 @@ import {
   ConversationContent,
 } from '@/components/ai-elements/conversation'
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message'
-import { Loader } from '@/components/ai-elements/loader'
 import ReactMarkdown from 'react-markdown'
 import { format, isSameDay, isToday, isYesterday } from 'date-fns'
 import type { SleepPlanRow } from '@/types/database'
@@ -322,6 +321,10 @@ export function ChatContent({
 
   // Render chat messages for the drawer
   const chatMessagesElement = useMemo(() => {
+    const lastGroup = groupedMessages[groupedMessages.length - 1]
+    const lastMessage = lastGroup?.messages[lastGroup.messages.length - 1]
+    const lastMessageHasToolCalls = lastMessage && lastMessage.role !== 'user' && getToolParts(lastMessage).length > 0
+
     if (groupedMessages.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -344,37 +347,47 @@ export function ChatContent({
               <div className="h-px flex-1 bg-[#F0EDF5]" />
             </div>
 
-            {group.messages.map((msg) => {
+            {group.messages.map((msg, msgIndex) => {
               const text = extractText(msg)
               const isUser = msg.role === 'user'
               const msgTime = msg.createdAt
                 ? formatMessageTime(new Date(msg.createdAt))
                 : ''
+              const toolParts = isUser ? [] : getToolParts(msg)
+              const hasToolCalls = toolParts.length > 0
+              const hasText = text.trim().length > 0
+              const isLastMessage = groupIndex === groupedMessages.length - 1 && msgIndex === group.messages.length - 1
+
               return (
                 <div key={msg.id} className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
-                  <Message from={msg.role}>
-                    <MessageContent
-                      className={isUser
-                        ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] !text-white shadow-sm'
-                        : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
-                      }
-                    >
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <p className="m-0 whitespace-pre-wrap text-sm">{children}</p>,
-                          a: ({ children, href }) => <a href={href} className="underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                          em: ({ children }) => <em className="italic">{children}</em>,
-                          ul: ({ children }) => <ul className="my-1 list-disc pl-4">{children}</ul>,
-                          ol: ({ children }) => <ol className="my-1 list-decimal pl-4">{children}</ol>,
-                          li: ({ children }) => <li className="my-0.5">{children}</li>,
-                          code: ({ children }) => <code className="rounded bg-black/10 px-1 py-0.5 text-xs">{children}</code>,
-                        }}
+                  {hasToolCalls && (
+                    <ToolCallCard parts={toolParts} isStreaming={status === 'streaming' && isLastMessage} />
+                  )}
+                  {hasText && (
+                    <Message from={msg.role}>
+                      <MessageContent
+                        className={isUser
+                          ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] !text-white shadow-sm'
+                          : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
+                        }
                       >
-                        {text}
-                      </ReactMarkdown>
-                    </MessageContent>
-                  </Message>
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="m-0 whitespace-pre-wrap text-sm">{children}</p>,
+                            a: ({ children, href }) => <a href={href} className="underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                            strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                            em: ({ children }) => <em className="italic">{children}</em>,
+                            ul: ({ children }) => <ul className="my-1 list-disc pl-4">{children}</ul>,
+                            ol: ({ children }) => <ol className="my-1 list-decimal pl-4">{children}</ol>,
+                            li: ({ children }) => <li className="my-0.5">{children}</li>,
+                            code: ({ children }) => <code className="rounded bg-black/10 px-1 py-0.5 text-xs">{children}</code>,
+                          }}
+                        >
+                          {text}
+                        </ReactMarkdown>
+                      </MessageContent>
+                    </Message>
+                  )}
                   {msgTime && (
                     <span className={cn(
                       'mt-0.5 px-1 text-[0.65rem] font-bold text-[var(--text-muted)]',
@@ -388,16 +401,17 @@ export function ChatContent({
             })}
           </div>
         ))}
-        {status === 'streaming' && (
+        {status === 'streaming' && !lastMessageHasToolCalls && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-[var(--lavender-bg)] px-4 py-3">
-              <Loader size={16} />
+            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--lavender-bg)] px-4 py-2 text-xs font-extrabold text-[var(--text-secondary)]">
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />
+              Thinking...
             </div>
           </div>
         )}
       </div>
     )
-  }, [groupedMessages, status, formatMessageTime])
+  }, [groupedMessages, status, formatMessageTime, lastMessageHasToolCalls])
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
@@ -440,4 +454,80 @@ function extractText(msg: ChatMessageData): string {
       .join(' ')
   }
   return ''
+}
+
+interface ToolPart {
+  type: string
+  state?: 'input-streaming' | 'input-available' | 'output-available' | string
+}
+
+const toolInfo: Record<string, { label: string }> = {
+  getBabyProfile: { label: 'Getting baby profile' },
+  getTodayEvents: { label: "Checking today's events" },
+  getSleepHistory: { label: 'Analyzing sleep history' },
+  getChatHistory: { label: 'Recalling past conversations' },
+  createSleepEvent: { label: 'Recording sleep event' },
+  updatePatternNotes: { label: 'Saving pattern notes' },
+  updateSleepPlan: { label: 'Updating schedule' },
+}
+
+function getToolParts(msg: ChatMessageData): ToolPart[] {
+  const parts = msg.parts as Array<{ type: string; state?: string }> | undefined
+  if (!parts) return []
+  return parts.filter(p => p.type.startsWith('tool-'))
+}
+
+function ToolCallCard({ parts, isStreaming }: { parts: ToolPart[]; isStreaming?: boolean }) {
+  const [isOpen, setIsOpen] = useState(true)
+  const hasPending = parts.some(p => p.state !== 'output-available')
+
+  return (
+    <div className="mb-2 max-w-[90%] rounded-2xl border-[1.5px] border-[var(--lavender-light)] bg-gradient-to-br from-white to-[var(--lavender-bg)] px-4 py-3 shadow-[0_2px_10px_rgba(124,77,255,0.06)]">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-extrabold text-[var(--text)]">
+          <span className="text-base">🧠</span>
+          {isStreaming && hasPending ? 'Thinking' : `Used ${parts.length} tool${parts.length === 1 ? '' : 's'}`}
+        </span>
+        <span className={cn('text-lg text-[var(--text-muted)] transition-transform', isOpen && 'rotate-180')}>
+          ▼
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="mt-2 space-y-1">
+          {parts.map((part, idx) => {
+            const toolName = part.type.replace('tool-', '')
+            const info = toolInfo[toolName]
+            const isComplete = part.state === 'output-available'
+            const isActive = !isComplete
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  'flex items-center gap-2 py-1 text-xs font-bold',
+                  isComplete ? 'text-[var(--text-secondary)]' : 'text-[var(--lavender)]'
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex h-5 w-5 items-center justify-center rounded-full text-[10px]',
+                    isComplete ? 'bg-[var(--mint)] text-white' : 'bg-[var(--lavender)] text-white'
+                  )}
+                >
+                  {isComplete ? '✓' : (
+                    <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  )}
+                </span>
+                {info?.label || toolName}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
