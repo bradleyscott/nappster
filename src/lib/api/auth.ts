@@ -1,4 +1,5 @@
 import { SupabaseClient, User } from '@supabase/supabase-js'
+import { checkBabyAccess } from '@/lib/services/family-members'
 
 export type AuthResult =
   | { success: true; user: User }
@@ -17,16 +18,11 @@ export async function requireBabyAccess(
     return { success: false, error: 'UNAUTHORIZED' }
   }
 
-  const { data: membership, error } = await supabase
-    .from('family_members')
-    .select('id')
-    .eq('baby_id', babyId)
-    .eq('user_id', user.id)
-    .single()
+  const { data: membership, error } = await checkBabyAccess(supabase, babyId, user.id)
 
   if (error) {
     // PGRST116 = no rows returned (not a member)
-    if (error.code === 'PGRST116') {
+    if ((error as { code?: string }).code === 'PGRST116') {
       return { success: false, error: 'FORBIDDEN' }
     }
     // Other errors (network, multiple rows, etc.) should be logged

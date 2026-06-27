@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Loader2, Copy, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Baby } from '@/types/database'
+import { updateBaby } from '@/lib/services/babies'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,15 +48,12 @@ export function SettingsForm({ baby }: SettingsFormProps) {
     setLoading(true)
     setError(null)
 
-    const { error: updateError } = await supabase
-      .from('babies')
-      .update({
-        name,
-        birth_date: birthDate,
-        sleep_training_method: sleepMethod || null,
-        pattern_notes: patternNotes || null,
-      })
-      .eq('id', baby.id)
+    const { error: updateError } = await updateBaby(supabase, baby.id, {
+      name,
+      birth_date: birthDate,
+      sleep_training_method: sleepMethod || null,
+      pattern_notes: patternNotes || null,
+    })
 
     if (updateError) {
       setError(updateError.message)
