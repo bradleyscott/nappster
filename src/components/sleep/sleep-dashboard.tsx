@@ -150,6 +150,7 @@ export function SleepDashboard({
         countdown={stateConfig.countdown}
         expectedLabel={stateConfig.expectedLabel}
         elevated={stateConfig.elevated}
+        onPillTap={(eventId) => openEditSheet({ id: eventId })}
       />
 
       {/* Action Buttons */}
@@ -224,7 +225,7 @@ interface StateConfig {
   icon: string
   title: string
   elevated: boolean
-  pills: Array<{ icon?: string; label: string; dot?: boolean; color?: 'lavender' | 'peach' | 'mint' | 'rose' }>
+  pills: Array<{ icon?: string; label: string; dot?: boolean; color?: 'lavender' | 'peach' | 'mint' | 'rose'; eventId?: string }>
   countdown: { progress: number; timeRemaining: string; timeLabel: string }
   expectedLabel: { icon: string; text: string; time: string }
   buttons: ButtonConfig[]
@@ -256,20 +257,19 @@ function getStateConfig(
   sleepPlan: SleepPlan | null,
   events: SleepEvent[]
 ): StateConfig {
-  const now = new Date()
-
   switch (state) {
     case 'overnight_sleep': {
       const bedtimeTime = getLastEventTime(events, 'bedtime')
       const sleepingFor = getDurationSince(events, 'bedtime')
       const nightWakeCount = events.filter(e => e.event_type === 'night_wake').length
+      const bedtimeEvent = [...events].reverse().find(e => e.event_type === 'bedtime')
       return {
         accent: 'lavender',
         icon: '🌙',
         title: 'Sleeping Soundly',
         elevated: false,
         pills: [
-          { icon: '🌙', label: `Bedtime ${bedtimeTime}`, color: 'lavender' },
+          { icon: '🌙', label: `Bedtime ${bedtimeTime}`, color: 'lavender', eventId: bedtimeEvent?.id },
           { dot: true, label: `Sleeping for ${sleepingFor}`, color: 'lavender' },
         ],
         countdown: {
@@ -286,18 +286,19 @@ function getStateConfig(
     }
 
     case 'daytime_awake': {
-      // Check if bedtime should be shown (next is bedtime, not nap)
-      const bedtimeNext = sleepPlan ? true : false // simplified — real logic uses shouldShowBedtime
+      const bedtimeNext = sleepPlan ? true : false
       if (bedtimeNext) {
         const napEndTime = getLastEventTime(events, 'nap_end') || getLastEventTime(events, 'wake')
         const awakeFor = getDurationSince(events, 'nap_end') || getDurationSince(events, 'wake')
+        const napEndEvent = [...events].reverse().find(e => e.event_type === 'nap_end')
+        const wakeEvent = [...events].reverse().find(e => e.event_type === 'wake')
         return {
           accent: 'sunset',
           icon: '🌆',
           title: 'Awake & Ready',
           elevated: true,
           pills: [
-            { icon: '🌤️', label: napEndTime ? `Nap ended ${napEndTime}` : 'Awake', color: 'peach' },
+            { icon: '🌤️', label: napEndTime ? `Nap ended ${napEndTime}` : 'Awake', color: 'peach', eventId: napEndEvent?.id ?? wakeEvent?.id },
             { dot: true, label: `Awake for ${awakeFor}`, color: 'peach' },
           ],
           countdown: {
@@ -312,16 +313,16 @@ function getStateConfig(
         }
       }
 
-      // Naps still coming
       const wakeTime = getLastEventTime(events, 'wake')
       const awakeFor = getDurationSince(events, 'wake')
+      const latestWake = [...events].reverse().find(e => e.event_type === 'wake')
       return {
         accent: 'peach',
         icon: '☀️',
         title: 'Awake & Playing',
         elevated: false,
         pills: [
-          { icon: '🌅', label: wakeTime ? `Woke at ${wakeTime}` : 'Awake', color: 'peach' },
+          { icon: '🌅', label: wakeTime ? `Woke at ${wakeTime}` : 'Awake', color: 'peach', eventId: latestWake?.id },
           { dot: true, label: `Awake for ${awakeFor}`, color: 'peach' },
         ],
         countdown: {
@@ -339,13 +340,14 @@ function getStateConfig(
     case 'daytime_napping': {
       const napStartTime = getLastEventTime(events, 'nap_start')
       const nappingFor = getDurationSince(events, 'nap_start')
+      const napStartEvent = [...events].reverse().find(e => e.event_type === 'nap_start')
       return {
         accent: 'mint',
         icon: '😴',
         title: 'Taking a Nap',
         elevated: false,
         pills: [
-          { icon: '😴', label: napStartTime ? `Started ${napStartTime}` : 'Napping', color: 'mint' },
+          { icon: '😴', label: napStartTime ? `Started ${napStartTime}` : 'Napping', color: 'mint', eventId: napStartEvent?.id },
           { dot: true, label: `Napping for ${nappingFor}`, color: 'mint' },
         ],
         countdown: {

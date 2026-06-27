@@ -53,6 +53,8 @@ interface StateHeroProps {
   expectedLabel: ExpectedLabel
   elevated?: boolean
   className?: string
+  /** Called when a tappable pill is tapped */
+  onPillTap?: (eventId: string) => void
 }
 
 export function StateHero({
@@ -64,6 +66,7 @@ export function StateHero({
   expectedLabel,
   elevated,
   className,
+  onPillTap,
 }: StateHeroProps) {
   const a = accentMap[accentColor]
 
@@ -95,7 +98,7 @@ export function StateHero({
       </div>
 
       {/* Pills */}
-      <SubtitlePills pills={pills} className="mb-4" />
+      <SubtitlePills pills={pills} className="mb-4" onPillTap={onPillTap} />
 
       {/* Countdown ring */}
       <div className="flex justify-center py-2">

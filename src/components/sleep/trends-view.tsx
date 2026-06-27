@@ -173,7 +173,7 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
           📅 Sleep History
         </h3>
         <div className="flex gap-1.5">
-          {([7, 14, 30] as const).map((days) => (
+          {([7, 14] as const).map((days) => (
             <button
               key={days}
               onClick={() => setTimeRange(days)}
