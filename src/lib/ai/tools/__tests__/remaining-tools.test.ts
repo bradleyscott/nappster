@@ -40,7 +40,6 @@ describe('AI tools', () => {
           id: 'test-baby-123',
           name: 'Luna',
           birth_date: '2023-06-15',
-          sleep_training_method: 'Taking Cara Babies',
           pattern_notes: 'Short naps',
           created_at: '2023-06-15T00:00:00Z',
         },
@@ -54,7 +53,6 @@ describe('AI tools', () => {
       if (!result.success) throw new Error(result.error)
       expect(result.baby.name).toBe('Luna')
       expect(result.baby.age).toMatch(/\d+ months?|newborn/)
-      expect(result.baby.sleepTrainingMethod).toBe('Taking Cara Babies')
     })
 
     it('returns error when baby not found', async () => {

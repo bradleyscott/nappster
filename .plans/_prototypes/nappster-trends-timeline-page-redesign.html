@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nappster · Trends Page</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FFF8F0; --card-bg: #FFFFFF; --text: #2D2B3A; --text-secondary: #8B88A0; --text-muted: #B8B5CC;
+    --rose: #FF8FAB; --rose-light: #FFE0E8; --rose-bg: #FFF0F3;
+    --lavender: #B48BFF; --lavender-light: #E8D8FF; --lavender-bg: #F5EEFF;
+    --mint: #6FCF97; --mint-light: #C8F0D9; --mint-bg: #EDFBF3;
+    --peach: #FFB07C; --peach-light: #FFE0CC; --peach-bg: #FFF3EA;
+    --sky: #7EC8E3; --sky-light: #D0ECF7; --sky-bg: #EEF8FC;
+    --sunset: #FF8F6B; --sunset-light: #FFD6C8; --sunset-bg: #FFF0EB;
+    --shadow-sm: 0 2px 8px rgba(45,43,58,0.06);
+    --shadow-md: 0 4px 20px rgba(45,43,58,0.08);
+    --radius-sm: 12px; --radius-md: 20px; --radius-lg: 28px; --radius-xl: 36px;
+  }
+
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; overflow: hidden; height: 100dvh; width: 100vw; }
+
+  .phone-frame { width: 393px; height: 852px; background: var(--bg); border-radius: 44px; overflow: hidden; position: relative; box-shadow: 0 20px 60px rgba(45,43,58,0.15); margin: 20px auto; display: flex; flex-direction: column; }
+  @media (max-width: 420px) { .phone-frame { width: 100vw; height: 100dvh; border-radius: 0; margin: 0; } }
+
+  .status-bar { padding: 14px 28px 8px; display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+
+  /* ===== Header ===== */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 16px 10px;
+    flex-shrink: 0;
+  }
+  .back-btn {
+    width: 38px; height: 38px; border-radius: 19px;
+    border: 2px solid #EEE; background: var(--card-bg);
+    cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .back-btn:active { transform: scale(0.9); }
+  .page-header-text { flex: 1; }
+  .page-title { font-size: 20px; font-weight: 800; }
+  .page-subtitle { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+
+  .main-content { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+  .main-content::-webkit-scrollbar { width: 4px; }
+  .main-content::-webkit-scrollbar-track { background: transparent; }
+  .main-content::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
+
+  /* ===== Average Day Card ===== */
+  .avg-day-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .avg-day-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--lavender), var(--mint), var(--peach), var(--sunset));
+  }
+
+  .avg-day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .avg-day-title {
+    font-size: 16px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .avg-day-title .ad-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--lavender-bg);
+    color: var(--lavender);
+  }
+  .avg-day-nav {
+    display: flex;
+    gap: 4px;
+  }
+  .avg-day-nav button {
+    width: 28px; height: 28px; border-radius: 14px;
+    border: 2px solid #EEE; background: var(--card-bg);
+    cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+  }
+  .avg-day-nav button:active { transform: scale(0.9); }
+
+  /* Timeline visualisation for avg day */
+  .avg-day-timeline {
+    position: relative;
+    height: 64px;
+    background: #F8F5FF;
+    border-radius: 16px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .avg-day-timeline:active { transform: scale(0.98); }
+
+  .adt-bar {
+    position: absolute;
+    height: 100%;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+  }
+
+  .adt-hour-markers {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+  }
+  .adt-hour {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: rgba(0,0,0,0.04);
+  }
+  .adt-hour-label {
+    position: absolute;
+    top: 100%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .avg-day-stats {
+    display: flex;
+    gap: 8px;
+  }
+  .avg-stat {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+  }
+  .avg-stat .stat-value {
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .avg-stat .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-top: 1px;
+  }
+  .avg-stat .stat-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+  .avg-stat.sleep-stat .stat-value { color: var(--lavender); }
+  .avg-stat.nap-stat .stat-value { color: var(--mint); }
+  .avg-stat.wake-stat .stat-value { color: var(--peach); }
+
+  /* ===== Stats row ===== */
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: 16px 14px;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+  }
+  .stat-card .sc-icon { font-size: 24px; margin-bottom: 6px; display: block; }
+  .stat-card .sc-value { font-size: 24px; font-weight: 900; line-height: 1; }
+  .stat-card .sc-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .stat-card .sc-trend {
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 8px;
+    border-radius: 6px;
+  }
+  .sc-trend.up { background: var(--mint-bg); color: var(--mint); }
+  .sc-trend.down { background: var(--rose-bg); color: var(--rose); }
+  .sc-trend.steady { background: var(--lavender-bg); color: var(--lavender); }
+
+  /* ===== Section header ===== */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-filter {
+    display: flex;
+    gap: 4px;
+  }
+  .section-filter button {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1.5px solid #EEE;
+    background: var(--card-bg);
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .section-filter button.active { border-color: var(--lavender-light); background: var(--lavender-bg); color: var(--lavender); }
+  .section-filter button:active { transform: scale(0.95); }
+
+  /* ===== Day rows in history ===== */
+  .day-history { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+
+  .day-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card-bg);
+    border-radius: 14px;
+    padding: 10px 14px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .day-row:active { transform: scale(0.98); }
+
+  .day-row-label {
+    width: 58px;
+    flex-shrink: 0;
+  }
+  .day-row-label .dr-day {
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .day-row-label .dr-date {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .day-row-label .dr-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--peach-bg);
+    color: var(--peach);
+    margin-top: 2px;
+  }
+
+  .day-row-chart {
+    flex: 1;
+    height: 36px;
+    background: #F8F5FF;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .dr-bar {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    border-radius: 7px;
+    transition: all 0.2s;
+    opacity: 0.85;
+  }
+  .dr-bar.overnight { background: var(--lavender); }
+  .dr-bar.nap { background: var(--mint); }
+  .dr-bar.nap-daycare { background: var(--peach); }
+
+  .dr-nightwake {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--rose);
+    opacity: 0.7;
+  }
+
+  /* Daycare indicator */
+  .dr-daycare-badge {
+    width: 20px; height: 20px; border-radius: 10px;
+    background: var(--peach-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .day-row .dr-arrow {
+    font-size: 14px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* ===== Detail bottom sheet ===== */
+  .sheet-overlay { position: absolute; inset: 0; background: rgba(45,43,58,0.25); z-index: 20; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .sheet-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .bottom-sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 21;
+    background: var(--card-bg);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -8px 40px rgba(45,43,58,0.15);
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 75%;
+    overflow-y: auto;
+  }
+  .bottom-sheet.open { transform: translateY(0); }
+
+  .sheet-handle { width: 40px; height: 4px; background: #DDD; border-radius: 2px; margin: 0 auto 16px; flex-shrink: 0; }
+
+  .detail-day {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .detail-day .dd-title { font-size: 18px; font-weight: 800; }
+  .detail-day .dd-sub { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+  .detail-day .dd-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--peach-bg);
+    color: var(--peach);
+    margin-left: auto;
+  }
+
+  .detail-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 16px;
+  }
+
+  .dt-item {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    min-height: 44px;
+  }
+  .dt-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 24px;
+    flex-shrink: 0;
+  }
+  .dt-line .dot {
+    width: 12px; height: 12px; border-radius: 6px;
+    flex-shrink: 0; margin-top: 5px;
+    position: relative; z-index: 1;
+  }
+  .dt-line .bar {
+    flex: 1; width: 2px; min-height: 20px;
+  }
+  .dt-item:last-child .dt-line .bar { display: none; }
+  .dt-item .dot.bedtime { background: var(--lavender); }
+  .dt-item .dot.nap { background: var(--mint); }
+  .dt-item .dot.wake { background: var(--peach); }
+  .dt-item .dot.nightwake { background: var(--rose); }
+  .dt-item .dot.waiting { background: var(--text-muted); }
+  .dt-line .bar { background: #E8E5F0; }
+
+  .dt-content { flex: 1; padding: 2px 0 10px; }
+  .dt-content .dt-title {
+    font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dt-content .dt-title .dt-icon { font-size: 14px; }
+  .dt-content .dt-title .dt-time { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-left: auto; white-space: nowrap; }
+  .dt-content .dt-detail { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 1px; }
+
+  .detail-summary {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-top: 12px;
+    border-top: 2px solid #F5F0FF;
+  }
+  .detail-summary .ds-item {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    border-radius: 10px;
+    background: var(--bg);
+  }
+  .detail-summary .ds-item .ds-value { font-size: 16px; font-weight: 800; }
+  .detail-summary .ds-item .ds-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 1px; }
+
+  .prototype-container { display: flex; gap: 24px; padding: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .phone-annotation { text-align: center; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+  .caption { font-size: 10px; font-weight: 700; color: var(--text-muted); text-align: center; padding: 2px 0 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+  @media (max-width: 420px) { .prototype-container { padding: 0; gap: 12px; } }
+</style>
+</head>
+<body>
+
+<div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 8px 0;">
+  <div style="text-align: center; padding: 6px 16px 0; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6);">
+    ⬇ Trends & Timeline Page Redesign ⬇
+  </div>
+  <div class="prototype-container">
+    <div>
+      <div class="phone-frame" id="phoneTrends">
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+
+        <div class="page-header">
+          <button class="back-btn">←</button>
+          <div class="page-header-text">
+            <div class="page-title">Sleep Trends</div>
+            <div class="page-subtitle">Last 14 days · Luna</div>
+          </div>
+          <button class="back-btn" style="font-size:14px;">📊</button>
+        </div>
+
+        <div class="main-content">
+
+          <!-- ===== AVERAGE DAY CARD ===== -->
+          <div class="avg-day-card">
+            <div class="avg-day-header">
+              <div class="avg-day-title">
+                📋 Typical Day
+                <span class="ad-badge">Home</span>
+              </div>
+              <div class="avg-day-nav">
+                <button>←</button>
+                <button>→</button>
+              </div>
+            </div>
+
+            <!-- Visual timeline of the average day -->
+            <div class="avg-day-timeline" onclick="openDetail('average')">
+              <!-- Hour markers -->
+              <div class="adt-hour-markers">
+                <div class="adt-hour" style="left:0%;"></div>
+                <div class="adt-hour" style="left:12.5%;"></div>
+                <div class="adt-hour" style="left:25%;"></div>
+                <div class="adt-hour" style="left:37.5%;"></div>
+                <div class="adt-hour" style="left:50%;"></div>
+                <div class="adt-hour" style="left:62.5%;"></div>
+                <div class="adt-hour" style="left:75%;"></div>
+                <div class="adt-hour" style="left:87.5%;"></div>
+                <div class="adt-hour" style="left:100%;"></div>
+              </div>
+
+              <!-- Overnight sleep 7:15pm - 6:45am -->
+              <div class="adt-bar" style="left:70.3%; width:29.7%; background: linear-gradient(90deg, var(--lavender), #9B6FFF); border-radius: 0 16px 16px 0;">
+                🌙 7:15pm – midnight
+              </div>
+              <!-- Overnight continued 12am - 6:45am -->
+              <div class="adt-bar" style="left:0%; width:28.1%; background: linear-gradient(90deg, #7C4DFF, var(--lavender)); border-radius: 16px 0 0 16px;">
+                midnight – 6:45am 🌅
+              </div>
+              <!-- Nap 1: 9:00 - 10:00am -->
+              <div class="adt-bar" style="left:37.5%; width:4.2%; top:10px; height:calc(100% - 20px); background: linear-gradient(180deg, var(--mint), #5BBF8A); border-radius: 8px; font-size:10px;">
+                😴
+              </div>
+              <!-- Nap 2: 1:00 - 2:30pm -->
+              <div class="adt-bar" style="left:54.2%; width:6.25%; top:10px; height:calc(100% - 20px); background: linear-gradient(180deg, var(--mint), #5BBF8A); border-radius: 8px; font-size:10px;">
+                😴
+              </div>
+              <!-- Night wake marker -->
+              <div style="position:absolute;left:47.9%;top:4px;font-size:16px;opacity:0.6;">👀</div>
+            </div>
+
+            <div class="avg-day-stats">
+              <div class="avg-stat sleep-stat">
+                <span class="stat-icon">🌙</span>
+                <div class="stat-value">10h 30m</div>
+                <div class="stat-label">Night Sleep</div>
+              </div>
+              <div class="avg-stat nap-stat">
+                <span class="stat-icon">😴</span>
+                <div class="stat-value">2h 25m</div>
+                <div class="stat-label">Daytime Naps</div>
+              </div>
+              <div class="avg-stat wake-stat">
+                <span class="stat-icon">☀️</span>
+                <div class="stat-value">11h 05m</div>
+                <div class="stat-label">Awake</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== STATS ROW ===== -->
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="sc-icon">😴</span>
+              <div class="sc-value" style="color:var(--lavender);">2.1</div>
+              <div class="sc-label">Avg Naps / Day</div>
+              <div class="sc-trend steady">● steady</div>
+            </div>
+            <div class="stat-card">
+              <span class="sc-icon">🌙</span>
+              <div class="sc-value" style="color:var(--mint);">7:12pm</div>
+              <div class="sc-label">Avg Bedtime</div>
+              <div class="sc-trend down">▼ 8m earlier</div>
+            </div>
+            <div class="stat-card">
+              <span class="sc-icon">🌅</span>
+              <div class="sc-value" style="color:var(--peach);">6:48am</div>
+              <div class="sc-label">Avg Wake Time</div>
+              <div class="sc-trend up">▲ 5m later</div>
+            </div>
+          </div>
+
+          <!-- ===== HISTORY SECTION ===== -->
+          <div class="section-header">
+            <div class="section-title">📅 Sleep History</div>
+            <div class="section-filter">
+              <button class="active">14d</button>
+              <button>7d</button>
+              <button>30d</button>
+            </div>
+          </div>
+
+          <div class="day-history">
+
+            <!-- Day row - today -->
+            <div class="day-row" onclick="openDetail('today')">
+              <div class="day-row-label">
+                <div class="dr-day">Today</div>
+                <div class="dr-date">Jun 27</div>
+              </div>
+              <div class="day-row-chart">
+                <div class="dr-bar overnight" style="left:0%; width:28.6%;"></div>
+                <div class="dr-bar nap" style="left:37.5%; width:4.6%;"></div>
+                <div class="dr-bar overnight" style="left:72.9%; width:27.1%;"></div>
+              </div>
+              <span class="dr-arrow">›</span>
+            </div>
+
+            <!-- Day row - yesterday -->
+            <div class="day-row" onclick="openDetail('yesterday')">
+              <div class="day-row-label">
+                <div class="dr-day">Yesterday</div>
+                <div class="dr-date">Jun 26</div>
+              </div>
+              <div class="day-row-chart">
+                <div class="dr-bar overnight" style="left:1%; width:27.5%;"></div>
+                <div class="dr-bar nap" style="left:37.5%; width:4.2%;"></div>
+                <div class="dr-bar nap-daycare" style="left:54.2%; width:5.8%;"></div>
+                <div class="dr-bar overnight" style="left:71.9%; width:28.1%;"></div>
+                <div class="dr-nightwake" style="left:48.5%;"></div>
+              </div>
+              <div class="dr-daycare-badge">🏫</div>
+              <span class="dr-arrow">›</span>
+            </div>
+
+            <!-- Day row - Jun 25 -->
+            <div class="day-row" onclick="openDetail('jun25')">
+              <div class="day-row-label">
+                <div class="dr-day">Thu</div>
+                <div class="dr-date">Jun 25</div>
+              </div>
+              <div class="day-row-chart">
+                <div class="dr-bar overnight" style="left:2%; width:26.5%;"></div>
+                <div class="dr-bar nap" style="left:38.5%; width:3.8%;"></div>
+                <div class="dr-bar nap" style="left:55.2%; width:6.5%;"></div>
+                <div class="dr-bar overnight" style="left:70.8%; width:29.2%;"></div>
+                <div class="dr-nightwake" style="left:46%;"></div>
+                <div class="dr-nightwake" style="left:52%;"></div>
+              </div>
+              <span class="dr-arrow">›</span>
+            </div>
+
+            <!-- Day row - Jun 24 -->
+            <div class="day-row" onclick="openDetail('jun24')">
+              <div class="day-row-label">
+                <div class="dr-day">Wed</div>
+                <div class="dr-date">Jun 24</div>
+              </div>
+              <div class="day-row-chart">
+                <div class="dr-bar overnight" style="left:0%; width:28.1%;"></div>
+                <div class="dr-bar nap" style="left:36.5%; width:5%;"></div>
+                <div class="dr-bar nap" style="left:53.1%; width:5.4%;"></div>
+                <div class="dr-bar overnight" style="left:72.9%; width:27.1%;"></div>
+              </div>
+              <span class="dr-arrow">›</span>
+            </div>
+
+            <!-- Day row - Jun 23 -->
+            <div class="day-row" onclick="openDetail('jun23')">
+              <div class="day-row-label">
+                <div class="dr-day">Tue</div>
+                <div class="dr-date">Jun 23</div>
+              </div>
+              <div class="day-row-chart">
+                <div class="dr-bar overnight" style="left:1.5%; width:27.2%;"></div>
+                <div class="dr-bar nap" style="left:37.5%; width:4.6%;"></div>
+                <div class="dr-bar nap-daycare" style="left:55.2%; width:5.4%;"></div>
+                <div class="dr-bar overnight" style="left:70.8%; width:29.2%;"></div>
+              </div>
+              <div class="dr-daycare-badge">🏫</div>
+              <span class="dr-arrow">›</span>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ===== DETAIL SHEET ===== -->
+        <div class="sheet-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+        <div class="bottom-sheet" id="detailSheet">
+          <div class="sheet-handle"></div>
+          <div class="detail-day" id="detailHeader">
+            <div class="dd-title" id="detailDayTitle">Today</div>
+            <div class="dd-sub" id="detailDaySub">Saturday, Jun 27</div>
+            <div class="dd-badge" id="detailBadge" style="display:none;">🏫 Daycare</div>
+          </div>
+
+          <div class="detail-timeline" id="detailTimeline">
+            <!-- Filled by JS -->
+          </div>
+
+          <div class="detail-summary" id="detailSummary">
+            <div class="ds-item">
+              <div class="ds-value" style="color:var(--lavender);" id="dsNight">10h 30m</div>
+              <div class="ds-label">Night Sleep</div>
+            </div>
+            <div class="ds-item">
+              <div class="ds-value" style="color:var(--mint);" id="dsNaps">2h 25m</div>
+              <div class="ds-label">Day Naps</div>
+            </div>
+            <div class="ds-item">
+              <div class="ds-value" style="color:var(--peach);" id="dsTotal">12h 55m</div>
+              <div class="ds-label">Total Sleep</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button class="sheet-btn" style="flex:1;padding:12px;border-radius:14px;font-family:inherit;font-size:14px;font-weight:700;border:none;cursor:pointer;background:var(--rose-bg);color:var(--rose);transition:all 0.12s;" onclick="closeDetail()">Edit Day</button>
+            <button class="sheet-btn" style="flex:1;padding:12px;border-radius:14px;font-family:inherit;font-size:14px;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg,var(--lavender),#7C4DFF);color:white;transition:all 0.12s;" onclick="closeDetail()">Share</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="phone-annotation">👇 Tap any day row or the "Typical Day" bar to see details</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const dayData = {
+    average: {
+      title: 'Typical Day',
+      sub: 'Based on last 14 days · Home',
+      badge: null,
+      stats: { night: '10h 30m', naps: '2h 25m', total: '12h 55m' },
+      events: [
+        { icon: '🌙', label: 'Bedtime', time: '7:15pm', type: 'bedtime' },
+        { icon: '👀', label: 'Night wake', time: '11:30pm', detail: 'Brief', type: 'nightwake' },
+        { icon: '🌅', label: 'Wake up', time: '6:45am', detail: 'End of night sleep', type: 'wake' },
+        { icon: '☀️', label: 'Awake window', time: '2h 15m', detail: 'Until Nap 1', type: 'waiting' },
+        { icon: '😴', label: 'Nap 1', time: '9:00 – 10:00am', detail: '1h · Home', type: 'nap' },
+        { icon: '☀️', label: 'Awake window', time: '3h', detail: 'Until Nap 2', type: 'waiting' },
+        { icon: '😴', label: 'Nap 2', time: '1:00 – 2:25pm', detail: '1h 25m · Home', type: 'nap' },
+        { icon: '☀️', label: 'Awake window', time: '3h 50m', detail: 'Until Bedtime', type: 'waiting' },
+      ]
+    },
+    today: {
+      title: 'Today',
+      sub: 'Saturday, Jun 27',
+      badge: null,
+      stats: { night: '9h 05m', naps: '1h 35m', total: '10h 40m' },
+      events: [
+        { icon: '🌅', label: 'Wake up', time: '6:52am', detail: 'End of night sleep', type: 'wake' },
+        { icon: '☀️', label: 'Awake', time: '2h 16m', detail: 'Until Nap 1', type: 'waiting' },
+        { icon: '😴', label: 'Nap 1', time: '9:08 – 10:00am', detail: '52m · Home', type: 'nap' },
+        { icon: '🌤️', label: 'Wake up', time: '10:00am', detail: 'End of Nap 1', type: 'wake' },
+        { icon: '☀️', label: 'Awake', time: '3h 05m', detail: 'Until Nap 2', type: 'waiting' },
+        { icon: '😴', label: 'Nap 2', time: '1:05 – 2:18pm', detail: '1h 13m · Home', type: 'nap' },
+        { icon: '🌤️', label: 'Wake up', time: '2:18pm', detail: 'End of Nap 2', type: 'wake' },
+        { icon: '☀️', label: 'Awake', time: '5h 14m', detail: 'Until Bedtime', type: 'waiting' },
+        { icon: '🌙', label: 'Bedtime', time: '7:32pm', detail: 'Currently sleeping', type: 'bedtime' },
+      ]
+    },
+    yesterday: {
+      title: 'Yesterday',
+      sub: 'Friday, Jun 26',
+      badge: '🏫 Daycare',
+      stats: { night: '10h 10m', naps: '2h 05m', total: '12h 15m' },
+      events: [
+        { icon: '👀', label: 'Night wake', time: '12:15am', detail: '8m', type: 'nightwake' },
+        { icon: '🌅', label: 'Wake up', time: '6:35am', detail: 'End of night sleep', type: 'wake' },
+        { icon: '😴', label: 'Nap 1', time: '9:00 – 9:50am', detail: '50m · Daycare', type: 'nap' },
+        { icon: '🌤️', label: 'Wake up', time: '9:50am', detail: 'End of Nap 1', type: 'wake' },
+        { icon: '😴', label: 'Nap 2', time: '1:00 – 2:20pm', detail: '1h 20m · Daycare', type: 'nap' },
+        { icon: '🌤️', label: 'Wake up', time: '2:20pm', detail: 'End of Nap 2', type: 'wake' },
+        { icon: '🌙', label: 'Bedtime', time: '7:10pm', detail: '', type: 'bedtime' },
+      ]
+    },
+    jun25: {
+      title: 'Thursday',
+      sub: 'Jun 25',
+      badge: null,
+      stats: { night: '10h 45m', naps: '2h 10m', total: '12h 55m' },
+      events: [
+        { icon: '👀', label: 'Night wake', time: '11:00pm', detail: '5m', type: 'nightwake' },
+        { icon: '👀', label: 'Night wake', time: '12:30am', detail: '12m', type: 'nightwake' },
+        { icon: '🌅', label: 'Wake up', time: '6:40am', detail: 'End of night sleep', type: 'wake' },
+        { icon: '😴', label: 'Nap 1', time: '9:15 – 10:05am', detail: '50m · Home', type: 'nap' },
+        { icon: '😴', label: 'Nap 2', time: '1:15 – 2:45pm', detail: '1h 30m · Home', type: 'nap' },
+        { icon: '🌙', label: 'Bedtime', time: '7:00pm', detail: '', type: 'bedtime' },
+      ]
+    },
+    jun24: {
+      title: 'Wednesday',
+      sub: 'Jun 24',
+      badge: null,
+      stats: { night: '10h 20m', naps: '2h 30m', total: '12h 50m' },
+      events: [
+        { icon: '🌅', label: 'Wake up', time: '6:55am', detail: 'End of night sleep', type: 'wake' },
+        { icon: '😴', label: 'Nap 1', time: '9:00 – 10:15am', detail: '1h 15m · Home', type: 'nap' },
+        { icon: '😴', label: 'Nap 2', time: '12:45 – 2:15pm', detail: '1h 30m · Home', type: 'nap' },
+        { icon: '🌙', label: 'Bedtime', time: '7:20pm', detail: '', type: 'bedtime' },
+      ]
+    },
+    jun23: {
+      title: 'Tuesday',
+      sub: 'Jun 23',
+      badge: '🏫 Daycare',
+      stats: { night: '10h 35m', naps: '2h 00m', total: '12h 35m' },
+      events: [
+        { icon: '🌅', label: 'Wake up', time: '6:30am', detail: 'End of night sleep', type: 'wake' },
+        { icon: '😴', label: 'Nap 1', time: '9:00 – 9:55am', detail: '55m · Daycare', type: 'nap' },
+        { icon: '😴', label: 'Nap 2', time: '1:15 – 2:40pm', detail: '1h 25m · Daycare', type: 'nap' },
+        { icon: '🌙', label: 'Bedtime', time: '7:00pm', detail: '', type: 'bedtime' },
+      ]
+    }
+  };
+
+  function openDetail(key) {
+    const data = dayData[key];
+    if (!data) return;
+
+    document.getElementById('detailDayTitle').textContent = data.title;
+    document.getElementById('detailDaySub').textContent = data.sub;
+    const badge = document.getElementById('detailBadge');
+    if (data.badge) { badge.style.display = 'inline-block'; badge.textContent = data.badge; }
+    else { badge.style.display = 'none'; }
+
+    document.getElementById('dsNight').textContent = data.stats.night;
+    document.getElementById('dsNaps').textContent = data.stats.naps;
+    document.getElementById('dsTotal').textContent = data.stats.total;
+
+    const timeline = document.getElementById('detailTimeline');
+    timeline.innerHTML = data.events.map((ev, i) => `
+      <div class="dt-item">
+        <div class="dt-line">
+          <div class="dot ${ev.type}"></div>
+          ${i < data.events.length - 1 ? '<div class="bar"></div>' : ''}
+        </div>
+        <div class="dt-content">
+          <div class="dt-title">
+            <span class="dt-icon">${ev.icon}</span>
+            ${ev.label}
+            <span class="dt-time">${ev.time}</span>
+          </div>
+          ${ev.detail ? '<div class="dt-detail">' + ev.detail + '</div>' : ''}
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('detailOverlay').classList.add('open');
+    document.getElementById('detailSheet').classList.add('open');
+  }
+
+  function closeDetail() {
+    document.getElementById('detailOverlay').classList.remove('open');
+    document.getElementById('detailSheet').classList.remove('open');
+  }
+</script>
+
+</body>
+</html>

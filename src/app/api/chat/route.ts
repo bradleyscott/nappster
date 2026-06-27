@@ -44,7 +44,6 @@ const requestFieldsSchema = z.object({
       name: z.string(),
       age: z.string(),
       birthDate: z.string(),
-      sleepTrainingMethod: z.string().nullable(),
       patternNotes: z.string().nullable(),
     })
     .optional(),

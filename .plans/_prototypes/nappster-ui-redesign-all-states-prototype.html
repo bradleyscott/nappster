@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nappster · UI Redesign</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FFF8F0;
+    --card-bg: #FFFFFF;
+    --text: #2D2B3A;
+    --text-secondary: #8B88A0;
+    --text-muted: #B8B5CC;
+
+    /* Pastel palette */
+    --rose: #FF8FAB;
+    --rose-light: #FFE0E8;
+    --rose-bg: #FFF0F3;
+    --lavender: #B48BFF;
+    --lavender-light: #E8D8FF;
+    --lavender-bg: #F5EEFF;
+    --mint: #6FCF97;
+    --mint-light: #C8F0D9;
+    --mint-bg: #EDFBF3;
+    --peach: #FFB07C;
+    --peach-light: #FFE0CC;
+    --peach-bg: #FFF3EA;
+    --sky: #7EC8E3;
+    --sky-light: #D0ECF7;
+    --sky-bg: #EEF8FC;
+    --sunset: #FF8F6B;
+    --sunset-light: #FFD6C8;
+
+    --shadow-sm: 0 2px 8px rgba(45,43,58,0.06);
+    --shadow-md: 0 4px 20px rgba(45,43,58,0.08);
+    --shadow-lg: 0 8px 40px rgba(45,43,58,0.12);
+    --radius-sm: 12px;
+    --radius-md: 20px;
+    --radius-lg: 28px;
+    --radius-xl: 36px;
+  }
+
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100dvh;
+    width: 100vw;
+  }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 393px;
+    height: 852px;
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(45,43,58,0.15), 0 0 0 1px rgba(255,255,255,0.5);
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (max-width: 420px) {
+    .phone-frame {
+      width: 100vw;
+      height: 100dvh;
+      border-radius: 0;
+      margin: 0;
+    }
+  }
+
+  /* Status bar */
+  .status-bar {
+    padding: 14px 28px 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  /* State tabs */
+  .state-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px 12px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .state-tabs::-webkit-scrollbar { display: none; }
+
+  .state-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .state-tab:hover { transform: translateY(-1px); }
+  .state-tab.active {
+    color: white;
+    box-shadow: var(--shadow-md);
+  }
+  .state-tab.active[data-state="0"] { background: linear-gradient(135deg, #7C4DFF, #B48BFF); }
+  .state-tab.active[data-state="1"] { background: linear-gradient(135deg, #FF8FAB, #FFB07C); }
+  .state-tab.active[data-state="2"] { background: linear-gradient(135deg, #6FCF97, #7EC8E3); }
+  .state-tab.active[data-state="3"] { background: linear-gradient(135deg, #FF8F6B, #FF8FAB); }
+
+  .state-tab .label {
+    display: inline;
+  }
+  .state-tab .state-num {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    text-align: center;
+    line-height: 18px;
+    font-size: 10px;
+    margin-right: 6px;
+    background: var(--bg);
+  }
+  .state-tab.active .state-num { background: rgba(255,255,255,0.25); }
+
+  /* Main content area */
+  .main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  /* Baby header */
+  .baby-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .baby-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .baby-info { flex: 1; }
+  .baby-name {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .baby-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* State hero area */
+  .state-hero {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .state-icon-big {
+    font-size: 48px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .state-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .state-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  /* ---- Countdown styles ---- */
+
+  /* Style A: Large Circular Ring */
+  .countdown-ring {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 16px;
+  }
+  .countdown-ring svg { transform: rotate(-90deg); }
+  .countdown-ring .bg-circle { fill: none; stroke: #EEE; stroke-width: 8; }
+  .countdown-ring .progress-circle {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease;
+  }
+  .countdown-ring .center-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .countdown-ring .center-text .time-remaining {
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .countdown-ring .center-text .time-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* Style B: Pill with live countdown */
+  .countdown-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--lavender-bg);
+    border: 2px solid var(--lavender-light);
+    border-radius: 100px;
+    padding: 10px 20px;
+    margin-bottom: 16px;
+  }
+  .countdown-pill .pill-icon { font-size: 20px; }
+  .countdown-pill .pill-text {
+    text-align: left;
+  }
+  .countdown-pill .pill-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .countdown-pill .pill-time {
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .countdown-pill .pill-target {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* Style C: Clean text + progress bar */
+  .countdown-progress {
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .countdown-progress .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .countdown-progress .progress-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .countdown-progress .progress-time {
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .countdown-progress .progress-target {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .countdown-progress .progress-bar-bg {
+    height: 8px;
+    background: #EEE;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .countdown-progress .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+
+  /* Action buttons */
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 18px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    box-shadow: var(--shadow-sm);
+  }
+  .action-btn:active { transform: scale(0.97); }
+  .action-btn .btn-icon { font-size: 28px; flex-shrink: 0; }
+  .action-btn .btn-text { flex: 1; }
+  .action-btn .btn-sub {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.7;
+    display: block;
+    margin-top: 2px;
+  }
+  .action-btn .btn-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+
+  .action-btn.primary-primary {
+    background: linear-gradient(135deg, var(--rose), var(--peach));
+    color: white;
+  }
+  .action-btn.primary-secondary {
+    background: var(--lavender-bg);
+    color: var(--lavender);
+    border: 2px solid var(--lavender-light);
+  }
+  .action-btn.primary-secondary:active { background: var(--lavender-light); }
+
+  .action-btn.primary-green {
+    background: linear-gradient(135deg, var(--mint), var(--sky));
+    color: white;
+  }
+  .action-btn.primary-sunset {
+    background: linear-gradient(135deg, var(--sunset), var(--rose));
+    color: white;
+  }
+  .action-btn.primary-purple {
+    background: linear-gradient(135deg, #7C4DFF, var(--lavender));
+    color: white;
+  }
+
+  /* ---- Chat placement demos ---- */
+
+  /* Style A: Slide-up drawer */
+  .chat-drawer-fab {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    border: none;
+    background: linear-gradient(135deg, var(--rose), var(--peach));
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255,143,171,0.4);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chat-drawer-fab:active { transform: scale(0.92); }
+  .chat-drawer-fab[data-open="true"] {
+    background: var(--text);
+    box-shadow: 0 4px 16px rgba(45,43,58,0.3);
+  }
+
+  .chat-drawer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+    background: var(--card-bg);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: 0 -4px 30px rgba(45,43,58,0.1);
+    padding: 20px 16px;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 60%;
+    overflow-y: auto;
+  }
+  .chat-drawer.open { transform: translateY(0); }
+  .chat-drawer-handle {
+    width: 36px;
+    height: 4px;
+    background: #DDD;
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .chat-drawer-header {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .chat-drawer .chat-message {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .chat-drawer .chat-message.user {
+    background: var(--rose-bg);
+    margin-left: 24px;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-drawer .chat-message.assistant {
+    background: var(--lavender-bg);
+    margin-right: 24px;
+    border-bottom-left-radius: 4px;
+    color: var(--text-secondary);
+  }
+  .chat-drawer .chat-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .chat-drawer .chat-input-row input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #EEE;
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    background: var(--bg);
+    transition: border-color 0.2s;
+  }
+  .chat-drawer .chat-input-row input:focus {
+    border-color: var(--lavender);
+  }
+  .chat-drawer .chat-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
+    border: none;
+    background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Style B: Collapsible below dashboard */
+  .chat-collapsible-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--lavender-light);
+    background: var(--card-bg);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--lavender);
+    width: 100%;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .chat-collapsible-toggle:hover { background: var(--lavender-bg); }
+  .chat-collapsible-toggle .arrow {
+    transition: transform 0.25s;
+    margin-left: auto;
+  }
+  .chat-collapsible-toggle .arrow.open { transform: rotate(180deg); }
+
+  .chat-collapsible-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+  }
+  .chat-collapsible-content.open { max-height: 300px; }
+
+  .chat-collapsible-inner {
+    background: var(--card-bg);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    border: 2px solid var(--lavender-light);
+    border-top: none;
+    padding: 12px;
+  }
+
+  /* Style C: Bottom tab */
+  .bottom-bar {
+    display: flex;
+    background: var(--card-bg);
+    border-top: 2px solid #F0EDF5;
+    padding: 6px 8px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .bottom-bar .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bottom-bar .tab-btn .tab-icon { font-size: 22px; }
+  .bottom-bar .tab-btn.active {
+    color: var(--lavender);
+    background: var(--lavender-bg);
+  }
+  .bottom-bar .tab-btn:hover:not(.active) { color: var(--text-secondary); }
+
+  /* Style D: Minimized miniplayer-style bar */
+  .chat-minibar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--card-bg);
+    border: 2px solid #F0EDF5;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+  .chat-minibar:hover { border-color: var(--lavender-light); }
+  .chat-minibar .minibar-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: var(--lavender-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .chat-minibar .minibar-preview {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-minibar .minibar-arrow {
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+
+  /* Sleep plan mini card */
+  .sleep-plan-mini {
+    background: var(--lavender-bg);
+    border: 2px solid var(--lavender-light);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .sleep-plan-mini .plan-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .sleep-plan-mini .plan-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+
+  /* Timeline events (small chips) */
+  .timeline-events {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .timeline-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--card-bg);
+    border: 1.5px solid #EEE;
+    color: var(--text-secondary);
+  }
+  .timeline-chip .chip-icon { font-size: 13px; }
+
+  /* State tag helper */
+  .state-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* Layout option labels */
+  .option-label {
+    display: block;
+    text-align: center;
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Screens */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Scrollbar */
+  .main-content::-webkit-scrollbar { width: 4px; }
+  .main-content::-webkit-scrollbar-track { background: transparent; }
+  .main-content::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
+
+  /* Responsive container for phone frames */
+  .prototype-container {
+    display: flex;
+    gap: 24px;
+    padding: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 100dvh;
+    align-items: flex-start;
+  }
+
+  /* Annotation */
+  .phone-annotation {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 840px) {
+    .prototype-container { flex-direction: column; align-items: center; padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 8px 0;">
+  <div style="text-align: center; padding: 8px 16px 0; font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6); letter-spacing: 0.5px; text-transform: uppercase;">
+    ⬇ Nappster UI Redesign · Interactive Prototype ⬇
+  </div>
+  <div class="prototype-container">
+
+    <!-- PHONE 1: State 1 - Overnight Sleep + Ring countdown + Slide-up Drawer chat -->
+    <div>
+      <div class="phone-frame" id="phone1">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span>📶 🔋</span>
+        </div>
+        <div class="state-tabs">
+          <button class="state-tab active" data-state="0"><span class="state-num">1</span><span class="label">😴 Night Sleep</span></button>
+          <button class="state-tab" data-state="1"><span class="state-num">2</span><span class="label">☀️ Awake · Naps</span></button>
+          <button class="state-tab" data-state="2"><span class="state-num">3</span><span class="label">💤 Napping</span></button>
+          <button class="state-tab" data-state="3"><span class="state-num">4</span><span class="label">🌙 Bedtime Next</span></button>
+        </div>
+
+        <!-- Screen 0: Overnight Sleep -->
+        <div class="main-content screen active" data-screen="0">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--lavender-bg);">👶</div>
+            <div class="baby-info">
+              <div class="baby-name">Luna · 7 months</div>
+              <div class="baby-meta">Saturday, Jun 27</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <span style="font-size:18px;cursor:pointer;">📊</span>
+              <span style="font-size:18px;cursor:pointer;">⚙️</span>
+            </div>
+          </div>
+
+          <div class="state-hero">
+            <span class="state-icon-big">🌙</span>
+            <div class="state-title">Sleeping Soundly</div>
+            <div class="state-subtitle">Bedtime was at 7:32pm · 2h 18m ago</div>
+
+            <!-- Countdown Style A: Large Circular Ring -->
+            <div class="countdown-ring" style="--pct:65">
+              <svg width="160" height="160" viewBox="0 0 160 160">
+                <circle class="bg-circle" cx="80" cy="80" r="68"/>
+                <circle class="progress-circle" stroke="url(#ringGrad0)" stroke-dasharray="427.26" stroke-dashoffset="149.54" cx="80" cy="80" r="68"/>
+                <defs>
+                  <linearGradient id="ringGrad0" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#7C4DFF"/>
+                    <stop offset="100%" stop-color="#B48BFF"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="center-text">
+                <span class="time-remaining">5h 12m</span>
+                <span class="time-label">until 7:00am</span>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+              <span class="state-tag" style="background:var(--lavender-bg);color:var(--lavender);">🛌 Expected wake</span>
+              <span style="font-size:15px;font-weight:800;">7:00 - 7:30am</span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="action-btn primary-primary">
+              <span class="btn-icon">🌅</span>
+              <span class="btn-text">
+                Good Morning!
+                <span class="btn-sub">Log wake up / end of night sleep</span>
+              </span>
+              <span class="btn-badge">6:55am 🤞</span>
+            </button>
+            <button class="action-btn primary-secondary">
+              <span class="btn-icon">👀</span>
+              <span class="btn-text">
+                Night Wake
+                <span class="btn-sub">Baby woke up during the night</span>
+              </span>
+            </button>
+          </div>
+
+          <!-- Timeline chips -->
+          <div class="timeline-events">
+            <div class="timeline-chip"><span class="chip-icon">🌙</span> Bedtime 7:32pm</div>
+            <div class="timeline-chip" style="border-color:var(--lavender-light);background:var(--lavender-bg);"><span class="chip-icon">👀</span> Night wake 11:15pm (8m)</div>
+          </div>
+
+          <!-- Chat: Slide-up Drawer -->
+          <button class="chat-drawer-fab" onclick="toggleDrawer('drawer1')" id="drawer1fab">💬</button>
+          <div class="chat-drawer" id="drawer1">
+            <div class="chat-drawer-handle"></div>
+            <div class="chat-drawer-header">💬 Chat with Nappster</div>
+            <div class="chat-message assistant">Luna is sleeping well! Her first stretch was 3h 43m after that night wake. Expected wake is around 7:00-7:30am 💜</div>
+            <div class="chat-message user">What time should I expect her to wake up?</div>
+            <div class="chat-input-row">
+              <input type="text" placeholder="Ask about sleep...">
+              <button class="chat-send-btn">➤</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 1: Awake + Naps expected -->
+        <div class="main-content screen" data-screen="1">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--peach-bg);">👶</div>
+            <div class="baby-info">
+              <div class="baby-name">Luna · 7 months</div>
+              <div class="baby-meta">Saturday, Jun 27</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <span style="font-size:18px;cursor:pointer;">📊</span>
+              <span style="font-size:18px;cursor:pointer;">⚙️</span>
+            </div>
+          </div>
+
+          <div class="state-hero">
+            <span class="state-icon-big">☀️</span>
+            <div class="state-title">Awake & Playing!</div>
+            <div class="state-subtitle">Woke up at 6:52am · 2h 8m ago</div>
+
+            <!-- Countdown Style B: Pill with live countdown -->
+            <div class="countdown-pill" style="background:var(--peach-bg);border-color:var(--peach-light);">
+              <span class="pill-icon">⏰</span>
+              <div class="pill-text">
+                <div class="pill-label">Next nap predicted</div>
+                <div class="pill-time" style="color:var(--peach);">9:10am</div>
+                <div class="pill-target">in 1h 10m · window 9:00-9:30am</div>
+              </div>
+            </div>
+
+            <div class="sleep-plan-mini">
+              <span class="plan-icon">📋</span>
+              <span class="plan-text">Nap 1: 9:00-9:30am · Nap 2: 1:00-2:30pm · Bedtime: 7:00pm</span>
+              <span style="font-size:16px;">›</span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="action-btn primary-green">
+              <span class="btn-icon">😴</span>
+              <span class="btn-text">
+                Start Nap
+                <span class="btn-sub">Log that baby is going down for a nap</span>
+              </span>
+              <span class="btn-badge">9:00am ✓</span>
+            </button>
+          </div>
+
+          <div class="timeline-events">
+            <div class="timeline-chip"><span class="chip-icon">🌅</span> Wake 6:52am</div>
+            <div class="timeline-chip" style="border-color:var(--mint-light);background:var(--mint-bg);"><span class="chip-icon">😴</span> Nap 1 · 9:00-9:30am ✨</div>
+            <div class="timeline-chip"><span class="chip-icon">😴</span> Nap 2 · 1:00-2:30pm</div>
+          </div>
+
+          <!-- Chat: Collapsible below dashboard -->
+          <div>
+            <button class="chat-collapsible-toggle" onclick="toggleCollapsible('coll1')">
+              <span>💬</span> Ask about today's sleep
+              <span class="arrow" id="coll1arrow">▼</span>
+            </button>
+            <div class="chat-collapsible-content" id="coll1">
+              <div class="chat-collapsible-inner">
+                <div class="chat-message assistant" style="font-size:13px;padding:8px 12px;background:var(--lavender-bg);border-radius:12px;margin-bottom:8px;">
+                  Based on her 6:52am wake and 2h 8m of awake time, Luna should be ready for Nap 1 around 9:00-9:30am. She's showing ~2h 15m wake windows at this age ✨
+                </div>
+                <div class="chat-input-row">
+                  <input type="text" placeholder="Ask about sleep..." style="font-size:13px;padding:10px 14px;">
+                  <button class="chat-send-btn" style="width:38px;height:38px;font-size:15px;">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 2: Napping -->
+        <div class="main-content screen" data-screen="2">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--mint-bg);">👶</div>
+            <div class="baby-info">
+              <div class="baby-name">Luna · 7 months</div>
+              <div class="baby-meta">Saturday, Jun 27</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <span style="font-size:18px;cursor:pointer;">📊</span>
+              <span style="font-size:18px;cursor:pointer;">⚙️</span>
+            </div>
+          </div>
+
+          <div class="state-hero">
+            <span class="state-icon-big">💤</span>
+            <div class="state-title">Nap Time</div>
+            <div class="state-subtitle">Nap started at 9:08am · 52m ago</div>
+
+            <!-- Countdown Style C: Clean text + progress bar -->
+            <div class="countdown-progress">
+              <div class="progress-header">
+                <span class="progress-label">⏳ Predicted nap end</span>
+                <span class="progress-time" style="color:var(--mint);">~15m left</span>
+              </div>
+              <div class="progress-target">Target: 10:00am · nap window 1h-1h30m</div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width:75%;background:linear-gradient(90deg,var(--mint),var(--sky));"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--text-muted);margin-top:4px;">
+                <span>Started 9:08am</span>
+                <span>Expected ~10:00am</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="action-btn primary-green">
+              <span class="btn-icon">🌤️</span>
+              <span class="btn-text">
+                Wake Up
+                <span class="btn-sub">Log that nap has ended</span>
+              </span>
+              <span class="btn-badge">~10:00am</span>
+            </button>
+          </div>
+
+          <div class="timeline-events">
+            <div class="timeline-chip"><span class="chip-icon">🌅</span> Wake 6:52am</div>
+            <div class="timeline-chip" style="border-color:var(--mint-light);background:var(--mint-bg);"><span class="chip-icon">😴</span> Nap start 9:08am ◉</div>
+          </div>
+
+          <!-- Chat: not shown in this state since bottom-bar handles it -->
+          <div style="margin-top:8px;text-align:center;">
+            <span style="font-size:12px;font-weight:600;color:var(--text-muted);">💬 Chat available in tab below</span>
+          </div>
+        </div>
+
+        <!-- Screen 3: Awake + Bedtime next -->
+        <div class="main-content screen" data-screen="3">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--sunset-light);">👶</div>
+            <div class="baby-info">
+              <div class="baby-name">Luna · 7 months</div>
+              <div class="baby-meta">Saturday, Jun 27</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <span style="font-size:18px;cursor:pointer;">📊</span>
+              <span style="font-size:18px;cursor:pointer;">⚙️</span>
+            </div>
+          </div>
+
+          <div class="state-hero" style="border: 2px solid var(--rose-light); background: linear-gradient(180deg, var(--rose-bg), var(--card-bg));">
+            <span class="state-icon-big">🌅</span>
+            <div class="state-title">Last Wake of the Day</div>
+            <div class="state-subtitle">Nap ended at 2:18pm · 3h 12m ago</div>
+
+            <!-- Countdown Style A (again but with sunset colors): Large Circular Ring -->
+            <div class="countdown-ring">
+              <svg width="160" height="160" viewBox="0 0 160 160">
+                <circle class="bg-circle" cx="80" cy="80" r="68"/>
+                <circle class="progress-circle" stroke="url(#ringGrad3)" stroke-dasharray="427.26" stroke-dashoffset="85.45" cx="80" cy="80" r="68"/>
+                <defs>
+                  <linearGradient id="ringGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#FF8F6B"/>
+                    <stop offset="100%" stop-color="#FF8FAB"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="center-text">
+                <span class="time-remaining">1h 48m</span>
+                <span class="time-label">until bedtime</span>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
+              <span class="state-tag" style="background:var(--rose-bg);color:var(--rose);">🌟 Bedtime recommendation</span>
+              <span style="font-size:15px;font-weight:800;">7:00 - 7:30pm</span>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;">
+              <span class="timeline-chip" style="background:var(--sunset-light);border-color:var(--sunset);">Nap 2 ended 2:18pm</span>
+              <span class="timeline-chip" style="background:var(--rose-bg);border-color:var(--rose);">💪 3h 12m awake</span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="action-btn primary-sunset">
+              <span class="btn-icon">🌙</span>
+              <span class="btn-text">
+                Start Bedtime!
+                <span class="btn-sub">Log the start of night sleep</span>
+              </span>
+              <span class="btn-badge">7:00pm ✓</span>
+            </button>
+          </div>
+
+          <!-- Chat: Minimized miniplayer bar -->
+          <div class="chat-minibar" onclick="expandMinibar('minibar1')">
+            <div class="minibar-icon">💬</div>
+            <div class="minibar-preview">Ask about bedtime, wake windows, or sleep...</div>
+            <span class="minibar-arrow">▲</span>
+          </div>
+          <div id="minibar1" style="display:none;">
+            <div style="background:var(--card-bg);border-radius:var(--radius-sm);padding:12px;box-shadow:var(--shadow-sm);margin-top:4px;border:2px solid var(--rose-light);">
+              <div class="chat-message assistant" style="font-size:13px;padding:8px 12px;background:var(--rose-bg);border-radius:12px;margin-bottom:8px;">
+                Luna's last nap ended at 2:18pm and she'll be ready for bedtime around 7:00-7:30pm with her current 3.5-4h wake window! 🌙
+              </div>
+              <div class="chat-input-row">
+                <input type="text" placeholder="Ask about tonight..." style="font-size:13px;padding:10px 14px;">
+                <button class="chat-send-btn" style="width:38px;height:38px;font-size:15px;">➤</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom tab bar for screen 2 (napping) -->
+        <div class="bottom-bar" style="display:none;" id="bottomBar">
+          <button class="tab-btn active">
+            <span class="tab-icon">🏠</span>
+            Dashboard
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">📋</span>
+            Today
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">💬</span>
+            Chat
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">📊</span>
+            Trends
+          </button>
+        </div>
+
+        <div style="position:relative;flex-shrink:0;" id="bottomArea">
+          <!-- Placeholder for whatever bottom UI -->
+        </div>
+      </div>
+      <div class="phone-annotation">
+        States 1-4 with different chat + countdown combos ↑
+      </div>
+    </div>
+
+    <!-- PHONE 2: Separate isolated views for comparison -->
+    <div>
+      <div class="phone-frame" id="phone2">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span>📶 🔋</span>
+        </div>
+        <div class="state-tabs">
+          <button class="state-tab active" data-state-alt="0" onclick="switchPhone2State(0)"><span class="state-num">A</span><span class="label">Drawer Chat</span></button>
+          <button class="state-tab" data-state-alt="1" onclick="switchPhone2State(1)"><span class="state-num">B</span><span class="label">Collapsible</span></button>
+          <button class="state-tab" data-state-alt="2" onclick="switchPhone2State(2)"><span class="state-num">C</span><span class="label">Bottom Tab</span></button>
+          <button class="state-tab" data-state-alt="3" onclick="switchPhone2State(3)"><span class="state-num">D</span><span class="label">Mini Bar</span></button>
+        </div>
+
+        <!-- Drawer Chat demo -->
+        <div class="main-content screen active" data-phone2="0">
+          <div style="text-align:center;padding:4px 0 12px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);background:var(--lavender-bg);padding:3px 12px;border-radius:100px;">💬 Chat Placement: Slide-up Drawer</span>
+          </div>
+          <div class="state-hero" style="background:linear-gradient(180deg,var(--lavender-bg),var(--card-bg));">
+            <span style="font-size:36px;">📱</span>
+            <div class="state-title" style="font-size:18px;">Drawer + FAB</div>
+            <div class="state-subtitle" style="font-size:13px;">Chat hides behind a floating action button</div>
+            <div style="margin:12px 0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='40' fill='%23E8D8FF'/%3E%3Ctext x='40' y='48' text-anchor='middle' font-size='32'%3E💬%3C/text%3E%3C/svg%3E" style="width:64px;height:64px;border-radius:32px;box-shadow:0 4px 16px rgba(180,139,255,0.3);">
+            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.5;">
+              ✅ Dashboard stays clean and focused<br>
+              ✅ One-tap access to chat<br>
+              ✅ Drawer slides up with full chat UI<br>
+              ❌ Less discoverable for new users
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="padding:6px 14px;border-radius:100px;background:var(--card-bg);font-size:12px;font-weight:600;box-shadow:var(--shadow-sm);">Best for: sleep-first users</span>
+            <span style="padding:6px 14px;border-radius:100px;background:var(--card-bg);font-size:12px;font-weight:600;box-shadow:var(--shadow-sm);">Good for: night mode use</span>
+          </div>
+          <button class="chat-drawer-fab" style="position:relative;margin:20px auto 0;right:auto;bottom:auto;" onclick="this.textContent=this.textContent==='💬'?'✕':'💬'">💬</button>
+        </div>
+
+        <!-- Collapsible chat demo -->
+        <div class="main-content screen" data-phone2="1">
+          <div style="text-align:center;padding:4px 0 12px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);background:var(--peach-bg);padding:3px 12px;border-radius:100px;">💬 Chat Placement: Collapsible Inline</span>
+          </div>
+          <div class="state-hero" style="background:linear-gradient(180deg,var(--peach-bg),var(--card-bg));">
+            <span style="font-size:36px;">📄</span>
+            <div class="state-title" style="font-size:18px;">Inline Collapsible</div>
+            <div class="state-subtitle" style="font-size:13px;">Chat expands below the dashboard</div>
+            <div style="margin:12px 0;text-align:left;">
+              <div style="background:var(--card-bg);border-radius:12px;padding:12px;box-shadow:var(--shadow-sm);">
+                <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--peach);">
+                  <span>💬</span> Chat with Nappster
+                  <span style="margin-left:auto;font-size:12px;color:var(--text-muted);">▼</span>
+                </div>
+              </div>
+              <div style="background:var(--card-bg);border-radius:0 0 12px 12px;padding:12px;margin-top:-4px;box-shadow:var(--shadow-sm);border-top:2px solid var(--peach-light);">
+                <div style="font-size:13px;color:var(--text-secondary);font-weight:600;">
+                  "When should Luna's next nap be?"
+                </div>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.5;">
+              ✅ Always visible, natural flow<br>
+              ✅ No extra UI elements needed<br>
+              ✅ Good content hierarchy<br>
+              ❌ Takes vertical space when expanded
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom tab chat demo -->
+        <div class="main-content screen" data-phone2="2">
+          <div style="text-align:center;padding:4px 0 12px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);background:var(--mint-bg);padding:3px 12px;border-radius:100px;">💬 Chat Placement: Bottom Tab</span>
+          </div>
+          <div class="state-hero" style="background:linear-gradient(180deg,var(--mint-bg),var(--card-bg));">
+            <span style="font-size:36px;">📑</span>
+            <div class="state-title" style="font-size:18px;">Bottom Tab Bar</div>
+            <div class="state-subtitle" style="font-size:13px;">Chat is a separate tab alongside Dashboard</div>
+            <div style="margin:12px 0;width:100%;">
+              <div style="display:flex;gap:4px;background:var(--card-bg);border-radius:14px;padding:4px;box-shadow:var(--shadow-sm);">
+                <div style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;background:var(--mint-bg);font-size:11px;font-weight:700;color:var(--mint);">🏠 Dashboard</div>
+                <div style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;font-size:11px;font-weight:700;color:var(--text-muted);">📋 Today</div>
+                <div style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;font-size:11px;font-weight:700;color:var(--text-muted);">💬 Chat</div>
+                <div style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;font-size:11px;font-weight:700;color:var(--text-muted);">📊 Trends</div>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.5;">
+              ✅ Clear separation of concerns<br>
+              ✅ Full screen for both modes<br>
+              ✅ Familiar mobile pattern<br>
+              ❌ Extra tap to reach chat<br>
+              ❌ Less dashboard space
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini bar chat demo -->
+        <div class="main-content screen" data-phone2="3">
+          <div style="text-align:center;padding:4px 0 12px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);background:var(--rose-bg);padding:3px 12px;border-radius:100px;">💬 Chat Placement: Mini Bar</span>
+          </div>
+          <div class="state-hero" style="background:linear-gradient(180deg,var(--rose-bg),var(--card-bg));">
+            <span style="font-size:36px;">🎵</span>
+            <div class="state-title" style="font-size:18px;">Minimized Bar</div>
+            <div class="state-subtitle" style="font-size:13px;">Persistent miniplayer-style bar at bottom</div>
+            <div style="margin:12px 0;width:100%;">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card-bg);border-radius:14px;border:2px solid var(--rose-light);box-shadow:var(--shadow-sm);">
+                <div style="width:28px;height:28px;border-radius:14px;background:var(--rose-bg);display:flex;align-items:center;justify-content:center;font-size:14px;">💬</div>
+                <div style="flex:1;font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Ask about sleep, naps, or bedtime...</div>
+                <span style="font-size:12px;color:var(--text-muted);">▲</span>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.5;">
+              ✅ Always accessible, always visible<br>
+              ✅ Minimal vertical footprint<br>
+              ✅ Tap to expand inline (dashboard pushes up)<br>
+              ❌ Small tap target<br>
+              ❌ Limited preview of chat
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom tab bar for phone2 -->
+        <div class="bottom-bar">
+          <button class="tab-btn active">
+            <span class="tab-icon">🏠</span>
+            Dashboard
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">📋</span>
+            Today
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">💬</span>
+            Chat
+          </button>
+          <button class="tab-btn">
+            <span class="tab-icon">📊</span>
+            Trends
+          </button>
+        </div>
+      </div>
+      <div class="phone-annotation">
+        Side-by-side chat placement comparison ↑
+      </div>
+    </div>
+
+    <!-- PHONE 3: Countdown style comparison -->
+    <div>
+      <div class="phone-frame" id="phone3">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span>📶 🔋</span>
+        </div>
+        <div style="padding:16px 16px 0;">
+          <div style="text-align:center;padding:4px 0 12px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);background:var(--sky-bg);padding:3px 12px;border-radius:100px;">⏱️ Countdown Style Comparison</span>
+          </div>
+        </div>
+        <div class="main-content" style="padding-top:0;">
+          <!-- Style A -->
+          <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+              <span style="font-size:11px;font-weight:700;color:white;background:linear-gradient(135deg,#7C4DFF,#B48BFF);padding:2px 10px;border-radius:6px;">A</span>
+              <span style="font-size:15px;font-weight:800;">Large Circular Ring</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:20px;">
+              <div class="countdown-ring" style="margin:0;width:120px;height:120px;">
+                <svg width="120" height="120" viewBox="0 0 120 120">
+                  <circle class="bg-circle" cx="60" cy="60" r="50" stroke-width="6"/>
+                  <circle class="progress-circle" stroke="url(#cr1)" stroke-dasharray="314.16" stroke-dashoffset="109.96" stroke-width="6" cx="60" cy="60" r="50"/>
+                  <defs>
+                    <linearGradient id="cr1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#7C4DFF"/>
+                      <stop offset="100%" stop-color="#B48BFF"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="center-text">
+                  <span class="time-remaining" style="font-size:24px;">5h 12m</span>
+                  <span class="time-label" style="font-size:11px;">until wake</span>
+                </div>
+              </div>
+              <div style="flex:1;font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.5;">
+                ✅ Visually dramatic<br>
+                ✅ Easy to glance at<br>
+                ✅ Great for bedtime countdown<br>
+                ❌ Takes significant space
+              </div>
+            </div>
+          </div>
+
+          <!-- Style B -->
+          <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+              <span style="font-size:11px;font-weight:700;color:white;background:linear-gradient(135deg,var(--peach),var(--rose));padding:2px 10px;border-radius:6px;">B</span>
+              <span style="font-size:15px;font-weight:800;">Compact Pill</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+              <div class="countdown-pill" style="margin:0;background:var(--peach-bg);border-color:var(--peach-light);">
+                <span class="pill-icon">⏰</span>
+                <div class="pill-text">
+                  <div class="pill-label">Next nap</div>
+                  <div class="pill-time" style="color:var(--peach);">9:10am</div>
+                  <div class="pill-target">in 1h 10m</div>
+                </div>
+              </div>
+              <div style="flex:1;font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.5;">
+                ✅ Compact, fits anywhere<br>
+                ✅ Clear info hierarchy<br>
+                ✅ Works in header areas<br>
+                ❌ Less impactful visually
+              </div>
+            </div>
+          </div>
+
+          <!-- Style C -->
+          <div style="background:var(--card-bg);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+              <span style="font-size:11px;font-weight:700;color:white;background:linear-gradient(135deg,var(--mint),var(--sky));padding:2px 10px;border-radius:6px;">C</span>
+              <span style="font-size:15px;font-weight:800;">Progress Bar + Text</span>
+            </div>
+            <div>
+              <div class="countdown-progress" style="margin:0;">
+                <div class="progress-header">
+                  <span class="progress-label">⏳ Nap remaining</span>
+                  <span class="progress-time" style="color:var(--mint);font-size:20px;">~15m</span>
+                </div>
+                <div class="progress-target" style="font-size:12px;">Target: 10:00am · 45m nap so far</div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" style="width:75%;background:linear-gradient(90deg,var(--mint),var(--sky));"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--text-muted);margin-top:4px;">
+                  <span>Started 9:08am</span>
+                  <span>~10:00am</span>
+                </div>
+              </div>
+              <div style="margin-top:12px;font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.5;">
+                ✅ Good information density<br>
+                ✅ Shows time elapsed vs remaining<br>
+                ✅ Familiar UX pattern<br>
+                ❌ Less exciting visually
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-annotation">
+        Countdown style comparison ↑
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Phone 1: state tabs switch screens
+  const phone1Tabs = document.querySelectorAll('#phone1 .state-tab');
+  phone1Tabs.forEach((tab, idx) => {
+    tab.addEventListener('click', () => {
+      phone1Tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('#phone1 .screen').forEach((s, i) => {
+        s.classList.toggle('active', i === idx);
+      });
+      // Show bottom bar only for state index 2 (napping)
+      const bottomBar = document.getElementById('bottomBar');
+      if (bottomBar) {
+        bottomBar.style.display = idx === 2 ? 'flex' : 'none';
+      }
+    });
+  });
+
+  // Toggle drawer
+  function toggleDrawer(id) {
+    const drawer = document.getElementById(id);
+    const fab = document.getElementById(id + 'fab');
+    drawer.classList.toggle('open');
+    fab.dataset.open = drawer.classList.contains('open') ? 'true' : 'false';
+    fab.textContent = drawer.classList.contains('open') ? '✕' : '💬';
+  }
+
+  // Toggle collapsible
+  function toggleCollapsible(id) {
+    const content = document.getElementById(id);
+    const arrow = document.getElementById(id + 'arrow');
+    content.classList.toggle('open');
+    arrow.classList.toggle('open');
+  }
+
+  // Expand minibar
+  function expandMinibar(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  // Phone 2: alt state switch
+  function switchPhone2State(idx) {
+    document.querySelectorAll('#phone2 .state-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`#phone2 .state-tab[data-state-alt="${idx}"]`).classList.add('active');
+    document.querySelectorAll('#phone2 .screen').forEach((s, i) => {
+      s.classList.toggle('active', i === idx);
+    });
+  }
+</script>
+
+</body>
+</html>

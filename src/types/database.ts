@@ -14,7 +14,6 @@ export type Database = {
           id: string
           name: string
           birth_date: string
-          sleep_training_method: string | null
           pattern_notes: string | null
           created_at: string
         }
@@ -22,7 +21,6 @@ export type Database = {
           id?: string
           name: string
           birth_date: string
-          sleep_training_method?: string | null
           pattern_notes?: string | null
           created_at?: string
         }
@@ -30,7 +28,6 @@ export type Database = {
           id?: string
           name?: string
           birth_date?: string
-          sleep_training_method?: string | null
           pattern_notes?: string | null
           created_at?: string
         }

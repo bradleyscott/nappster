@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nappster · Timeline Interactions</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FFF8F0; --card-bg: #FFFFFF; --text: #2D2B3A; --text-secondary: #8B88A0; --text-muted: #B8B5CC;
+    --rose: #FF8FAB; --rose-light: #FFE0E8; --rose-bg: #FFF0F3;
+    --lavender: #B48BFF; --lavender-light: #E8D8FF; --lavender-bg: #F5EEFF;
+    --mint: #6FCF97; --mint-light: #C8F0D9; --mint-bg: #EDFBF3;
+    --peach: #FFB07C; --peach-light: #FFE0CC; --peach-bg: #FFF3EA;
+    --sunset: #FF8F6B; --sunset-light: #FFD6C8;
+    --shadow-sm: 0 2px 8px rgba(45,43,58,0.06);
+    --shadow-btn-green: 0 4px 16px rgba(111,207,151,0.30);
+    --shadow-btn-purple: 0 4px 16px rgba(124,77,255,0.25);
+    --radius-lg: 28px; --radius-xl: 36px;
+  }
+
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; overflow: hidden; height: 100dvh; width: 100vw; }
+
+  .phone-frame { width: 393px; height: 852px; background: var(--bg); border-radius: 44px; overflow: hidden; position: relative; box-shadow: 0 20px 60px rgba(45,43,58,0.15); margin: 20px auto; display: flex; flex-direction: column; }
+  @media (max-width: 420px) { .phone-frame { width: 100vw; height: 100dvh; border-radius: 0; margin: 0; } }
+
+  .status-bar { padding: 14px 28px 8px; display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+
+  .state-tabs { display: flex; gap: 6px; padding: 0 16px 10px; overflow-x: auto; flex-shrink: 0; }
+  .state-tab { flex-shrink: 0; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); box-shadow: var(--shadow-sm); white-space: nowrap; }
+  .state-tab.active { background: linear-gradient(135deg, #7C4DFF, #B48BFF); color: white; box-shadow: 0 4px 12px rgba(124,77,255,0.3); }
+
+  .main-content { flex: 1; overflow-y: auto; padding: 0 16px 16px; position: relative; }
+  .main-content::-webkit-scrollbar { width: 4px; }
+  .main-content::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
+
+  .baby-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-top: 4px; }
+  .baby-avatar { width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; background: var(--lavender-bg); }
+  .baby-info { flex: 1; }
+  .baby-name { font-size: 17px; font-weight: 800; }
+  .baby-meta { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+  .header-actions { display: flex; gap: 8px; }
+  .header-icon-btn { width: 36px; height: 36px; border-radius: 18px; border: 2px solid #EEE; background: var(--card-bg); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+  .state-hero { background: var(--card-bg); border-radius: var(--radius-lg); padding: 24px 20px 20px; box-shadow: var(--shadow-sm); margin-bottom: 14px; text-align: center; position: relative; overflow: hidden; }
+  .state-hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #7C4DFF, #B48BFF); }
+  .state-icon-big { font-size: 40px; margin-bottom: 6px; display: block; }
+  .state-title { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+
+  .subtitle-pills { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .subtitle-pill { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 700; border: 1.5px solid #E8E5F0; }
+  .subtitle-pill.lavender { background: var(--lavender-bg); border-color: var(--lavender-light); color: var(--lavender); }
+  .subtitle-pill .sp-dot { width: 8px; height: 8px; border-radius: 4px; background: var(--lavender); animation: pulse-dot 2s infinite; display: inline-block; }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .countdown-ring { position: relative; width: 150px; height: 150px; margin: 0 auto 12px; }
+  .countdown-ring svg { transform: rotate(-90deg); }
+  .countdown-ring .bg-circle { fill: none; stroke: #F0EDF5; stroke-width: 8; }
+  .countdown-ring .progress-circle { fill: none; stroke-width: 8; stroke-linecap: round; }
+  .countdown-ring .center-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .countdown-ring .center-text .time-remaining { font-size: 30px; font-weight: 900; }
+  .countdown-ring .center-text .time-label { font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-top: 2px; }
+
+  .expected-label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 100px; font-size: 12px; font-weight: 800; background: var(--lavender-bg); color: var(--lavender); }
+  .expected-label strong { font-weight: 900; }
+
+  .action-buttons { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .action-btn { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 20px; border: none; border-radius: 18px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer; text-align: left; position: relative; transition: all 0.12s; overflow: hidden; }
+  .action-btn:active { transform: scale(0.96); }
+  .action-btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%); pointer-events: none; }
+  .action-btn.primary-action { color: white; border-radius: 22px; padding: 20px 22px; }
+  .action-btn.primary-action .btn-icon { font-size: 32px; }
+  .action-btn.primary-action .btn-text { font-size: 17px; }
+  .action-btn.primary-action .btn-sub { font-size: 12px; font-weight: 700; opacity: 0.85; display: block; margin-top: 1px; }
+  .action-btn.primary-action .btn-arrow { font-size: 20px; opacity: 0.8; margin-left: auto; flex-shrink: 0; }
+  .action-btn.primary-action .btn-time-badge { font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 12px; background: rgba(255,255,255,0.2); backdrop-filter: blur(4px); flex-shrink: 0; }
+  .action-btn.primary-action.purple { background: linear-gradient(135deg, #7C4DFF, var(--lavender)); box-shadow: var(--shadow-btn-purple); }
+  .action-btn.secondary-action { background: var(--card-bg); color: var(--text); box-shadow: var(--shadow-sm); border: 2px solid var(--lavender-light); padding: 14px 18px; border-radius: 16px; }
+  .action-btn.secondary-action .btn-icon { font-size: 22px; }
+  .action-btn.secondary-action .btn-text { font-size: 14px; font-weight: 700; }
+  .action-btn.secondary-action .btn-sub { font-size: 11px; font-weight: 600; color: var(--text-secondary); display: block; margin-top: 1px; }
+  .action-btn.secondary-action .btn-arrow { font-size: 16px; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+
+  /* ===== TIMELINE with interactions ===== */
+  .timeline-wrap { margin-bottom: 8px; }
+
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+  .timeline-label {
+    font-size: 11px; font-weight: 800; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .timeline-label .tl-dot { width: 8px; height: 8px; border-radius: 4px; background: var(--text-muted); }
+
+  /* Add Event button */
+  .add-event-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--lavender);
+    background: var(--lavender-bg);
+    border: 1.5px solid var(--lavender-light);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .add-event-btn:active { transform: scale(0.95); }
+  .add-event-btn .ae-icon { font-size: 14px; font-weight: 900; }
+
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+
+  .tl-item {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    min-height: 44px;
+    cursor: pointer;
+    border-radius: 10px;
+    margin: 0 -6px;
+    padding: 0 6px;
+    transition: background 0.12s;
+  }
+  .tl-item:hover { background: #F8F5FF; }
+  .tl-item:active { background: #F0EBFF; }
+
+  .tl-line { display: flex; flex-direction: column; align-items: center; width: 20px; flex-shrink: 0; }
+  .tl-line .dot { width: 12px; height: 12px; border-radius: 6px; background: #DDD; flex-shrink: 0; margin-top: 6px; position: relative; z-index: 1; }
+  .tl-line .bar { flex: 1; width: 2px; background: #E8E5F0; min-height: 20px; }
+  .tl-item:last-child .tl-line .bar { display: none; }
+
+  .tl-item.current .tl-line .dot { width: 14px; height: 14px; border-radius: 7px; box-shadow: 0 0 0 3px rgba(180,139,255,0.2); background: var(--lavender); }
+  .tl-item.done .tl-line .dot { background: #C8C5D5; }
+
+  .tl-content { flex: 1; padding: 3px 0 12px; display: flex; align-items: flex-start; gap: 6px; }
+  .tl-content .tl-title { font-size: 13px; font-weight: 700; flex: 1; }
+  .tl-content .tl-title .tl-icon { font-size: 14px; margin-right: 4px; }
+  .tl-content .tl-title .tl-time { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-left: 8px; }
+  .tl-content .tl-detail { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-top: 1px; }
+  .tl-item.current .tl-content .tl-title { color: var(--text); }
+  .tl-item.done .tl-content .tl-title { color: var(--text-secondary); }
+
+  /* Edit indicator (chevron) on timeline items */
+  .tl-edit-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .tl-item:hover .tl-edit-hint { opacity: 0.6; }
+  .tl-item .tl-edit-hint::after { content: '››'; letter-spacing: -2px; }
+
+  /* ===== Bottom Sheet (Edit / Add Event) ===== */
+  .sheet-overlay {
+    position: absolute; inset: 0; background: rgba(45,43,58,0.25);
+    z-index: 20; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .sheet-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .bottom-sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 21;
+    background: var(--card-bg);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -8px 40px rgba(45,43,58,0.15);
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 75%;
+    overflow-y: auto;
+  }
+  .bottom-sheet.open { transform: translateY(0); }
+
+  .sheet-handle { width: 40px; height: 4px; background: #DDD; border-radius: 2px; margin: 0 auto 16px; flex-shrink: 0; }
+  .sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; }
+  .sheet-title .st-sub { font-size: 13px; font-weight: 600; color: var(--text-secondary); display: block; margin-top: 2px; }
+
+  .sheet-field { margin-bottom: 14px; }
+  .sheet-field label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  .sheet-option-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .sheet-opt {
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 13px; font-weight: 700;
+    border: 2px solid #EEE;
+    background: var(--card-bg);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s;
+  }
+  .sheet-opt:active { transform: scale(0.95); }
+  .sheet-opt.selected {
+    border-color: var(--lavender);
+    background: var(--lavender-bg);
+    color: var(--lavender);
+  }
+
+  .sheet-time-input {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sheet-time-input input {
+    padding: 10px 14px;
+    border: 2px solid #EEE;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    width: 100px;
+    text-align: center;
+    outline: none;
+  }
+  .sheet-time-input input:focus { border-color: var(--lavender); }
+  .sheet-time-input .time-sep { font-size: 18px; font-weight: 800; color: var(--text-muted); }
+  .sheet-time-input .am-pm {
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 2px solid #EEE;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--card-bg);
+    transition: all 0.12s;
+  }
+  .sheet-time-input .am-pm.selected { border-color: var(--lavender); background: var(--lavender-bg); color: var(--lavender); }
+
+  .sheet-actions {
+    display: flex; gap: 10px; margin-top: 20px;
+  }
+  .sheet-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: center;
+  }
+  .sheet-btn:active { transform: scale(0.96); }
+  .sheet-btn.primary { background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: white; box-shadow: 0 4px 12px rgba(124,77,255,0.25); }
+  .sheet-btn.delete { background: var(--rose-bg); color: var(--rose); }
+  .sheet-btn.cancel { background: #F5F0FF; color: var(--text-secondary); }
+
+  /* ===== Date picker mini ===== */
+  .sheet-date-row { display: flex; gap: 8px; }
+  .sheet-date-row select {
+    flex: 1; padding: 10px 12px; border: 2px solid #EEE; border-radius: 12px;
+    font-family: inherit; font-size: 14px; font-weight: 700; outline: none;
+    background: var(--card-bg); -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23B8B5CC' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+
+  /* ===== Chat FAB ===== */
+  .chat-fab { position: absolute; right: 16px; bottom: 16px; z-index: 15; width: 58px; height: 58px; border-radius: 29px; border: none; background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: white; font-size: 26px; cursor: pointer; box-shadow: 0 6px 20px rgba(124,77,255,0.35); display: flex; align-items: center; justify-content: center; }
+  .chat-fab:active { transform: scale(0.9); }
+  .chat-fab[data-open="true"] { background: var(--text); box-shadow: 0 4px 16px rgba(45,43,58,0.25); transform: rotate(45deg); }
+
+  .prototype-container { display: flex; gap: 24px; padding: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .phone-annotation { text-align: center; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+  .caption { font-size: 10px; font-weight: 700; color: var(--text-muted); text-align: center; padding: 2px 0 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  @media (max-width: 420px) { .prototype-container { padding: 0; gap: 12px; } }
+</style>
+</head>
+<body>
+
+<div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 8px 0;">
+  <div style="text-align: center; padding: 6px 16px 0; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6);">
+    ⬇ Tap timeline items to edit · Tap "+" to add historical event ⬇
+  </div>
+  <div class="prototype-container">
+    <div>
+      <div class="phone-frame" id="phone">
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="state-tabs">
+          <button class="state-tab active">🌙 Night Sleep</button>
+          <button class="state-tab">☀️ Awake</button>
+          <button class="state-tab">💤 Nap</button>
+          <button class="state-tab">🌅 Bedtime</button>
+        </div>
+        <div class="caption">Interacting with the Night Sleep state</div>
+
+        <div class="main-content">
+          <div class="baby-header">
+            <div class="baby-avatar">👶</div>
+            <div class="baby-info"><div class="baby-name">Luna · 7 months</div><div class="baby-meta">Saturday, Jun 27</div></div>
+            <div class="header-actions"><button class="header-icon-btn">📊</button><button class="header-icon-btn">⚙️</button></div>
+          </div>
+
+          <div class="state-hero">
+            <span class="state-icon-big">🌙</span>
+            <div class="state-title">Sleeping Soundly</div>
+            <div class="subtitle-pills">
+              <span class="subtitle-pill lavender"><span class="sp-icon">🛏️</span> Bedtime 7:32pm</span>
+              <span class="subtitle-pill lavender"><span class="sp-dot"></span> Sleeping for 2h 18m</span>
+            </div>
+            <div class="countdown-ring">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle class="bg-circle" cx="75" cy="75" r="63.5"/>
+                <circle class="progress-circle" stroke="url(#gr)" stroke-dasharray="399" stroke-dashoffset="139.65" cx="75" cy="75" r="63.5"/>
+                <defs><linearGradient id="gr" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7C4DFF"/><stop offset="100%" stop-color="#B48BFF"/></linearGradient></defs>
+              </svg>
+              <div class="center-text"><span class="time-remaining">5h 12m</span><span class="time-label">until wake</span></div>
+            </div>
+            <span class="expected-label">🛌 Expected wake <strong>7:00 – 7:30am</strong></span>
+          </div>
+
+          <div class="action-buttons">
+            <button class="action-btn primary-action purple">
+              <span class="btn-icon">🌅</span>
+              <div class="btn-text">Log Wake Up<span class="btn-sub">End night sleep</span></div>
+              <span class="btn-time-badge">~7:00am</span>
+              <span class="btn-arrow">→</span>
+            </button>
+            <button class="action-btn secondary-action">
+              <span class="btn-icon">👀</span>
+              <div class="btn-text">Night Wake<span class="btn-sub">Baby is up temporarily</span></div>
+              <span class="btn-arrow">→</span>
+            </button>
+          </div>
+
+          <!-- ===== TIMELINE with Add Event + Edit ===== -->
+          <div class="timeline-wrap">
+            <div class="timeline-header">
+              <div class="timeline-label"><span class="tl-dot"></span> Timeline</div>
+              <button class="add-event-btn" onclick="openAddEvent()">
+                <span class="ae-icon">+</span> Log past event
+              </button>
+            </div>
+            <div class="timeline">
+
+              <div class="tl-item current" onclick="openEdit('bedtime')">
+                <div class="tl-line"><div class="dot" style="background:var(--lavender);box-shadow:0 0 0 3px rgba(180,139,255,0.2);width:14px;height:14px;border-radius:7px;"></div><div class="bar"></div></div>
+                <div class="tl-content">
+                  <div class="tl-title"><span class="tl-icon">🌙</span> Bedtime <span class="tl-time">7:32pm</span><span class="tl-detail">Sleeping · 2h 18m ago</span></div>
+                  <span class="tl-edit-hint"></span>
+                </div>
+              </div>
+
+              <div class="tl-item done" onclick="openEdit('nightwake')">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content">
+                  <div class="tl-title"><span class="tl-icon">👀</span> Night wake <span class="tl-time">11:15pm</span><span class="tl-detail">8m · Context: home</span></div>
+                  <span class="tl-edit-hint"></span>
+                </div>
+              </div>
+
+              <div class="tl-item done" onclick="openEdit('wake2')">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content">
+                  <div class="tl-title"><span class="tl-icon">🌤️</span> Wake up <span class="tl-time">2:18pm</span><span class="tl-detail">End of Nap 2</span></div>
+                  <span class="tl-edit-hint"></span>
+                </div>
+              </div>
+
+              <div class="tl-item done" onclick="openEdit('nap2')">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content">
+                  <div class="tl-title"><span class="tl-icon">😴</span> Nap 2 <span class="tl-time">1:05 – 2:18pm</span><span class="tl-detail">1h 13m</span></div>
+                  <span class="tl-edit-hint"></span>
+                </div>
+              </div>
+
+              <div class="tl-item done" onclick="openEdit('wake1')">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content">
+                  <div class="tl-title"><span class="tl-icon">🌤️</span> Wake up <span class="tl-time">10:00am</span><span class="tl-detail">End of Nap 1</span></div>
+                  <span class="tl-edit-hint"></span>
+                </div>
+              </div>
+
+              <div class="tl-item done" onclick="openEdit('nap1')">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content">
+                  <div class="tl-title"><span class="tl-icon">😴</span> Nap 1 <span class="tl-time">9:08 – 10:00am</span><span class="tl-detail">52m</span></div>
+                  <span class="tl-edit-hint"></span>
+                </div>
+              </div>
+
+              <div class="tl-item done" onclick="openEdit('morningwake')">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content">
+                  <div class="tl-title"><span class="tl-icon">🌅</span> Wake up <span class="tl-time">6:52am</span></div>
+                  <span class="tl-edit-hint"></span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <button class="chat-fab">💬</button>
+        </div>
+
+        <!-- ===== EDIT EVENT SHEET ===== -->
+        <div class="sheet-overlay" id="editOverlay" onclick="closeSheet()"></div>
+        <div class="bottom-sheet" id="editSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title" id="editTitle">
+            Edit Event
+            <span class="st-sub" id="editSubtitle">🌙 Bedtime</span>
+          </div>
+
+          <!-- Event Type -->
+          <div class="sheet-field">
+            <label>Event Type</label>
+            <div class="sheet-option-row">
+              <button class="sheet-opt selected" onclick="selectOpt(this)">🌙 Bedtime</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">👀 Night wake</button>
+            </div>
+          </div>
+
+          <!-- Date -->
+          <div class="sheet-field">
+            <label>Date</label>
+            <div class="sheet-date-row">
+              <select>
+                <option>Today</option>
+                <option>Yesterday</option>
+                <option>Fri, Jun 26</option>
+                <option>Thu, Jun 25</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Time -->
+          <div class="sheet-field">
+            <label>Time</label>
+            <div class="sheet-time-input">
+              <input type="text" value="7" id="hourInput">
+              <span class="time-sep">:</span>
+              <input type="text" value="32" id="minInput">
+              <button class="am-pm selected" onclick="selectAmPm(this)">PM</button>
+            </div>
+          </div>
+
+          <!-- Context -->
+          <div class="sheet-field">
+            <label>Context</label>
+            <div class="sheet-option-row">
+              <button class="sheet-opt selected" onclick="selectOpt(this)">🏠 Home</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">🏫 Daycare</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">✈️ Travel</button>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="sheet-field">
+            <label>Notes (optional)</label>
+            <input type="text" placeholder="Add a note..." style="width:100%;padding:10px 14px;border:2px solid #EEE;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;outline:none;">
+          </div>
+
+          <!-- Actions -->
+          <div class="sheet-actions">
+            <button class="sheet-btn delete" onclick="closeSheet()">Delete Event</button>
+            <button class="sheet-btn primary" onclick="closeSheet()">Save Changes</button>
+          </div>
+        </div>
+
+        <!-- ===== ADD EVENT SHEET ===== -->
+        <div class="sheet-overlay" id="addOverlay" onclick="closeAddSheet()"></div>
+        <div class="bottom-sheet" id="addSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">
+            Log Past Event
+            <span class="st-sub">Record something that already happened</span>
+          </div>
+
+          <!-- Event Type -->
+          <div class="sheet-field">
+            <label>Event Type</label>
+            <div class="sheet-option-row">
+              <button class="sheet-opt" onclick="selectOpt(this)">🌅 Wake up</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">😴 Nap start</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">🌤️ Nap end</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">🌙 Bedtime</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">👀 Night wake</button>
+            </div>
+          </div>
+
+          <!-- Date -->
+          <div class="sheet-field">
+            <label>Date</label>
+            <div class="sheet-date-row">
+              <select>
+                <option>Today</option>
+                <option>Yesterday</option>
+                <option>Fri, Jun 26</option>
+                <option>Thu, Jun 25</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Time -->
+          <div class="sheet-field">
+            <label>Time</label>
+            <div class="sheet-time-input">
+              <input type="text" value="--" id="addHour"><span class="time-sep">:</span><input type="text" value="--" id="addMin">
+              <button class="am-pm" onclick="selectAmPm(this)">AM</button>
+              <button class="am-pm selected" onclick="selectAmPm(this)">PM</button>
+            </div>
+          </div>
+
+          <!-- Context -->
+          <div class="sheet-field">
+            <label>Context</label>
+            <div class="sheet-option-row">
+              <button class="sheet-opt selected" onclick="selectOpt(this)">🏠 Home</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">🏫 Daycare</button>
+              <button class="sheet-opt" onclick="selectOpt(this)">✈️ Travel</button>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="sheet-field">
+            <label>Notes (optional)</label>
+            <input type="text" placeholder="e.g. Fought sleep a bit..." style="width:100%;padding:10px 14px;border:2px solid #EEE;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;outline:none;">
+          </div>
+
+          <!-- Actions -->
+          <div class="sheet-actions">
+            <button class="sheet-btn cancel" onclick="closeAddSheet()">Cancel</button>
+            <button class="sheet-btn primary" onclick="closeAddSheet()">Log Event</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="phone-annotation">👇 Tap any timeline entry to edit · Tap "+ Log past event" to add historical events</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openEdit(type) {
+    document.getElementById('editOverlay').classList.add('open');
+    document.getElementById('editSheet').classList.add('open');
+    const labels = {
+      bedtime: '🌙 Bedtime · 7:32pm',
+      nightwake: '👀 Night wake · 11:15pm',
+      wake2: '🌤️ Wake up · 2:18pm',
+      nap2: '😴 Nap 2 · 1:05pm',
+      wake1: '🌤️ Wake up · 10:00am',
+      nap1: '😴 Nap 1 · 9:08am',
+      morningwake: '🌅 Wake up · 6:52am'
+    };
+    document.getElementById('editSubtitle').textContent = labels[type] || 'Edit event';
+  }
+
+  function closeSheet() {
+    document.getElementById('editOverlay').classList.remove('open');
+    document.getElementById('editSheet').classList.remove('open');
+  }
+
+  function openAddEvent() {
+    document.getElementById('addOverlay').classList.add('open');
+    document.getElementById('addSheet').classList.add('open');
+  }
+
+  function closeAddSheet() {
+    document.getElementById('addOverlay').classList.remove('open');
+    document.getElementById('addSheet').classList.remove('open');
+  }
+
+  function selectOpt(el) {
+    const parent = el.parentElement;
+    parent.querySelectorAll('.sheet-opt').forEach(btn => btn.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function selectAmPm(el) {
+    const parent = el.parentElement;
+    parent.querySelectorAll('.am-pm').forEach(btn => btn.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // Close edit sheet on overlay tap
+  document.getElementById('editOverlay').addEventListener('click', closeSheet);
+  document.getElementById('addOverlay').addEventListener('click', closeAddSheet);
+</script>
+
+</body>
+</html>

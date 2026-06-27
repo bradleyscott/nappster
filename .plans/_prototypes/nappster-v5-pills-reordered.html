@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nappster · UI Redesign v5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FFF8F0;
+    --card-bg: #FFFFFF;
+    --text: #2D2B3A;
+    --text-secondary: #8B88A0;
+    --text-muted: #B8B5CC;
+
+    --rose: #FF8FAB;
+    --rose-light: #FFE0E8;
+    --rose-bg: #FFF0F3;
+    --lavender: #B48BFF;
+    --lavender-light: #E8D8FF;
+    --lavender-bg: #F5EEFF;
+    --mint: #6FCF97;
+    --mint-light: #C8F0D9;
+    --mint-bg: #EDFBF3;
+    --peach: #FFB07C;
+    --peach-light: #FFE0CC;
+    --peach-bg: #FFF3EA;
+    --sky: #7EC8E3;
+    --sunset: #FF8F6B;
+    --sunset-light: #FFD6C8;
+
+    --shadow-sm: 0 2px 8px rgba(45,43,58,0.06);
+    --shadow-md: 0 4px 20px rgba(45,43,58,0.08);
+    --shadow-btn: 0 4px 16px rgba(255,143,171,0.25);
+    --shadow-btn-green: 0 4px 16px rgba(111,207,151,0.30);
+    --shadow-btn-sunset: 0 4px 16px rgba(255,143,107,0.30);
+    --shadow-btn-purple: 0 4px 16px rgba(124,77,255,0.25);
+    --radius-sm: 12px;
+    --radius-md: 20px;
+    --radius-lg: 28px;
+    --radius-xl: 36px;
+  }
+
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100dvh;
+    width: 100vw;
+  }
+
+  .phone-frame {
+    width: 393px;
+    height: 852px;
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(45,43,58,0.15), 0 0 0 1px rgba(255,255,255,0.5);
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 420px) {
+    .phone-frame { width: 100vw; height: 100dvh; border-radius: 0; margin: 0; }
+  }
+
+  .status-bar {
+    padding: 14px 28px 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  .state-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px 10px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .state-tabs::-webkit-scrollbar { display: none; }
+
+  .state-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .state-tab.active[data-state="0"] { background: linear-gradient(135deg, #7C4DFF, #B48BFF); color: white; box-shadow: 0 4px 12px rgba(124,77,255,0.3); }
+  .state-tab.active[data-state="1"] { background: linear-gradient(135deg, #FFB07C, #FF8FAB); color: white; box-shadow: 0 4px 12px rgba(255,143,171,0.3); }
+  .state-tab.active[data-state="2"] { background: linear-gradient(135deg, #6FCF97, #7EC8E3); color: white; box-shadow: 0 4px 12px rgba(111,207,151,0.3); }
+  .state-tab.active[data-state="3"] { background: linear-gradient(135deg, #FF8F6B, #FF8FAB); color: white; box-shadow: 0 4px 12px rgba(255,143,107,0.3); }
+
+  .main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+  .main-content::-webkit-scrollbar { width: 4px; }
+  .main-content::-webkit-scrollbar-track { background: transparent; }
+  .main-content::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* --- Baby header --- */
+  .baby-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-top: 4px;
+  }
+  .baby-avatar {
+    width: 44px; height: 44px; border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .baby-info { flex: 1; }
+  .baby-name { font-size: 17px; font-weight: 800; line-height: 1.2; }
+  .baby-meta { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+  .header-actions { display: flex; gap: 8px; }
+  .header-icon-btn {
+    width: 36px; height: 36px; border-radius: 18px;
+    border: 2px solid #EEE; background: var(--card-bg);
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .header-icon-btn:active { transform: scale(0.9); }
+
+  /* --- Hero card --- */
+  .state-hero {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px 20px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 14px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .state-hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .state-hero[data-accent="lavender"]::before { background: linear-gradient(90deg, #7C4DFF, #B48BFF); }
+  .state-hero[data-accent="peach"]::before { background: linear-gradient(90deg, #FFB07C, #FF8FAB); }
+  .state-hero[data-accent="mint"]::before { background: linear-gradient(90deg, #6FCF97, #7EC8E3); }
+  .state-hero[data-accent="sunset"]::before { background: linear-gradient(90deg, #FF8F6B, #FF8FAB); }
+
+  .state-icon-big { font-size: 40px; margin-bottom: 6px; display: block; }
+  .state-title { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+
+  /* --- Subtitle pills — event first, then state --- */
+  .subtitle-pills {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .subtitle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1.5px solid #E8E5F0;
+  }
+  .subtitle-pill.lavender { background: var(--lavender-bg); border-color: var(--lavender-light); color: var(--lavender); }
+  .subtitle-pill.peach { background: var(--peach-bg); border-color: var(--peach-light); color: var(--peach); }
+  .subtitle-pill.mint { background: var(--mint-bg); border-color: var(--mint-light); color: var(--mint); }
+  .subtitle-pill.rose { background: var(--rose-bg); border-color: var(--rose-light); color: var(--rose); }
+  .subtitle-pill .sp-dot {
+    width: 8px; height: 8px; border-radius: 4px;
+    animation: pulse-dot 2s infinite;
+  }
+  .subtitle-pill.lavender .sp-dot { background: var(--lavender); }
+  .subtitle-pill.peach .sp-dot { background: var(--peach); }
+  .subtitle-pill.mint .sp-dot { background: var(--mint); }
+  .subtitle-pill.rose .sp-dot { background: var(--rose); }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* --- Circular ring --- */
+  .countdown-ring {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 12px;
+  }
+  .countdown-ring svg { transform: rotate(-90deg); }
+  .countdown-ring .bg-circle { fill: none; stroke: #F0EDF5; stroke-width: 8; }
+  .countdown-ring .progress-circle { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .countdown-ring .center-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .countdown-ring .center-text .time-remaining { font-size: 30px; font-weight: 900; line-height: 1; }
+  .countdown-ring .center-text .time-label { font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-top: 2px; }
+
+  .expected-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 800;
+    background: var(--lavender-bg);
+    color: var(--lavender);
+  }
+  .expected-label.peach { background: var(--peach-bg); color: var(--peach); }
+  .expected-label.mint { background: var(--mint-bg); color: var(--mint); }
+  .expected-label.rose { background: var(--rose-bg); color: var(--rose); }
+  .expected-label strong { font-weight: 900; }
+
+  /* --- Action buttons --- */
+  .action-buttons { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .action-btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 16px 20px;
+    border: none; border-radius: 18px;
+    font-family: inherit; font-size: 16px; font-weight: 800;
+    cursor: pointer; text-align: left;
+    position: relative; transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+  }
+  .action-btn:active { transform: scale(0.96); }
+  .action-btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%); pointer-events: none; }
+  .action-btn.primary-action { color: white; border-radius: 22px; padding: 20px 22px; }
+  .action-btn.primary-action .btn-icon { font-size: 32px; }
+  .action-btn.primary-action .btn-text { font-size: 17px; }
+  .action-btn.primary-action .btn-sub { font-size: 12px; font-weight: 700; opacity: 0.85; display: block; margin-top: 1px; }
+  .action-btn.primary-action .btn-arrow { font-size: 20px; opacity: 0.8; margin-left: auto; flex-shrink: 0; transition: transform 0.2s; }
+  .action-btn.primary-action:active .btn-arrow { transform: translateX(4px); }
+  .action-btn.primary-action .btn-time-badge { font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 12px; background: rgba(255,255,255,0.2); backdrop-filter: blur(4px); flex-shrink: 0; }
+  .action-btn.primary-action.sunset { background: linear-gradient(135deg, var(--sunset), var(--rose)); box-shadow: var(--shadow-btn-sunset); }
+  .action-btn.primary-action.green { background: linear-gradient(135deg, var(--mint), #5BBF8A); box-shadow: var(--shadow-btn-green); }
+  .action-btn.primary-action.purple { background: linear-gradient(135deg, #7C4DFF, var(--lavender)); box-shadow: var(--shadow-btn-purple); }
+  .action-btn.primary-action.rosepeach { background: linear-gradient(135deg, var(--rose), var(--peach)); box-shadow: var(--shadow-btn); }
+  .action-btn.secondary-action { background: var(--card-bg); color: var(--text); box-shadow: var(--shadow-sm); border: 2px solid var(--lavender-light); padding: 14px 18px; border-radius: 16px; }
+  .action-btn.secondary-action .btn-icon { font-size: 22px; }
+  .action-btn.secondary-action .btn-text { font-size: 14px; font-weight: 700; }
+  .action-btn.secondary-action .btn-sub { font-size: 11px; font-weight: 600; color: var(--text-secondary); display: block; margin-top: 1px; }
+  .action-btn.secondary-action .btn-arrow { font-size: 16px; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+  .action-btn.secondary-action:active { transform: scale(0.97); background: var(--lavender-bg); }
+
+  /* --- Plan mini card --- */
+  .plan-mini-card { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--lavender-bg); border: 2px solid var(--lavender-light); border-radius: 14px; margin-bottom: 14px; cursor: pointer; transition: all 0.15s; }
+  .plan-mini-card:active { transform: scale(0.98); }
+  .plan-mini-card .plan-icon { font-size: 18px; flex-shrink: 0; }
+  .plan-mini-card .plan-summary { flex: 1; font-size: 12px; font-weight: 700; color: var(--text-secondary); line-height: 1.3; }
+  .plan-mini-card .plan-arrow { font-size: 14px; color: var(--text-muted); }
+
+  /* --- Vertical Timeline — DESCENDING --- */
+  .timeline-wrap { margin-bottom: 8px; }
+  .timeline-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-left: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .timeline-label .tl-dot { width: 8px; height: 8px; border-radius: 4px; background: var(--text-muted); }
+
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+
+  .tl-item {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    min-height: 40px;
+  }
+  .tl-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20px;
+    flex-shrink: 0;
+  }
+  .tl-line .dot {
+    width: 12px; height: 12px; border-radius: 6px;
+    background: #DDD; flex-shrink: 0; margin-top: 4px;
+    position: relative; z-index: 1;
+    transition: all 0.2s;
+  }
+  .tl-line .bar {
+    flex: 1; width: 2px; background: #E8E5F0; min-height: 20px;
+  }
+  .tl-item:last-child .tl-line .bar { display: none; }
+
+  .tl-item.current .tl-line .dot {
+    width: 14px; height: 14px; border-radius: 7px;
+    box-shadow: 0 0 0 3px rgba(180,139,255,0.2);
+  }
+  .tl-item.current .tl-line .dot.lavender { background: var(--lavender); }
+  .tl-item.current .tl-line .dot.peach { background: var(--peach); }
+  .tl-item.current .tl-line .dot.mint { background: var(--mint); }
+  .tl-item.current .tl-line .dot.rose { background: var(--rose); }
+  .tl-item.done .tl-line .dot { background: #C8C5D5; }
+  .tl-item.future .tl-line .dot { background: #E0DDE8; }
+
+  .tl-content { flex: 1; padding: 2px 0 12px; }
+  .tl-content .tl-title {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tl-content .tl-title .tl-icon { font-size: 14px; }
+  .tl-content .tl-title .tl-time {
+    font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-left: auto; white-space: nowrap;
+  }
+  .tl-content .tl-detail {
+    font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 1px;
+  }
+  .tl-item.current .tl-content .tl-title { color: var(--text); }
+  .tl-item.done .tl-content .tl-title { color: var(--text-secondary); }
+  .tl-item.future .tl-content .tl-title { color: var(--text-muted); }
+
+  /* --- Chat drawer --- */
+  .chat-fab { position: absolute; right: 16px; bottom: 16px; z-index: 15; width: 58px; height: 58px; border-radius: 29px; border: none; background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: white; font-size: 26px; cursor: pointer; box-shadow: 0 6px 20px rgba(124,77,255,0.35); transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: center; justify-content: center; }
+  .chat-fab:active { transform: scale(0.9); }
+  .chat-fab[data-open="true"] { background: var(--text); box-shadow: 0 4px 16px rgba(45,43,58,0.25); transform: rotate(45deg); }
+  .chat-drawer-overlay { position: absolute; inset: 0; background: rgba(45,43,58,0.2); z-index: 8; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .chat-drawer-overlay.open { opacity: 1; pointer-events: auto; }
+  .chat-drawer { position: absolute; left: 0; right: 0; bottom: 0; z-index: 14; background: var(--card-bg); border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: 0 -8px 40px rgba(45,43,58,0.12); padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); max-height: 65%; overflow-y: auto; }
+  .chat-drawer.open { transform: translateY(0); }
+  .chat-drawer-handle { width: 40px; height: 4px; background: #DDD; border-radius: 2px; margin: 0 auto 12px; flex-shrink: 0; }
+  .chat-drawer-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 15px; font-weight: 800; }
+  .chat-drawer-header .online-dot { width: 8px; height: 8px; border-radius: 4px; background: var(--mint); display: inline-block; animation: pulse-dot 2s infinite; }
+  .chat-msg { padding: 10px 14px; border-radius: 16px; margin-bottom: 8px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+  .chat-msg.ai { background: var(--lavender-bg); margin-right: 32px; border-bottom-left-radius: 4px; }
+  .chat-msg.user { background: var(--rose-bg); margin-left: 32px; border-bottom-right-radius: 4px; }
+  .chat-msg .msg-time { font-size: 10px; font-weight: 600; color: var(--text-muted); display: block; margin-top: 4px; }
+  .chat-input-row { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 2px solid #F5F0FF; }
+  .chat-input-row input { flex: 1; padding: 12px 16px; border: 2px solid #EEE; border-radius: 100px; font-family: inherit; font-size: 14px; font-weight: 600; outline: none; background: var(--bg); transition: border-color 0.2s; }
+  .chat-input-row input:focus { border-color: var(--lavender); }
+  .chat-send-btn { width: 44px; height: 44px; border-radius: 22px; border: none; background: linear-gradient(135deg, var(--lavender), #7C4DFF); color: white; font-size: 18px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(124,77,255,0.2); transition: all 0.15s; }
+  .chat-send-btn:active { transform: scale(0.9); }
+
+  .prototype-container { display: flex; gap: 24px; padding: 24px; flex-wrap: wrap; justify-content: center; min-height: 100dvh; align-items: flex-start; }
+  .phone-annotation { text-align: center; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+  .caption { font-size: 10px; font-weight: 700; color: var(--text-muted); text-align: center; padding: 2px 0 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  @media (max-width: 420px) { .prototype-container { padding: 0; gap: 12px; } }
+</style>
+</head>
+<body>
+
+<div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 8px 0;">
+  <div style="text-align: center; padding: 6px 16px 0; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); letter-spacing: 0.5px; text-transform: uppercase;">
+    ⬇ Nappster v5 — Pills: event first, then state ⬇
+  </div>
+  <div class="prototype-container">
+    <div>
+      <div class="phone-frame" id="phoneV5">
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="state-tabs">
+          <button class="state-tab active" data-state="0" onclick="switchState(0)">🌙 Night</button>
+          <button class="state-tab" data-state="1" onclick="switchState(1)">☀️ Awake</button>
+          <button class="state-tab" data-state="2" onclick="switchState(2)">💤 Nap</button>
+          <button class="state-tab" data-state="3" onclick="switchState(3)">🌅 Bedtime</button>
+        </div>
+        <div class="caption">← Tap to switch states →</div>
+
+        <!-- SCREEN 0: Overnight Sleep -->
+        <div class="main-content screen active" data-screen="0">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--lavender-bg);">👶</div>
+            <div class="baby-info"><div class="baby-name">Luna · 7 months</div><div class="baby-meta">Saturday, Jun 27</div></div>
+            <div class="header-actions"><button class="header-icon-btn">📊</button><button class="header-icon-btn">⚙️</button></div>
+          </div>
+          <div class="state-hero" data-accent="lavender">
+            <span class="state-icon-big">🌙</span>
+            <div class="state-title">Sleeping Soundly</div>
+            <div class="subtitle-pills">
+              <span class="subtitle-pill lavender"><span class="sp-icon">🛏️</span> Bedtime 7:32pm</span>
+              <span class="subtitle-pill lavender"><span class="sp-dot"></span> Sleeping for 2h 18m</span>
+            </div>
+            <div class="countdown-ring">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle class="bg-circle" cx="75" cy="75" r="63.5"/>
+                <circle class="progress-circle" stroke="url(#g0)" stroke-dasharray="399" stroke-dashoffset="139.65" cx="75" cy="75" r="63.5"/>
+                <defs><linearGradient id="g0" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7C4DFF"/><stop offset="100%" stop-color="#B48BFF"/></linearGradient></defs>
+              </svg>
+              <div class="center-text"><span class="time-remaining">5h 12m</span><span class="time-label">until wake</span></div>
+            </div>
+            <span class="expected-label">🛌 Expected wake <strong>7:00 – 7:30am</strong></span>
+          </div>
+          <div class="action-buttons">
+            <button class="action-btn primary-action purple">
+              <span class="btn-icon">🌅</span>
+              <div class="btn-text">Log Wake Up<span class="btn-sub">End night sleep</span></div>
+              <span class="btn-time-badge">~7:00am</span>
+              <span class="btn-arrow">→</span>
+            </button>
+            <button class="action-btn secondary-action">
+              <span class="btn-icon">👀</span>
+              <div class="btn-text">Night Wake<span class="btn-sub">Baby is up temporarily</span></div>
+              <span class="btn-arrow">→</span>
+            </button>
+          </div>
+          <div class="timeline-wrap">
+            <div class="timeline-label"><span class="tl-dot"></span> Timeline</div>
+            <div class="timeline">
+              <div class="tl-item current">
+                <div class="tl-line"><div class="dot lavender"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌙</span> Bedtime <span class="tl-time">7:32pm</span></div><div class="tl-detail">Sleeping · 2h 18m ago</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌤️</span> Wake up <span class="tl-time">2:18pm</span></div><div class="tl-detail">End of Nap 2</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">😴</span> Nap 2 <span class="tl-time">1:05 – 2:18pm</span></div><div class="tl-detail">1h 13m</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌤️</span> Wake up <span class="tl-time">10:00am</span></div><div class="tl-detail">End of Nap 1</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">😴</span> Nap 1 <span class="tl-time">9:08 – 10:00am</span></div><div class="tl-detail">52m</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌅</span> Wake up <span class="tl-time">6:52am</span></div></div>
+              </div>
+            </div>
+          </div>
+          <button class="chat-fab" onclick="toggleDrawer('d0','f0','o0')" id="f0">💬</button>
+          <div class="chat-drawer-overlay" id="o0" onclick="toggleDrawer('d0','f0','o0')"></div>
+          <div class="chat-drawer" id="d0">...</div>
+        </div>
+
+        <!-- SCREEN 1: Awake -->
+        <div class="main-content screen" data-screen="1">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--peach-bg);">👶</div>
+            <div class="baby-info"><div class="baby-name">Luna · 7 months</div><div class="baby-meta">Saturday, Jun 27</div></div>
+            <div class="header-actions"><button class="header-icon-btn">📊</button><button class="header-icon-btn">⚙️</button></div>
+          </div>
+          <div class="state-hero" data-accent="peach">
+            <span class="state-icon-big">☀️</span>
+            <div class="state-title">Awake & Playing</div>
+            <div class="subtitle-pills">
+              <span class="subtitle-pill peach"><span class="sp-icon">🌅</span> Woke at 6:52am</span>
+              <span class="subtitle-pill peach"><span class="sp-dot"></span> Awake for 2h 8m</span>
+            </div>
+            <div class="countdown-ring">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle class="bg-circle" cx="75" cy="75" r="63.5"/>
+                <circle class="progress-circle" stroke="url(#g1)" stroke-dasharray="399" stroke-dashoffset="259.35" cx="75" cy="75" r="63.5"/>
+                <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFB07C"/><stop offset="100%" stop-color="#FF8FAB"/></linearGradient></defs>
+              </svg>
+              <div class="center-text"><span class="time-remaining">1h 10m</span><span class="time-label">until next nap</span></div>
+            </div>
+            <span class="expected-label peach">😴 Nap 1 recommended <strong>9:00 – 9:30am</strong></span>
+          </div>
+          <div class="action-buttons">
+            <button class="action-btn primary-action green">
+              <span class="btn-icon">😴</span><div class="btn-text">Start Nap<span class="btn-sub">Log that baby is going down</span></div><span class="btn-time-badge">9:00am ✓</span><span class="btn-arrow">→</span>
+            </button>
+          </div>
+          <div class="timeline-wrap">
+            <div class="timeline-label"><span class="tl-dot"></span> Timeline</div>
+            <div class="timeline">
+              <div class="tl-item future">
+                <div class="tl-line"><div class="dot" style="background:#E0DDE8;"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">😴</span> Nap 2 <span class="tl-time">1:00 – 2:30pm</span></div></div>
+              </div>
+              <div class="tl-item future">
+                <div class="tl-line"><div class="dot" style="background:#E0DDE8;"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">😴</span> Nap 1 <span class="tl-time">9:00 – 9:30am</span></div><div class="tl-detail">Recommended window</div></div>
+              </div>
+              <div class="tl-item current">
+                <div class="tl-line"><div class="dot peach"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">☀️</span> Awake <span class="tl-time">2h 8m</span></div><div class="tl-detail">Since 6:52am · Next nap ~9:00am</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌅</span> Wake up <span class="tl-time">6:52am</span></div></div>
+              </div>
+            </div>
+          </div>
+          <button class="chat-fab" onclick="toggleDrawer('d1','f1','o1')" id="f1">💬</button>
+          <div class="chat-drawer-overlay" id="o1" onclick="toggleDrawer('d1','f1','o1')"></div>
+          <div class="chat-drawer" id="d1">...</div>
+        </div>
+
+        <!-- SCREEN 2: Napping -->
+        <div class="main-content screen" data-screen="2">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--mint-bg);">👶</div>
+            <div class="baby-info"><div class="baby-name">Luna · 7 months</div><div class="baby-meta">Saturday, Jun 27</div></div>
+            <div class="header-actions"><button class="header-icon-btn">📊</button><button class="header-icon-btn">⚙️</button></div>
+          </div>
+          <div class="state-hero" data-accent="mint">
+            <span class="state-icon-big">💤</span>
+            <div class="state-title">Nap Time</div>
+            <div class="subtitle-pills">
+              <span class="subtitle-pill mint"><span class="sp-icon">😴</span> Started 9:08am</span>
+              <span class="subtitle-pill mint"><span class="sp-dot"></span> Napping for 52m</span>
+            </div>
+            <div class="countdown-ring">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle class="bg-circle" cx="75" cy="75" r="63.5"/>
+                <circle class="progress-circle" stroke="url(#g2)" stroke-dasharray="399" stroke-dashoffset="99.75" cx="75" cy="75" r="63.5"/>
+                <defs><linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6FCF97"/><stop offset="100%" stop-color="#7EC8E3"/></linearGradient></defs>
+              </svg>
+              <div class="center-text"><span class="time-remaining">~15m</span><span class="time-label">remaining</span></div>
+            </div>
+            <span class="expected-label mint">⏳ Predicted end <strong>10:00 – 10:15am</strong></span>
+          </div>
+          <div class="action-buttons">
+            <button class="action-btn primary-action green">
+              <span class="btn-icon">🌤️</span><div class="btn-text">Wake Up — End Nap<span class="btn-sub">Log that nap has finished</span></div><span class="btn-arrow">→</span>
+            </button>
+          </div>
+          <div class="timeline-wrap">
+            <div class="timeline-label"><span class="tl-dot"></span> Timeline</div>
+            <div class="timeline">
+              <div class="tl-item current">
+                <div class="tl-line"><div class="dot mint"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">💤</span> Napping <span class="tl-time">9:08am</span></div><div class="tl-detail">52m so far · predicted end ~10:00am</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌅</span> Wake up <span class="tl-time">6:52am</span></div></div>
+              </div>
+            </div>
+          </div>
+          <button class="chat-fab" onclick="toggleDrawer('d2','f2','o2')" id="f2">💬</button>
+          <div class="chat-drawer-overlay" id="o2" onclick="toggleDrawer('d2','f2','o2')"></div>
+          <div class="chat-drawer" id="d2">...</div>
+        </div>
+
+        <!-- SCREEN 3: Bedtime Next -->
+        <div class="main-content screen" data-screen="3">
+          <div class="baby-header">
+            <div class="baby-avatar" style="background:var(--sunset-light);">👶</div>
+            <div class="baby-info"><div class="baby-name">Luna · 7 months</div><div class="baby-meta">Saturday, Jun 27</div></div>
+            <div class="header-actions"><button class="header-icon-btn">📊</button><button class="header-icon-btn">⚙️</button></div>
+          </div>
+          <div class="state-hero" data-accent="sunset" style="background: linear-gradient(180deg, #FFF0EB, var(--card-bg)); box-shadow: 0 4px 24px rgba(255,143,107,0.12);">
+            <span class="state-icon-big">🌅</span>
+            <div class="state-title">Last Wake of the Day</div>
+            <div class="subtitle-pills">
+              <span class="subtitle-pill rose"><span class="sp-icon">🌤️</span> Nap ended 2:18pm</span>
+              <span class="subtitle-pill rose"><span class="sp-dot"></span> Awake for 3h 12m</span>
+            </div>
+            <div class="countdown-ring">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle class="bg-circle" cx="75" cy="75" r="63.5"/>
+                <circle class="progress-circle" stroke="url(#g3)" stroke-dasharray="399" stroke-dashoffset="119.7" cx="75" cy="75" r="63.5"/>
+                <defs><linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FF8F6B"/><stop offset="100%" stop-color="#FF8FAB"/></linearGradient></defs>
+              </svg>
+              <div class="center-text"><span class="time-remaining">1h 48m</span><span class="time-label">until bedtime</span></div>
+            </div>
+            <span class="expected-label rose">🌟 Bedtime recommended <strong>7:00 – 7:30pm</strong></span>
+          </div>
+          <div class="action-buttons">
+            <button class="action-btn primary-action sunset">
+              <span class="btn-icon">🌙</span><div class="btn-text">Start Bedtime!<span class="btn-sub">Begin night sleep routine</span></div><span class="btn-time-badge">7:00pm ✓</span><span class="btn-arrow">→</span>
+            </button>
+          </div>
+          <div class="timeline-wrap">
+            <div class="timeline-label"><span class="tl-dot"></span> Timeline</div>
+            <div class="timeline">
+              <div class="tl-item future">
+                <div class="tl-line"><div class="dot" style="background:#E0DDE8;"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌙</span> Bedtime <span class="tl-time">7:00 – 7:30pm</span></div><div class="tl-detail">Recommended window</div></div>
+              </div>
+              <div class="tl-item current">
+                <div class="tl-line"><div class="dot rose"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌅</span> Last wake <span class="tl-time">3h 12m ago</span></div><div class="tl-detail">Since nap ended at 2:18pm</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">😴</span> Nap 2 <span class="tl-time">1:05 – 2:18pm</span></div><div class="tl-detail">1h 13m</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌤️</span> Wake up <span class="tl-time">10:00am</span></div><div class="tl-detail">End of Nap 1</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">😴</span> Nap 1 <span class="tl-time">9:08 – 10:00am</span></div><div class="tl-detail">52m</div></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-line"><div class="dot"></div><div class="bar"></div></div>
+                <div class="tl-content"><div class="tl-title"><span class="tl-icon">🌅</span> Wake up <span class="tl-time">6:52am</span></div></div>
+              </div>
+            </div>
+          </div>
+          <button class="chat-fab" onclick="toggleDrawer('d3','f3','o3')" id="f3">💬</button>
+          <div class="chat-drawer-overlay" id="o3" onclick="toggleDrawer('d3','f3','o3')"></div>
+          <div class="chat-drawer" id="d3">...</div>
+        </div>
+
+      </div>
+      <div class="phone-annotation">↓ Timeline: newest on top · Pills: event first, then state ↓</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchState(idx) {
+    const phone = document.getElementById('phoneV5');
+    phone.querySelectorAll('.state-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+    phone.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', parseInt(s.dataset.screen) === idx));
+  }
+  function toggleDrawer(drawerId, fabId, overlayId) {
+    const d = document.getElementById(drawerId), f = document.getElementById(fabId), o = document.getElementById(overlayId);
+    const isOpen = d.classList.toggle('open');
+    o.classList.toggle('open');
+    f.dataset.open = isOpen ? 'true' : 'false';
+    f.textContent = isOpen ? '+' : '💬';
+  }
+</script>
+
+</body>
+</html>
