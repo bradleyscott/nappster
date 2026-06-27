@@ -50,10 +50,10 @@ export function PageHeader({
         </div>
       )}
 
-      {/* Pill card header */}
+      {/* Rounded card header */}
       <div
         className={cn(
-          'flex w-full flex-col items-center justify-center rounded-full bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]',
+          'flex w-full min-h-[60px] flex-col items-center justify-center rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]',
           (!onBack && !rightActions) && 'px-5'
         )}
       >
