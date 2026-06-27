@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Baby, type FamilyMember } from '@/types/database'
 import { updateBaby } from '@/lib/services/babies'
+import { PageHeader } from '@/components/sleep/page-header'
 
 interface SettingsFormProps {
   baby: Baby
@@ -95,23 +96,13 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
 
   return (
     <div className="min-h-dvh bg-[var(--bg)] pb-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        <button
-          onClick={handleBackClick}
-          disabled={isNavigatingBack}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#EEE] bg-white active:scale-90 transition-transform"
-        >
-          {isNavigatingBack ? (
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />
-          ) : (
-            <span>←</span>
-          )}
-        </button>
-        <div className="text-lg font-extrabold text-[var(--text)]">Profile &amp; Family</div>
-      </div>
+      <PageHeader
+        title="Profile & Family"
+        onBack={handleBackClick}
+        isNavigatingBack={isNavigatingBack}
+      />
 
-      <div className="mx-auto max-w-md px-4">
+      <div className="mx-auto max-w-md px-4 pt-2">
         {/* ===== PROFILE CARD ===== */}
         <div className="mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]">
           {/* Avatar */}
