@@ -71,8 +71,8 @@ export function AppHeader({ baby }: AppHeaderProps) {
       </div>
 
       {/* Rounded card header */}
-      <div className="flex w-full min-h-[60px] items-center justify-center gap-2.5 rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]">
-        <NappsterLogo size={36} />
+      <div className="flex w-full min-h-[84px] items-center justify-center gap-3.5 rounded-[22px] bg-white px-14 py-3 text-center shadow-[var(--shadow-sm)]">
+        <NappsterLogo size={60} />
         <div className="flex flex-col items-start">
           <span className="text-[10px] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
             {getGreeting()}
