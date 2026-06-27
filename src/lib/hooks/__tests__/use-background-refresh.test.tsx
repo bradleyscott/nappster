@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useBackgroundRefresh } from '../use-background-refresh'
 import type { SleepEvent, SleepPlanRow, ChatMessage } from '@/types/database'
 
