@@ -22,7 +22,7 @@ export function NappsterLogo({ className, size = 120 }: NappsterLogoProps) {
         </linearGradient>
         <linearGradient id="nappster-headphone" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#E8D8FF" />
-          <stop offset="100%" stopColor="#D8C6FF" />
+          <stop offset="100%" stopColor="#CDB2FF" />
         </linearGradient>
         <linearGradient id="nappster-pacifier" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#6FCF97" />
@@ -30,108 +30,132 @@ export function NappsterLogo({ className, size = 120 }: NappsterLogoProps) {
         </linearGradient>
       </defs>
 
-      <circle cx="100" cy="100" r="96" fill="url(#nappster-bg)" />
-      <circle cx="100" cy="100" r="86" fill="#FFF8F0" />
+      {/* Outer ring */}
+      <circle cx="100" cy="100" r="98" fill="url(#nappster-bg)" />
+      {/* Inner cream circle */}
+      <circle cx="100" cy="100" r="88" fill="#FFF8F0" />
 
+      {/* Headphones band */}
       <path
-        d="M 42 100 C 42 50 158 50 158 100"
+        d="M 38 102 C 38 42 162 42 162 102"
         fill="none"
         stroke="#B48BFF"
-        strokeWidth="10"
+        strokeWidth="14"
         strokeLinecap="round"
       />
       <path
-        d="M 42 100 C 42 50 158 50 158 100"
+        d="M 38 102 C 38 42 162 42 162 102"
         fill="none"
         stroke="#D8C6FF"
-        strokeWidth="5"
+        strokeWidth="6"
         strokeLinecap="round"
       />
 
+      {/* Baby head */}
       <ellipse
         cx="100"
-        cy="105"
-        rx="48"
-        ry="52"
+        cy="106"
+        rx="52"
+        ry="56"
         fill="#FFF8F0"
         stroke="#2D2B3A"
         strokeWidth="4"
       />
 
+      {/* Hair curl */}
       <path
-        d="M 92 62 C 92 50 108 50 108 62 C 108 70 100 72 100 80"
+        d="M 88 60 C 84 46 104 44 104 58 C 104 68 94 70 96 82"
         fill="none"
         stroke="#2D2B3A"
         strokeWidth="4"
         strokeLinecap="round"
       />
 
+      {/* Closed eyes */}
       <path
-        d="M 72 100 Q 82 108 92 100"
+        d="M 70 102 Q 80 110 90 102"
         fill="none"
         stroke="#2D2B3A"
         strokeWidth="4"
         strokeLinecap="round"
       />
       <path
-        d="M 108 100 Q 118 108 128 100"
-        fill="none"
-        stroke="#2D2B3A"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-
-      <path
-        d="M 92 122 Q 100 130 108 122"
+        d="M 110 102 Q 120 110 130 102"
         fill="none"
         stroke="#2D2B3A"
         strokeWidth="4"
         strokeLinecap="round"
       />
 
+      {/* Smile */}
+      <path
+        d="M 92 126 Q 100 134 108 126"
+        fill="none"
+        stroke="#2D2B3A"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+
+      {/* Headphone ear cups */}
       <rect
-        x="28"
+        x="24"
         y="82"
-        width="22"
-        height="42"
-        rx="10"
+        width="26"
+        height="48"
+        rx="12"
         fill="url(#nappster-headphone)"
         stroke="#B48BFF"
-        strokeWidth="3"
+        strokeWidth="3.5"
       />
       <rect
         x="150"
         y="82"
-        width="22"
-        height="42"
-        rx="10"
+        width="26"
+        height="48"
+        rx="12"
         fill="url(#nappster-headphone)"
         stroke="#B48BFF"
-        strokeWidth="3"
+        strokeWidth="3.5"
       />
+      {/* Inner ear cup detail */}
+      <rect x="30" y="92" width="14" height="28" rx="6" fill="#FFF8F0" opacity="0.6" />
+      <rect x="156" y="92" width="14" height="28" rx="6" fill="#FFF8F0" opacity="0.6" />
 
+      {/* Pacifier */}
+      {/* Shield / ring */}
+      <ellipse
+        cx="100"
+        cy="142"
+        rx="18"
+        ry="16"
+        fill="#FFF8F0"
+        stroke="#2D2B3A"
+        strokeWidth="3.5"
+      />
+      {/* Button */}
       <circle
         cx="100"
-        cy="138"
-        r="14"
+        cy="142"
+        r="10"
         fill="url(#nappster-pacifier)"
         stroke="#2D2B3A"
         strokeWidth="3"
       />
-      <circle cx="92" cy="132" r="3" fill="#FFF8F0" />
-      <circle cx="108" cy="132" r="3" fill="#FFF8F0" />
+      {/* Button shine */}
+      <circle cx="96" cy="138" r="2.5" fill="#FFF8F0" opacity="0.8" />
+      {/* Handle ring */}
       <path
-        d="M 100 138 L 100 150"
+        d="M 100 152 L 100 164"
         fill="none"
         stroke="#2D2B3A"
-        strokeWidth="3"
+        strokeWidth="3.5"
         strokeLinecap="round"
       />
       <path
-        d="M 88 150 Q 100 158 112 150"
+        d="M 86 164 Q 100 174 114 164"
         fill="none"
         stroke="#2D2B3A"
-        strokeWidth="3"
+        strokeWidth="3.5"
         strokeLinecap="round"
       />
     </svg>
