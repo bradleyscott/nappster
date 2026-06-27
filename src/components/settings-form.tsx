@@ -114,7 +114,7 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
         isNavigatingBack={isNavigatingBack}
       />
 
-      <div className="mx-auto max-w-md px-4 pt-2">
+      <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
         {/* ===== PROFILE CARD ===== */}
         <div className="mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]">
           {/* Avatar */}
