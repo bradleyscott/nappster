@@ -15,6 +15,7 @@ export function createMockSupabaseClient() {
   const fromCalls: string[] = []
   const eqCalls: Array<{ column: string; value: unknown }> = []
   const updateCalls: unknown[] = []
+  const rpcCalls: string[] = []
 
   const resolveSelect = () => Promise.resolve(mockSelectResponse)
   const resolveInsert = () => Promise.resolve(mockInsertResponse)
@@ -88,6 +89,11 @@ export function createMockSupabaseClient() {
   }
 
   const client = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    rpc: vi.fn((fnName: string, _params?: unknown) => {
+      rpcCalls.push(fnName)
+      return resolveSelect()
+    }),
     auth: {
       getUser: vi.fn(() =>
         Promise.resolve({ data: { user: { id: 'mock-user-123' } }, error: null })
@@ -105,6 +111,9 @@ export function createMockSupabaseClient() {
     _setSelectResponse: (response: { data: unknown; error: unknown }) => {
       mockSelectResponse = response
     },
+    _setRpcResponse: (response: { data: unknown; error: unknown }) => {
+      mockSelectResponse = response
+    },
 
     // Test helpers to inspect calls
     _getInsertCalls: () => insertCalls,
@@ -112,6 +121,7 @@ export function createMockSupabaseClient() {
     _getFromCalls: () => fromCalls,
     _getEqCalls: () => eqCalls,
     _getUpdateCalls: () => updateCalls,
+    _getRpcCalls: () => rpcCalls,
 
     // Reset all mocks
     _reset: () => {
@@ -120,6 +130,7 @@ export function createMockSupabaseClient() {
       fromCalls.length = 0
       eqCalls.length = 0
       updateCalls.length = 0
+      rpcCalls.length = 0
       mockInsertResponse = { data: null, error: null }
       mockSelectResponse = { data: [], error: null }
     },
