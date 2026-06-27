@@ -224,7 +224,7 @@
 
   /* Sleep Dashboard - subtitle pills */
   .subtitle-pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-700 leading-tight;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-bold leading-tight;
   }
   .subtitle-pill-lavender {
     @apply border-[var(--lavender)]/20 bg-[var(--lavender-bg)] text-[var(--lavender)];
@@ -250,7 +250,7 @@
     @apply w-0.5 flex-1 rounded-full bg-[#E8E5F0];
   }
   .timeline-edit-hint {
-    @apply text-xs font-700 text-[var(--text-muted)] opacity-0 transition-opacity duration-100 group-hover:opacity-40;
+    @apply text-xs font-bold text-[var(--text-muted)] opacity-0 transition-opacity duration-100 group-hover:opacity-40;
   }
 
   /* Bottom sheet */

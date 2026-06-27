@@ -71,10 +71,10 @@ export function CountdownRing({
       </svg>
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-900 leading-none tracking-tight" style={{ color: gradient.to }}>
+        <span className="text-xl font-black leading-none tracking-tight" style={{ color: gradient.to }}>
           {timeRemaining}
         </span>
-        <span className="text-[11px] font-700 text-[var(--text-secondary)] mt-0.5">
+        <span className="text-[11px] font-bold text-[var(--text-secondary)] mt-0.5">
           {timeLabel}
         </span>
       </div>

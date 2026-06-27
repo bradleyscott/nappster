@@ -51,8 +51,8 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
           ←
         </button>
         <div>
-          <div className="text-lg font-800 text-[var(--text)]">Sleep Trends</div>
-          <div className="text-xs font-600 text-[var(--text-muted)]">
+          <div className="text-lg font-extrabold text-[var(--text)]">Sleep Trends</div>
+          <div className="text-xs font-semibold text-[var(--text-muted)]">
             Last {timeRange} days · {babyName}
           </div>
         </div>
@@ -65,14 +65,14 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
           <div className="px-5 pb-5 pt-4">
             {/* Header with pill nav */}
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-[16px] font-800 text-[var(--text)]">
+              <h3 className="flex items-center gap-2 text-[16px] font-extrabold text-[var(--text)]">
                 📋 Typical Day
               </h3>
               <div className="flex gap-1.5">
                 <button
                   onClick={() => setContextFilter('home')}
                   className={cn(
-                    'rounded-full border px-3 py-1 text-[11px] font-700 transition-all active:scale-95',
+                    'rounded-full border px-3 py-1 text-[11px] font-bold transition-all active:scale-95',
                     contextFilter === 'home'
                       ? 'border-[var(--lavender-light)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
                       : 'border-[#EEE] bg-white text-[var(--text-muted)]'
@@ -83,7 +83,7 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
                 <button
                   onClick={() => setContextFilter('daycare')}
                   className={cn(
-                    'rounded-full border px-3 py-1 text-[11px] font-700 transition-all active:scale-95',
+                    'rounded-full border px-3 py-1 text-[11px] font-bold transition-all active:scale-95',
                     contextFilter === 'daycare'
                       ? 'border-[var(--lavender-light)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
                       : 'border-[#EEE] bg-white text-[var(--text-muted)]'
@@ -121,16 +121,16 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
             {/* Stats pills */}
             <div className="flex gap-2">
               <div className="flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
-                <div className="text-sm font-800 text-[var(--lavender)]">{expectedStats.nightDuration}</div>
-                <div className="text-[10px] font-700 text-[var(--text-secondary)] uppercase tracking-[0.3px]">Night</div>
+                <div className="text-sm font-extrabold text-[var(--lavender)]">{expectedStats.nightDuration}</div>
+                <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Night</div>
               </div>
               <div className="flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
-                <div className="text-sm font-800 text-[var(--mint)]">{expectedStats.napDuration}</div>
-                <div className="text-[10px] font-700 text-[var(--text-secondary)] uppercase tracking-[0.3px]">Naps</div>
+                <div className="text-sm font-extrabold text-[var(--mint)]">{expectedStats.napDuration}</div>
+                <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Naps</div>
               </div>
               <div className="flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
-                <div className="text-sm font-800 text-[var(--peach)]">{expectedStats.awakeDuration}</div>
-                <div className="text-[10px] font-700 text-[var(--text-secondary)] uppercase tracking-[0.3px]">Awake</div>
+                <div className="text-sm font-extrabold text-[var(--peach)]">{expectedStats.awakeDuration}</div>
+                <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Awake</div>
               </div>
             </div>
           </div>
@@ -169,7 +169,7 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
 
       {/* ===== HISTORY ===== */}
       <div className="mx-4 mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[15px] font-800 text-[var(--text)]">
+        <h3 className="flex items-center gap-1.5 text-[15px] font-extrabold text-[var(--text)]">
           📅 Sleep History
         </h3>
         <div className="flex gap-1.5">
@@ -178,7 +178,7 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
               key={days}
               onClick={() => setTimeRange(days)}
               className={cn(
-                'rounded-full border px-2.5 py-0.5 text-[11px] font-700 transition-all active:scale-95',
+                'rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition-all active:scale-95',
                 timeRange === days
                   ? 'border-[var(--lavender-light)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
                   : 'border-[#EEE] bg-white text-[var(--text-muted)]'
@@ -194,8 +194,8 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
         {rows.length === 0 && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-[#F0EDF5] py-12 text-center">
             <span className="text-3xl">📊</span>
-            <p className="text-sm font-700 text-[var(--text-muted)]">No sleep data yet</p>
-            <p className="text-xs font-600 text-[var(--text-muted)]">Start tracking to see patterns</p>
+            <p className="text-sm font-bold text-[var(--text-muted)]">No sleep data yet</p>
+            <p className="text-xs font-semibold text-[var(--text-muted)]">Start tracking to see patterns</p>
           </div>
         )}
 
@@ -239,9 +239,9 @@ function TrendCard({
   return (
     <div className="flex-1 rounded-2xl bg-white px-3 py-3.5 text-center shadow-[var(--shadow-sm)]">
       <div className="mb-0.5 text-lg">{emoji}</div>
-      <div className={cn('text-lg font-900 leading-tight', colorMap[color])}>{value}</div>
-      <div className="mt-0.5 text-[10px] font-700 text-[var(--text-secondary)] uppercase tracking-[0.3px]">{label}</div>
-      <div className={cn('mt-0.5 inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[9px] font-700', bgMap[trend] || 'bg-gray-100')}>
+      <div className={cn('text-lg font-black leading-tight', colorMap[color])}>{value}</div>
+      <div className="mt-0.5 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">{label}</div>
+      <div className={cn('mt-0.5 inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold', bgMap[trend] || 'bg-gray-100')}>
         {trendLabel}
       </div>
     </div>
@@ -262,7 +262,7 @@ function DayHistoryRow({ row, onClick }: { row: DayRow; onClick: () => void }) {
       {/* Day label */}
       <div className="w-[68px] shrink-0 text-left">
         <div className="flex items-center gap-1">
-          <span className="text-sm font-800 text-[var(--text)] leading-tight">{label}</span>
+          <span className="text-sm font-extrabold text-[var(--text)] leading-tight">{label}</span>
           {hasDaycare && <span className="text-[10px]">🏫</span>}
         </div>
       </div>
@@ -340,9 +340,9 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
 
         {/* Header */}
         <div className="mb-4 flex items-center gap-2">
-          <span className="text-lg font-800 text-[var(--text)]">{row.label}</span>
+          <span className="text-lg font-extrabold text-[var(--text)]">{row.label}</span>
           {hasDaycare && (
-            <span className="ml-auto rounded-full bg-[var(--peach-bg)] px-2.5 py-0.5 text-[10px] font-700 text-[var(--peach)]">
+            <span className="ml-auto rounded-full bg-[var(--peach-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--peach)]">
               🏫 Daycare
             </span>
           )}
@@ -364,14 +364,14 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
               <div className="flex min-w-0 flex-1 items-center gap-2 pb-3">
                 <span className="text-sm">{block.type === 'nap' ? '😴' : '🌙'}</span>
                 <div className="flex-1">
-                  <span className="text-sm font-700 text-[var(--text)]">
+                  <span className="text-sm font-bold text-[var(--text)]">
                     {block.type === 'nap' ? 'Nap' : 'Night sleep'}
                   </span>
-                  <span className="ml-2 text-xs font-700 text-[var(--text-muted)]">
+                  <span className="ml-2 text-xs font-bold text-[var(--text-muted)]">
                     {fmtHour(block.startHour)} – {fmtHour(block.endHour)}
                   </span>
                 </div>
-                <span className="text-xs font-700 text-[var(--text-secondary)]">
+                <span className="text-xs font-bold text-[var(--text-secondary)]">
                   {fmtMin(Math.round((block.endHour - block.startHour) * 60))}
                 </span>
               </div>
@@ -389,8 +389,8 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
               </div>
               <div className="flex min-w-0 flex-1 items-center gap-2 pb-3">
                 <span className="text-sm">👀</span>
-                <span className="text-sm font-700 text-[var(--text-muted)]">Night wake</span>
-                <span className="ml-auto text-xs font-700 text-[var(--text-muted)]">
+                <span className="text-sm font-bold text-[var(--text-muted)]">Night wake</span>
+                <span className="ml-auto text-xs font-bold text-[var(--text-muted)]">
                   {fmtHour(wake.hour)}
                 </span>
               </div>
@@ -401,16 +401,16 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
         {/* Summary */}
         <div className="mb-4 flex gap-2 rounded-xl bg-[var(--bg)] p-3">
           <div className="flex-1 text-center">
-            <div className="text-sm font-800 text-[var(--lavender)]">{fmtMin(nightMin)}</div>
-            <div className="text-[10px] font-700 text-[var(--text-secondary)] uppercase">Night</div>
+            <div className="text-sm font-extrabold text-[var(--lavender)]">{fmtMin(nightMin)}</div>
+            <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Night</div>
           </div>
           <div className="flex-1 text-center">
-            <div className="text-sm font-800 text-[var(--mint)]">{fmtMin(napMin)}</div>
-            <div className="text-[10px] font-700 text-[var(--text-secondary)] uppercase">Naps</div>
+            <div className="text-sm font-extrabold text-[var(--mint)]">{fmtMin(napMin)}</div>
+            <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Naps</div>
           </div>
           <div className="flex-1 text-center">
-            <div className="text-sm font-800 text-[var(--text)]">{fmtMin(totalMin)}</div>
-            <div className="text-[10px] font-700 text-[var(--text-secondary)] uppercase">Total</div>
+            <div className="text-sm font-extrabold text-[var(--text)]">{fmtMin(totalMin)}</div>
+            <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Total</div>
           </div>
         </div>
 
@@ -418,7 +418,7 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded-2xl border-2 border-[#EEE] bg-white py-3.5 text-sm font-700 text-[var(--text-secondary)] active:bg-[#F8F5FF] transition-colors"
+            className="flex-1 rounded-2xl border-2 border-[#EEE] bg-white py-3.5 text-sm font-bold text-[var(--text-secondary)] active:bg-[#F8F5FF] transition-colors"
           >
             Close
           </button>
@@ -427,7 +427,7 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
               const text = formatDayForSharing(row)
               navigator.clipboard.writeText(text)
             }}
-            className="flex-1 rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-700 text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] active:scale-[0.97] transition-all"
+            className="flex-1 rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] active:scale-[0.97] transition-all"
           >
             Share This Day
           </button>

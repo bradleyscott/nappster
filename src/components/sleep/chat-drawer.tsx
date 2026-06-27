@@ -56,14 +56,14 @@ export function ChatDrawer({
       >
         <span
           className={cn(
-            'text-2xl font-700 transition-transform duration-200',
+            'text-2xl font-bold transition-transform duration-200',
             isOpen && 'rotate-45 text-[var(--text)]'
           )}
         >
           {isOpen ? '+' : '💬'}
         </span>
         {!isOpen && badge && badge > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--rose)] px-1 text-[10px] font-800 text-white shadow-md">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--rose)] px-1 text-[10px] font-extrabold text-white shadow-md">
             {badge > 9 ? '9+' : badge}
           </span>
         )}
@@ -91,7 +91,7 @@ export function ChatDrawer({
         {/* Header */}
         <div className="flex items-center gap-2 px-5 pb-3">
           <span className="text-lg">💬</span>
-          <span className="text-base font-800 text-[var(--text)]">Chat with Nappster</span>
+          <span className="text-base font-extrabold text-[var(--text)]">Chat with Nappster</span>
           <span className="relative flex h-2 w-2 ml-1">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--mint)] opacity-40" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--mint)]" />
@@ -116,7 +116,7 @@ export function ChatDrawer({
             onKeyDown={handleKeyDown}
             placeholder="Ask about sleep..."
             rows={1}
-            className="flex-1 resize-none rounded-xl border-2 border-[#EEE] px-4 py-2.5 text-sm font-600 text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)] transition-colors duration-100"
+            className="flex-1 resize-none rounded-xl border-2 border-[#EEE] px-4 py-2.5 text-sm font-semibold text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)] transition-colors duration-100"
           />
           <button
             type="submit"

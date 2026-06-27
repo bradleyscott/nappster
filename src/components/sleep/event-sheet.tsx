@@ -118,12 +118,12 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
         <div className="mx-auto mb-5 h-1 w-10 shrink-0 rounded-full bg-[#DDD]" />
 
         {/* Title */}
-        <h3 className="mb-5 text-center text-lg font-800 text-[var(--text)]">
+        <h3 className="mb-5 text-center text-lg font-extrabold text-[var(--text)]">
           {mode === 'add' ? 'Log Past Event' : 'Edit Event'}
         </h3>
 
         {/* Event type selector */}
-        <label className="mb-1.5 block text-xs font-700 text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+        <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
           Event type
         </label>
         <div className="mb-4 flex flex-wrap gap-2">
@@ -132,7 +132,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
               key={opt.type}
               onClick={() => setEventType(opt.type)}
               className={cn(
-                'rounded-full border-2 px-4 py-2 text-sm font-700 transition-all duration-100 active:scale-95',
+                'rounded-full border-2 px-4 py-2 text-sm font-bold transition-all duration-100 active:scale-95',
                 eventType === opt.type
                   ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
                   : 'border-[#EEE] bg-white text-[var(--text-muted)]'
@@ -144,18 +144,18 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
         </div>
 
         {/* Date */}
-        <label className="mb-1.5 block text-xs font-700 text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+        <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
           Date
         </label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="mb-4 w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-700 text-[var(--text)] outline-none focus:border-[var(--lavender)]"
+          className="mb-4 w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
         />
 
         {/* Time */}
-        <label className="mb-1.5 block text-xs font-700 text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+        <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
           Time
         </label>
         <div className="mb-4 flex items-center gap-2">
@@ -165,22 +165,22 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
             max={12}
             value={hour}
             onChange={(e) => setHour(e.target.value.padStart(2, '0').slice(0, 2))}
-            className="w-16 rounded-xl border-2 border-[#EEE] px-3 py-3 text-center text-sm font-700 text-[var(--text)] outline-none focus:border-[var(--lavender)]"
+            className="w-16 rounded-xl border-2 border-[#EEE] px-3 py-3 text-center text-sm font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
           />
-          <span className="text-lg font-700 text-[var(--text-secondary)]">:</span>
+          <span className="text-lg font-bold text-[var(--text-secondary)]">:</span>
           <input
             type="number"
             min={0}
             max={59}
             value={minute}
             onChange={(e) => setMinute(e.target.value.padStart(2, '0').slice(0, 2))}
-            className="w-16 rounded-xl border-2 border-[#EEE] px-3 py-3 text-center text-sm font-700 text-[var(--text)] outline-none focus:border-[var(--lavender)]"
+            className="w-16 rounded-xl border-2 border-[#EEE] px-3 py-3 text-center text-sm font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
           />
           <div className="flex gap-1">
             <button
               onClick={() => setAmpm('AM')}
               className={cn(
-                'rounded-lg border-2 px-3 py-2.5 text-sm font-700 transition-all duration-100',
+                'rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition-all duration-100',
                 ampm === 'AM'
                   ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
                   : 'border-[#EEE] bg-white text-[var(--text-muted)]'
@@ -191,7 +191,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
             <button
               onClick={() => setAmpm('PM')}
               className={cn(
-                'rounded-lg border-2 px-3 py-2.5 text-sm font-700 transition-all duration-100',
+                'rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition-all duration-100',
                 ampm === 'PM'
                   ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
                   : 'border-[#EEE] bg-white text-[var(--text-muted)]'
@@ -203,7 +203,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
         </div>
 
         {/* Context */}
-        <label className="mb-1.5 block text-xs font-700 text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+        <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
           Context
         </label>
         <div className="mb-4 flex gap-2">
@@ -212,7 +212,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
               key={opt.value}
               onClick={() => setContext(opt.value === context ? null : opt.value)}
               className={cn(
-                'rounded-full border-2 px-4 py-2 text-sm font-700 transition-all duration-100 active:scale-95',
+                'rounded-full border-2 px-4 py-2 text-sm font-bold transition-all duration-100 active:scale-95',
                 context === opt.value
                   ? 'border-[var(--mint)] bg-[var(--mint-bg)] text-[var(--mint)]'
                   : 'border-[#EEE] bg-white text-[var(--text-muted)]'
@@ -224,7 +224,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
         </div>
 
         {/* Notes */}
-        <label className="mb-1.5 block text-xs font-700 text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+        <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
           Notes
         </label>
         <textarea
@@ -232,28 +232,28 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Optional notes..."
           rows={2}
-          className="mb-6 w-full resize-none rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-600 text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+          className="mb-6 w-full resize-none rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-semibold text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
         />
 
         {/* Footer */}
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded-2xl border-2 border-[#EEE] bg-white py-3.5 text-sm font-700 text-[var(--text-secondary)] active:bg-[#F8F5FF] transition-colors duration-100"
+            className="flex-1 rounded-2xl border-2 border-[#EEE] bg-white py-3.5 text-sm font-bold text-[var(--text-secondary)] active:bg-[#F8F5FF] transition-colors duration-100"
           >
             Cancel
           </button>
           {mode === 'edit' && onDelete && (
             <button
               onClick={onDelete}
-              className="rounded-2xl border-2 border-[var(--rose-light)] bg-white px-6 py-3.5 text-sm font-700 text-[var(--rose)] active:bg-[var(--rose-bg)] transition-colors duration-100"
+              className="rounded-2xl border-2 border-[var(--rose-light)] bg-white px-6 py-3.5 text-sm font-bold text-[var(--rose)] active:bg-[var(--rose-bg)] transition-colors duration-100"
             >
               Delete
             </button>
           )}
           <button
             onClick={handleSave}
-            className="flex-1 rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-700 text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] active:scale-[0.97] transition-all duration-100"
+            className="flex-1 rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] active:scale-[0.97] transition-all duration-100"
           >
             {mode === 'add' ? 'Log Event' : 'Save Changes'}
           </button>

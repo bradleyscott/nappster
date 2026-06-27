@@ -32,7 +32,7 @@ export function SubtitlePills({ pills, className }: SubtitlePillsProps) {
           <span
             key={i}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-700 leading-tight',
+              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-bold leading-tight',
               c.bg, c.text, c.border
             )}
           >
