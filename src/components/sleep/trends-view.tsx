@@ -100,10 +100,10 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
         isNavigatingBack={isNavigatingBack}
       />
 
-      <div className="mx-auto max-w-md">
+      <div className="mx-auto max-w-md px-4 pt-2">
         {/* ===== AVERAGE DAY CARD ===== */}
       {activeExpected && expectedStats && (
-        <div className="mx-4 mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
+        <div className="mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
           <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
           <div className="px-5 pb-5 pt-4">
             {/* Header with pill nav */}
@@ -193,7 +193,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
 
       {/* ===== STATS ROW ===== */}
       {expectedStats && (
-        <div className="mx-4 mb-4 flex gap-2">
+        <div className="mb-4 flex gap-2">
           <TrendCard
             emoji="😴"
             value={String(expectedStats.napCount)}
@@ -222,7 +222,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
       )}
 
       {/* ===== HISTORY ===== */}
-      <div className="mx-4 mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-[15px] font-extrabold text-[var(--text)]">
           📅 Sleep History
         </h3>
@@ -244,7 +244,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
         </div>
       </div>
 
-      <div className="mx-4 flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5">
         {rows.length === 0 && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-[#F0EDF5] py-12 text-center">
             <span className="text-3xl">📊</span>
