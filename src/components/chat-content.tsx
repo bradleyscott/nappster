@@ -310,7 +310,7 @@ export function ChatContent({
               <Message from={msg.role}>
                 <MessageContent
                   className={isUser
-                    ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-white shadow-sm'
+                    ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] !text-white shadow-sm'
                     : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
                   }
                 >
