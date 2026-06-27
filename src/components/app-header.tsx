@@ -3,32 +3,29 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { format } from 'date-fns'
-import { Baby as BabyIcon, BarChart3, Loader2 } from 'lucide-react'
+import { BarChart3, Baby as BabyIcon, Loader2 } from 'lucide-react'
 import { Baby } from '@/types/database'
 import { formatAge } from '@/lib/sleep-utils'
-import { Button } from '@/components/ui/button'
 
 interface AppHeaderProps {
   baby: Baby
-  onSignOut: () => void | Promise<void>
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
 }
 
 /**
- * Unified app header component displaying baby info, settings link, and sign out.
- * Used by the main chat interface.
+ * Minimal centered header that blends into the new playful dashboard.
+ * Navigation actions float top-right; no heavy bar or border.
  */
-export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
+export function AppHeader({ baby }: AppHeaderProps) {
   const router = useRouter()
-  const [isSigningOut, setIsSigningOut] = useState(false)
   const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false)
   const [isNavigatingToTrends, setIsNavigatingToTrends] = useState(false)
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true)
-    await onSignOut()
-  }
 
   const handleSettingsClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -43,51 +40,39 @@ export function AppHeader({ baby, onSignOut }: AppHeaderProps) {
   }
 
   return (
-    <header className="border-b">
-      <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Image
-            src="/nappster.png"
-            alt="Nappster"
-            width={40}
-            height={40}
-            className="rounded-full"
-          />
-          <div>
-            <p className="text-sm text-muted-foreground">{format(new Date(), 'EEEE, MMM d')}</p>
-            <h1 className="text-lg font-semibold">{baby.name} · {formatAge(baby.birth_date)}</h1>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="icon" asChild disabled={isSigningOut || isNavigatingToTrends}>
-            <Link href="/sleep-trends" onClick={handleTrendsClick}>
-              {isNavigatingToTrends ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <BarChart3 className="h-4 w-4" />
-              )}
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" asChild disabled={isSigningOut || isNavigatingToSettings}>
-            <Link href="/settings" onClick={handleSettingsClick}>
-              {isNavigatingToSettings ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <BabyIcon className="h-4 w-4" />
-              )}
-            </Link>
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} disabled={isSigningOut}>
-            {isSigningOut ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-2" />
-                Signing out...
-              </>
-            ) : (
-              'Sign out'
-            )}
-          </Button>
-        </div>
+    <header className="relative px-4 pt-3 pb-1 text-center">
+      {/* Floating action buttons */}
+      <div className="absolute right-4 top-3 flex gap-2">
+        <Link
+          href="/sleep-trends"
+          onClick={handleTrendsClick}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
+          aria-label="Sleep trends"
+        >
+          {isNavigatingToTrends ? (
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--lavender)]" />
+          ) : (
+            <BarChart3 className="h-4 w-4" />
+          )}
+        </Link>
+        <Link
+          href="/settings"
+          onClick={handleSettingsClick}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
+          aria-label="Profile and family"
+        >
+          {isNavigatingToSettings ? (
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--lavender)]" />
+          ) : (
+            <BabyIcon className="h-4 w-4" />
+          )}
+        </Link>
+      </div>
+
+      <div className="text-xs font-bold text-[var(--text-muted)]">{getGreeting()}</div>
+      <div className="text-xl font-black text-[var(--text)]">{baby.name}</div>
+      <div className="mt-1.5 inline-flex items-center rounded-full bg-[var(--lavender-bg)] px-2.5 py-1 text-[10px] font-extrabold text-[var(--lavender)]">
+        {formatAge(baby.birth_date)}
       </div>
     </header>
   )

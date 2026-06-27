@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nappster Header Alternatives</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-bg: #F3EDFF;
+      --lavender-light: #D8C6FF;
+      --peach: #FFB07C;
+      --peach-bg: #FFF0E6;
+      --mint: #6FCF97;
+      --mint-bg: #E8F9EF;
+      --rose: #FF8FAB;
+      --rose-bg: #FFE8ED;
+      --sunset: #FF8F6B;
+      --bg: #FAF8FF;
+      --card: #FFFFFF;
+      --text: #2D2B3A;
+      --text-secondary: #6E6B7B;
+      --text-muted: #9B98A8;
+      --shadow-sm: 0 2px 12px rgba(45, 43, 58, 0.06);
+      --shadow-md: 0 8px 28px rgba(45, 43, 58, 0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F0EDF5;
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+    }
+    p.subtitle {
+      text-align: center;
+      color: var(--text-secondary);
+      margin-top: 0;
+      margin-bottom: 2rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .phone {
+      background: var(--bg);
+      border-radius: 32px;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      border: 8px solid #fff;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .label {
+      background: #fff;
+      padding: 0.6rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #F0EDF5;
+    }
+    .screen {
+      min-height: 520px;
+      padding: 1rem;
+    }
+
+    /* Avatar */
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--lavender), var(--peach));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    /* Option 1: Floating Pill */
+    .opt1-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card);
+      border-radius: 999px;
+      padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1rem;
+    }
+    .opt1-left { display: flex; align-items: center; gap: 0.75rem; }
+    .opt1-name { font-weight: 800; font-size: 0.95rem; }
+    .opt1-age { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; }
+    .opt1-actions { display: flex; gap: 0.35rem; }
+    .opt1-btn {
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      background: var(--bg); color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; cursor: pointer;
+    }
+    .opt1-btn.primary { background: var(--lavender-bg); color: var(--lavender); }
+
+    /* Option 2: Gradient Header Card */
+    .opt2-header {
+      background: linear-gradient(135deg, #fff 0%, var(--lavender-bg) 100%);
+      border-radius: 24px;
+      padding: 1.1rem 1rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1rem;
+      border: 1px solid var(--lavender-light);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .opt2-left { display: flex; align-items: center; gap: 0.85rem; }
+    .opt2-name { font-weight: 900; font-size: 1.05rem; }
+    .opt2-meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-top: 0.15rem; }
+    .opt2-actions { display: flex; gap: 0.5rem; }
+    .opt2-btn {
+      width: 38px; height: 38px; border-radius: 14px; border: none;
+      background: white; color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    /* Option 3: Soft Card with Date */
+    .opt3-header {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 1rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .opt3-left { display: flex; align-items: center; gap: 0.85rem; }
+    .opt3-name { font-weight: 800; font-size: 0.95rem; }
+    .opt3-date { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; }
+    .opt3-actions { display: flex; gap: 0.4rem; }
+    .opt3-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+      background: none; border: none; color: var(--text-secondary);
+      font-size: 0.65rem; font-weight: 700; cursor: pointer;
+    }
+    .opt3-icon {
+      width: 34px; height: 34px; border-radius: 12px;
+      background: var(--bg); display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+    }
+
+    /* Option 4: Minimal Centered */
+    .opt4-header {
+      text-align: center;
+      margin-bottom: 1.2rem;
+      position: relative;
+    }
+    .opt4-actions {
+      position: absolute; top: 0; right: 0;
+      display: flex; gap: 0.4rem;
+    }
+    .opt4-btn {
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      background: var(--card); color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; cursor: pointer; box-shadow: var(--shadow-sm);
+    }
+    .opt4-greeting { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+    .opt4-name { font-weight: 900; font-size: 1.2rem; margin-top: 0.15rem; }
+    .opt4-age {
+      display: inline-block; margin-top: 0.35rem;
+      background: var(--lavender-bg); color: var(--lavender);
+      padding: 0.25rem 0.75rem; border-radius: 999px;
+      font-size: 0.7rem; font-weight: 800;
+    }
+
+    /* Fake dashboard content */
+    .hero {
+      background: linear-gradient(135deg, var(--lavender), #9B7BFF);
+      border-radius: 28px;
+      padding: 1.5rem;
+      color: white;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(180,139,255,0.25);
+    }
+    .hero-icon { font-size: 2rem; }
+    .hero-title { font-weight: 900; font-size: 1.3rem; margin-top: 0.5rem; }
+    .hero-pills {
+      display: flex; justify-content: center; gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .pill {
+      background: rgba(255,255,255,0.2);
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      backdrop-filter: blur(8px);
+    }
+    .fake-btn {
+      background: linear-gradient(135deg, var(--sunset), var(--rose));
+      border-radius: 20px;
+      padding: 1.1rem 1rem;
+      color: white;
+      font-weight: 800;
+      margin-top: 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 8px 22px rgba(255,143,107,0.25);
+    }
+  </style>
+</head>
+<body>
+  <h1>Header Alternatives</h1>
+  <p class="subtitle">Four directions that feel at home with the new playful dashboard.</p>
+
+  <div class="grid">
+    <!-- Option 1 -->
+    <div class="phone">
+      <div class="label">1. Floating Pill</div>
+      <div class="screen">
+        <div class="opt1-header">
+          <div class="opt1-left">
+            <div class="avatar">L</div>
+            <div>
+              <div class="opt1-name">Luna</div>
+              <div class="opt1-age">7 months old</div>
+            </div>
+          </div>
+          <div class="opt1-actions">
+            <button class="opt1-btn">📊</button>
+            <button class="opt1-btn primary">👤</button>
+          </div>
+        </div>
+        <div class="hero">
+          <div class="hero-icon">🌙</div>
+          <div class="hero-title">Sleeping Soundly</div>
+          <div class="hero-pills">
+            <span class="pill">Bedtime 7:32pm</span>
+            <span class="pill">Sleeping 2h 18m</span>
+          </div>
+        </div>
+        <div class="fake-btn">
+          <span>Start Bedtime! →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option 2 -->
+    <div class="phone">
+      <div class="label">2. Gradient Card</div>
+      <div class="screen">
+        <div class="opt2-header">
+          <div class="opt2-left">
+            <div class="avatar">L</div>
+            <div>
+              <div class="opt2-name">Luna</div>
+              <div class="opt2-meta">7 months · Friday, Jun 27</div>
+            </div>
+          </div>
+          <div class="opt2-actions">
+            <button class="opt2-btn">📊</button>
+            <button class="opt2-btn">👤</button>
+          </div>
+        </div>
+        <div class="hero">
+          <div class="hero-icon">🌙</div>
+          <div class="hero-title">Sleeping Soundly</div>
+          <div class="hero-pills">
+            <span class="pill">Bedtime 7:32pm</span>
+            <span class="pill">Sleeping 2h 18m</span>
+          </div>
+        </div>
+        <div class="fake-btn">
+          <span>Start Bedtime! →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option 3 -->
+    <div class="phone">
+      <div class="label">3. Soft Card with Labels</div>
+      <div class="screen">
+        <div class="opt3-header">
+          <div class="opt3-left">
+            <div class="avatar">L</div>
+            <div>
+              <div class="opt3-name">Luna</div>
+              <div class="opt3-date">Friday, Jun 27 · 7 months</div>
+            </div>
+          </div>
+          <div class="opt3-actions">
+            <button class="opt3-btn"><span class="opt3-icon">📊</span>Trends</button>
+            <button class="opt3-btn"><span class="opt3-icon">👤</span>Profile</button>
+          </div>
+        </div>
+        <div class="hero">
+          <div class="hero-icon">🌙</div>
+          <div class="hero-title">Sleeping Soundly</div>
+          <div class="hero-pills">
+            <span class="pill">Bedtime 7:32pm</span>
+            <span class="pill">Sleeping 2h 18m</span>
+          </div>
+        </div>
+        <div class="fake-btn">
+          <span>Start Bedtime! →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option 4 -->
+    <div class="phone">
+      <div class="label">4. Minimal Centered</div>
+      <div class="screen">
+        <div class="opt4-header">
+          <div class="opt4-actions">
+            <button class="opt4-btn">📊</button>
+            <button class="opt4-btn">👤</button>
+          </div>
+          <div class="opt4-greeting">Good evening</div>
+          <div class="opt4-name">Luna is sleeping</div>
+          <div class="opt4-age">7 months old</div>
+        </div>
+        <div class="hero">
+          <div class="hero-icon">🌙</div>
+          <div class="hero-title">Sleeping Soundly</div>
+          <div class="hero-pills">
+            <span class="pill">Bedtime 7:32pm</span>
+            <span class="pill">Sleeping 2h 18m</span>
+          </div>
+        </div>
+        <div class="fake-btn">
+          <span>Start Bedtime! →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

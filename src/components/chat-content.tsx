@@ -2,11 +2,9 @@
 
 import { useChat } from '@ai-sdk/react'
 import { useState, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import { Baby, SleepEvent, SleepSession, ChatMessage, EventType, Context } from '@/types/database'
 import { isValidEvent } from '@/lib/state-machine'
 import { mergeEvents } from '@/lib/merge-data'
-import { createClient } from '@/lib/supabase/client'
 import { useRealtimeSync } from '@/lib/hooks/use-realtime-sync'
 import { useSleepEventCRUD } from '@/lib/hooks/use-sleep-event-crud'
 import { useChatHistory, ChatMessageData } from '@/lib/hooks/use-chat-history'
@@ -45,8 +43,6 @@ export function ChatContent({
   initialCursor = null,
   hasMoreHistory: initialHasMore = false
 }: ChatContentProps) {
-  const router = useRouter()
-  const supabase = createClient()
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
 
   // Dialog state
@@ -254,12 +250,6 @@ export function ChatContent({
     }
   }, [deleteEvent, allSleepEvents])
 
-  const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }, [supabase, router])
-
   // Map timeline items to the display format expected by SleepDashboard
   const timelineDisplayItems = useMemo(() => {
     return timelineItems
@@ -343,9 +333,7 @@ export function ChatContent({
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <AppHeader baby={baby} onSignOut={handleSignOut} />
-      </div>
+      <AppHeader baby={baby} />
 
       <SleepDashboard
         baby={baby}

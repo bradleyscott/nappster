@@ -23,6 +23,7 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -51,6 +52,13 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
     e.preventDefault()
     setIsNavigatingBack(true)
     router.push('/')
+  }
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
   }
 
   const handleGenerateCode = async () => {
@@ -293,9 +301,17 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
             <span className="text-lg">⚠️</span>
             <span className="text-sm font-extrabold text-[var(--rose)]">Danger Zone</span>
           </div>
-          <p className="mb-3 text-xs font-semibold text-[var(--text-muted)] leading-tight">
-            Delete all sleep data for {baby.name}. This action cannot be undone.
-          </p>
+          <button
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="mb-3 flex w-full items-center justify-center rounded-xl border-2 border-[#EEE] bg-white py-3 text-sm font-bold text-[var(--text-secondary)] transition-colors active:bg-[var(--bg)] disabled:opacity-60"
+          >
+            {isSigningOut ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />
+            ) : (
+              'Sign Out'
+            )}
+          </button>
           <button
             onClick={() => alert('Delete confirmation flow')}
             className="w-full rounded-xl border-2 border-[var(--rose-light)] bg-[var(--rose-bg)] py-3 text-sm font-bold text-[var(--rose)] transition-colors active:bg-[var(--rose-light)]"
