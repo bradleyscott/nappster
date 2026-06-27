@@ -2,6 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
 import { formatAge } from '@/lib/sleep-utils'
+import { getBabyById } from '@/lib/services/babies'
 
 /**
  * Creates a tool that fetches the baby's profile information.
@@ -16,18 +17,14 @@ export function createGetBabyProfileTool(context: ToolContext) {
 Call this FIRST before any other tools to understand who you're helping and their known sleep patterns.`,
     inputSchema: z.object({}),
     execute: async () => {
-      const { data, error } = await supabase
-        .from('babies')
-        .select('*')
-        .eq('id', babyId)
-        .single()
+      const { data, error } = await getBabyById(supabase, babyId)
 
       if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: error.message } as const
       }
 
       if (!data) {
-        return { success: false, error: 'Baby not found' }
+        return { success: false, error: 'Baby not found' } as const
       }
 
       return {
@@ -39,7 +36,7 @@ Call this FIRST before any other tools to understand who you're helping and thei
           sleepTrainingMethod: data.sleep_training_method,
           patternNotes: data.pattern_notes
         }
-      }
+      } as const
     },
   })
 }

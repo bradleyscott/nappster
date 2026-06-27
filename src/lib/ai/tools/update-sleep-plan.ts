@@ -3,10 +3,11 @@ import { ToolContext } from './types'
 import { computeEventsHash } from '@/lib/sleep-utils'
 import { computeCurrentState } from '@/lib/state-machine'
 import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
-import { getTodayBoundsForTimezone } from '@/lib/timezone'
 import { format } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
 import type { SleepEvent } from '@/types/database'
+import { getTodaySleepEvents } from '@/lib/services/sleep-events'
+import { deactivatePreviousSleepPlans, createSleepPlan } from '@/lib/services/sleep-plans'
 
 /**
  * Creates a tool that updates the displayed sleep plan and persists it to the database.
@@ -31,18 +32,11 @@ Mark completed naps/events with status "completed", current activity as "in_prog
     inputSchema: sleepPlanSchema,
     execute: async (plan) => {
       try {
-        // Use timezone-aware day bounds (consistent with other tools)
-        const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)
+        // Use timezone-aware plan date (consistent with other tools)
         const planDate = format(toZonedTime(new Date(), timezone), 'yyyy-MM-dd')
 
         // Get today's events to compute hash and current state
-        const { data: events, error: eventsError } = await supabase
-          .from('sleep_events')
-          .select('*')
-          .eq('baby_id', babyId)
-          .gte('event_time', todayStart)
-          .lt('event_time', todayEnd)
-          .order('event_time', { ascending: true })
+        const { data: events, error: eventsError } = await getTodaySleepEvents(supabase, babyId, timezone)
 
         if (eventsError) {
           console.error('Error fetching events for sleep plan:', eventsError)
@@ -63,31 +57,23 @@ Mark completed naps/events with status "completed", current activity as "in_prog
 
         // Deactivate existing plans instead of deleting, then insert.
         // This avoids a window where no plan exists if the insert fails.
-        await supabase
-          .from('sleep_plans')
-          .update({ is_active: false })
-          .eq('baby_id', babyId)
-          .eq('is_active', true)
+        await deactivatePreviousSleepPlans(supabase, babyId, planDate)
 
         // Insert the new plan
-        const { data: savedPlan, error } = await supabase
-          .from('sleep_plans')
-          .insert({
-            baby_id: babyId,
-            current_state: currentState,
-            next_action: plan.nextAction,
-            schedule: plan.schedule,
-            target_bedtime: plan.targetBedtime,
-            summary: plan.summary,
-            events_hash: eventsHash,
-            plan_date: planDate,
-            is_active: true,
-            created_by: user?.id ?? null,
-          })
-          .select()
-          .single()
+        const { data: savedPlan, error } = await createSleepPlan(supabase, {
+          baby_id: babyId,
+          current_state: currentState,
+          next_action: plan.nextAction,
+          schedule: plan.schedule,
+          target_bedtime: plan.targetBedtime,
+          summary: plan.summary,
+          events_hash: eventsHash,
+          plan_date: planDate,
+          is_active: true,
+          created_by: user?.id ?? null,
+        })
 
-        if (error) {
+        if (error || !savedPlan) {
           console.error('Error persisting sleep plan from chat:', error)
           return {
             success: false,

@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { ToolContext } from "./types";
+import { getChatMessagesSince } from "@/lib/services/chat-messages";
 
 function extractTextFromParts(parts: unknown): string {
   if (!Array.isArray(parts)) return "";
@@ -45,16 +46,15 @@ Examples of when to use:
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const { data: messages, error } = await supabase
-        .from("chat_messages")
-        .select("message_id, role, parts, created_at")
-        .eq("baby_id", babyId)
-        .gte("created_at", startDate.toISOString())
-        .order("created_at", { ascending: true })
-        .limit(limit);
+      const { data: messages, error } = await getChatMessagesSince(
+        supabase,
+        babyId,
+        startDate.toISOString(),
+        limit,
+      );
 
       if (error) {
-        return { success: false, error: error.message };
+        return { success: false, error: error.message } as const;
       }
 
       // Extract text content from messages
@@ -77,7 +77,7 @@ Examples of when to use:
         days_retrieved: days,
         message_count: formattedMessages.length,
         messages: formattedMessages,
-      };
+      } as const;
     },
   });
 }

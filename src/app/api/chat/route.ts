@@ -28,6 +28,9 @@ import {
   computeSleepTrends,
   formatSleepTrends,
 } from "@/lib/sleep-trend-stats";
+import { getSleepEventsSince } from "@/lib/services/sleep-events";
+import { saveChatMessage } from "@/lib/services/chat-messages";
+import { validateEnv } from "@/lib/env";
 
 // Schema for validating critical request fields
 // Messages are validated by the SDK itself
@@ -83,6 +86,7 @@ const MAX_CONVERSATION_MESSAGES = 20;
 
 export async function POST(req: Request) {
   try {
+    validateEnv()
     const body = await req.json();
 
     // Validate critical fields
@@ -115,12 +119,11 @@ export async function POST(req: Request) {
     // Fetch 30 days of sleep events (server-side, always fresh).
     // Used for both trend computation and extracting today's authoritative events.
     const startDate = getStartOfDaysAgoForTimezone(timezone, 30);
-    const { data: historyEvents, error: historyError } = await supabase
-      .from("sleep_events")
-      .select("*")
-      .eq("baby_id", babyId)
-      .gte("event_time", startDate)
-      .order("event_time", { ascending: true });
+    const { data: historyEvents, error: historyError } = await getSleepEventsSince(
+      supabase,
+      babyId,
+      startDate
+    );
 
     if (historyError) {
       console.error("Error fetching sleep history for trends:", historyError);
@@ -285,7 +288,11 @@ export async function POST(req: Request) {
         data: { baby_id: string; message_id: string; role: string; parts: Json },
         attempt = 1
       ): Promise<boolean> {
-        const { error } = await supabase.from("chat_messages").insert(data);
+        const { error } = await saveChatMessage(supabase, {
+          baby_id: data.baby_id,
+          role: data.role as "user" | "assistant",
+          parts: data.parts as Record<string, unknown>[],
+        });
         if (error) {
           if (attempt < maxRetries) {
             // Exponential backoff: 100ms, 200ms
