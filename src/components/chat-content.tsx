@@ -2,6 +2,7 @@
 
 import { useChat } from '@ai-sdk/react'
 import { useState, useCallback, useMemo } from 'react'
+import { cn } from '@/lib/utils'
 import { Baby, SleepEvent, SleepSession, ChatMessage, EventType, Context } from '@/types/database'
 import { isValidEvent } from '@/lib/state-machine'
 import { mergeEvents } from '@/lib/merge-data'
@@ -25,6 +26,7 @@ import {
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message'
 import { Loader } from '@/components/ai-elements/loader'
 import ReactMarkdown from 'react-markdown'
+import { format, isSameDay, isToday, isYesterday } from 'date-fns'
 import type { SleepPlanRow } from '@/types/database'
 
 interface ChatContentProps {
@@ -288,10 +290,39 @@ export function ChatContent({
       }>
   }, [timelineItems])
 
+  const formatDayLabel = useCallback((date: Date) => {
+    if (isToday(date)) return 'Today'
+    if (isYesterday(date)) return 'Yesterday'
+    return format(date, 'EEEE, MMM d')
+  }, [])
+
+  const formatMessageTime = useCallback((date: Date) => {
+    return format(date, 'h:mm a')
+  }, [])
+
+  const groupedMessages = useMemo(() => {
+    const sorted = [...allMessages].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return aTime - bTime
+    })
+
+    const groups: { date: Date; label: string; messages: typeof sorted }[] = []
+    for (const msg of sorted) {
+      const date = msg.createdAt ? new Date(msg.createdAt) : new Date()
+      const lastGroup = groups[groups.length - 1]
+      if (!lastGroup || !isSameDay(lastGroup.date, date)) {
+        groups.push({ date, label: formatDayLabel(date), messages: [msg] })
+      } else {
+        lastGroup.messages.push(msg)
+      }
+    }
+    return groups
+  }, [allMessages, formatDayLabel])
+
   // Render chat messages for the drawer
   const chatMessagesElement = useMemo(() => {
-    const msgs = allMessages
-    if (msgs.length === 0) {
+    if (groupedMessages.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <span className="text-3xl mb-3">💬</span>
@@ -302,38 +333,61 @@ export function ChatContent({
     }
 
     return (
-      <div className="flex flex-col gap-3">
-        {msgs.map((msg) => {
-          const text = extractText(msg)
-          const isUser = msg.role === 'user'
-          return (
-            <div key={msg.id} className={isUser ? 'flex justify-end' : 'flex justify-start'}>
-              <Message from={msg.role}>
-                <MessageContent
-                  className={isUser
-                    ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] !text-white shadow-sm'
-                    : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
-                  }
-                >
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="m-0 whitespace-pre-wrap text-sm">{children}</p>,
-                      a: ({ children, href }) => <a href={href} className="underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                      em: ({ children }) => <em className="italic">{children}</em>,
-                      ul: ({ children }) => <ul className="my-1 list-disc pl-4">{children}</ul>,
-                      ol: ({ children }) => <ol className="my-1 list-decimal pl-4">{children}</ol>,
-                      li: ({ children }) => <li className="my-0.5">{children}</li>,
-                      code: ({ children }) => <code className="rounded bg-black/10 px-1 py-0.5 text-xs">{children}</code>,
-                    }}
-                  >
-                    {text}
-                  </ReactMarkdown>
-                </MessageContent>
-              </Message>
+      <div className="flex flex-col">
+        {groupedMessages.map((group, groupIndex) => (
+          <div key={groupIndex} className="flex flex-col">
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[#F0EDF5]" />
+              <span className="text-[0.65rem] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
+                {group.label}
+              </span>
+              <div className="h-px flex-1 bg-[#F0EDF5]" />
             </div>
-          )
-        })}
+
+            {group.messages.map((msg) => {
+              const text = extractText(msg)
+              const isUser = msg.role === 'user'
+              const msgTime = msg.createdAt
+                ? formatMessageTime(new Date(msg.createdAt))
+                : ''
+              return (
+                <div key={msg.id} className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
+                  <Message from={msg.role}>
+                    <MessageContent
+                      className={isUser
+                        ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] !text-white shadow-sm'
+                        : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
+                      }
+                    >
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="m-0 whitespace-pre-wrap text-sm">{children}</p>,
+                          a: ({ children, href }) => <a href={href} className="underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                          ul: ({ children }) => <ul className="my-1 list-disc pl-4">{children}</ul>,
+                          ol: ({ children }) => <ol className="my-1 list-decimal pl-4">{children}</ol>,
+                          li: ({ children }) => <li className="my-0.5">{children}</li>,
+                          code: ({ children }) => <code className="rounded bg-black/10 px-1 py-0.5 text-xs">{children}</code>,
+                        }}
+                      >
+                        {text}
+                      </ReactMarkdown>
+                    </MessageContent>
+                  </Message>
+                  {msgTime && (
+                    <span className={cn(
+                      'mt-0.5 px-1 text-[0.65rem] font-bold text-[var(--text-muted)]',
+                      isUser && 'text-right'
+                    )}>
+                      {msgTime}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ))}
         {status === 'streaming' && (
           <div className="flex justify-start">
             <div className="rounded-2xl bg-[var(--lavender-bg)] px-4 py-3">
@@ -343,7 +397,7 @@ export function ChatContent({
         )}
       </div>
     )
-  }, [allMessages, status])
+  }, [groupedMessages, status, formatMessageTime])
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
