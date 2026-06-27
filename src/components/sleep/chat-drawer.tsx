@@ -86,23 +86,23 @@ export function ChatDrawer({
         )}
       >
         {/* Immersive header */}
-        <div className="relative bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] px-5 pt-3 text-white">
+        <div className="relative bg-gradient-to-b from-[var(--lavender-bg)] to-white px-5 pt-3">
           {/* Handle */}
-          <div className="mx-auto mb-5 h-1 w-10 shrink-0 rounded-full bg-white/40" />
+          <div className="mx-auto mb-5 h-1 w-10 shrink-0 rounded-full bg-[#DDD]" />
 
           <div className="flex items-start justify-between pb-4">
             {/* AI identity */}
             <div className="flex items-center gap-3.5">
-              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl shadow-[0_6px_20px_rgba(0,0,0,0.15)] backdrop-blur-sm">
+              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-2xl shadow-[0_6px_20px_rgba(124,77,255,0.25)]">
                 🌙
               </div>
               <div>
-                <div className="text-[1.15rem] font-black leading-tight">
+                <div className="text-[1.15rem] font-black leading-tight text-[var(--text)]">
                   Nappster
                 </div>
-                <div className="flex items-center gap-1.5 text-xs font-bold text-white/80">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)]">
                   <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--mint)] opacity-75" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--mint)] opacity-40" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--mint)]" />
                   </span>
                   Sleep coach · Online
@@ -113,7 +113,7 @@ export function ChatDrawer({
             {/* Close button */}
             <button
               onClick={() => setIsOpen(false)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-2xl font-bold text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-transform active:scale-90 hover:bg-white/25"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-[var(--lavender-light)] bg-white text-2xl font-bold text-[var(--text)] shadow-[var(--shadow-sm)] transition-transform active:scale-90"
               aria-label="Close chat"
             >
               ×
