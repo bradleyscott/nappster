@@ -2,23 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useToolOutputs } from '../use-tool-outputs'
 import type { SleepEvent, SleepPlanRow } from '@/types/database'
-import type { UIMessage } from '@ai-sdk/react'
+// Helper to construct valid-looking message parts that pass the runtime guards
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makePart(type: string, state: string, output?: unknown): any {
+  return { type, state, output, input: {} }
+}
 
-const makeTextMessage = (text: string): UIMessage => ({
-  id: 'msg-1',
-  role: 'user',
-  content: text,
-  parts: [{ type: 'text', text }],
-  createdAt: new Date(),
-})
-
-const makeToolMessage = (parts: UIMessage['parts']): UIMessage => ({
-  id: 'msg-2',
-  role: 'assistant',
-  content: '',
-  parts,
-  createdAt: new Date(),
-})
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeMessage(role: 'user' | 'assistant', parts: any): any {
+  return { id: 'msg-1', role, content: '', parts, createdAt: new Date() }
+}
 
 describe('useToolOutputs', () => {
   const onSleepEventCreated = vi.fn()
@@ -32,7 +25,7 @@ describe('useToolOutputs', () => {
   it('does nothing when there are no assistant messages', () => {
     renderHook(() =>
       useToolOutputs({
-        liveMessages: [makeTextMessage('Hello')],
+        liveMessages: [makeMessage('user', [])],
         onSleepEventCreated,
         onSleepPlanUpdated,
       })
@@ -43,18 +36,17 @@ describe('useToolOutputs', () => {
   })
 
   it('extracts a created sleep event', () => {
-    const event = { id: 'evt-1', event_type: 'wake' } as unknown as SleepEvent
-    const message = makeToolMessage([
-      {
-        type: 'tool-createSleepEvent',
-        state: 'output-available',
-        output: { success: true, event },
-      },
-    ])
+    const event = { id: 'evt-1', event_type: 'wake' } as SleepEvent
+    const parts = [
+      makePart('tool-createSleepEvent', 'output-available', {
+        success: true,
+        event,
+      }),
+    ]
 
     renderHook(() =>
       useToolOutputs({
-        liveMessages: [message],
+        liveMessages: [makeMessage('assistant', parts)],
         onSleepEventCreated,
         onSleepPlanUpdated,
       })
@@ -64,18 +56,17 @@ describe('useToolOutputs', () => {
   })
 
   it('extracts an updated sleep plan', () => {
-    const plan = { id: 'plan-1', summary: 'New plan' } as unknown as SleepPlanRow
-    const message = makeToolMessage([
-      {
-        type: 'tool-updateSleepPlan',
-        state: 'output-available',
-        output: { success: true, plan },
-      },
-    ])
+    const plan = { id: 'plan-1', summary: 'New plan' } as SleepPlanRow
+    const parts = [
+      makePart('tool-updateSleepPlan', 'output-available', {
+        success: true,
+        plan,
+      }),
+    ]
 
     renderHook(() =>
       useToolOutputs({
-        liveMessages: [message],
+        liveMessages: [makeMessage('assistant', parts)],
         onSleepEventCreated,
         onSleepPlanUpdated,
       })
@@ -85,17 +76,11 @@ describe('useToolOutputs', () => {
   })
 
   it('ignores tool parts without output', () => {
-    const message = makeToolMessage([
-      {
-        type: 'tool-createSleepEvent',
-        state: 'input-available',
-        input: {},
-      },
-    ])
+    const parts = [makePart('tool-createSleepEvent', 'input-available')]
 
     renderHook(() =>
       useToolOutputs({
-        liveMessages: [message],
+        liveMessages: [makeMessage('assistant', parts)],
         onSleepEventCreated,
         onSleepPlanUpdated,
       })
@@ -105,17 +90,15 @@ describe('useToolOutputs', () => {
   })
 
   it('ignores unrelated tool types', () => {
-    const message = makeToolMessage([
-      {
-        type: 'tool-updatePatternNotes',
-        state: 'output-available',
-        output: { success: true },
-      },
-    ])
+    const parts = [
+      makePart('tool-updatePatternNotes', 'output-available', {
+        success: true,
+      }),
+    ]
 
     renderHook(() =>
       useToolOutputs({
-        liveMessages: [message],
+        liveMessages: [makeMessage('assistant', parts)],
         onSleepEventCreated,
         onSleepPlanUpdated,
       })
