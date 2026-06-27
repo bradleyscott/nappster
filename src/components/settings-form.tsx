@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -27,6 +27,18 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const patternTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const adjustPatternHeight = () => {
+    const el = patternTextareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
+
+  useEffect(() => {
+    adjustPatternHeight()
+  }, [patternNotes])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -152,11 +164,15 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
                 📝 Known patterns
               </label>
               <textarea
+                ref={patternTextareaRef}
                 value={patternNotes}
-                onChange={(e) => setPatternNotes(e.target.value)}
+                onChange={(e) => {
+                  setPatternNotes(e.target.value)
+                  adjustPatternHeight()
+                }}
                 placeholder="e.g., 30-minute naps are normal, doesn't do well with early bedtime"
-                rows={3}
-                className="w-full resize-none rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+                rows={1}
+                className="min-h-[88px] w-full resize-none overflow-hidden rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
               />
               <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)] leading-tight">
                 The AI coach uses these notes for personalised recommendations
