@@ -13,6 +13,7 @@ import {
 } from '@/lib/sleep-trends'
 import { useSleepEventCRUD } from '@/lib/hooks/use-sleep-event-crud'
 import { EventSheet, type EventSheetData } from './event-sheet'
+import { PageHeader } from './page-header'
 import type { SleepEvent, EventType, Context } from '@/types/database'
 
 interface TrendsViewProps {
@@ -92,26 +93,12 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
 
   return (
     <div className="mx-auto max-w-md pb-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        <button
-          onClick={handleBackClick}
-          disabled={isNavigatingBack}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#EEE] bg-white active:scale-90 transition-transform"
-        >
-          {isNavigatingBack ? (
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />
-          ) : (
-            <span>←</span>
-          )}
-        </button>
-        <div>
-          <div className="text-lg font-extrabold text-[var(--text)]">Sleep Trends</div>
-          <div className="text-xs font-semibold text-[var(--text-muted)]">
-            Last {timeRange} days · {babyName}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Sleep Trends"
+        subtitle={`Last ${timeRange} days · ${babyName}`}
+        onBack={handleBackClick}
+        isNavigatingBack={isNavigatingBack}
+      />
 
       {/* ===== AVERAGE DAY CARD ===== */}
       {activeExpected && expectedStats && (
