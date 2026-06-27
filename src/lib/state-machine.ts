@@ -209,9 +209,11 @@ function parseTimeWindowStartHour(timeWindow: string): number | null {
   const minutes = parseInt(match[2], 10)
   const meridiem = match[3]?.toLowerCase()
 
-  // If no meridiem specified, try to infer from context or assume PM for typical bedtime hours
   if (meridiem === 'pm' && hour !== 12) hour += 12
   if (meridiem === 'am' && hour === 12) hour = 0
+
+  // If no meridiem specified, assume PM for typical bedtime hours (6pm-11pm)
+  if (!meridiem && hour >= 6 && hour <= 11) hour += 12
 
   return hour + minutes / 60
 }
