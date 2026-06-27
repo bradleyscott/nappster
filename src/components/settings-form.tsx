@@ -194,7 +194,7 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
         </div>
 
         {/* ===== FAMILY CARD ===== */}
-        <div className="mb-4 rounded-[var(--radius-lg)] border-[1.5px] border-[var(--lavender-light)] bg-gradient-to-br from-white to-[var(--lavender-bg)] px-5 pb-5 pt-4 shadow-[var(--shadow-sm)]">
+        <div className="mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]">
           {/* Header */}
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-xl">
