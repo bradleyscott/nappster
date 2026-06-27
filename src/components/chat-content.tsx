@@ -168,7 +168,7 @@ export function ChatContent({
   })
 
   // Current sleep state for quick action buttons
-  const currentState = useTodaySleepState(allSleepEvents, timezone)
+  const currentState = useTodaySleepState(allSleepEvents)
 
   // Event dialog handlers
   const closeDialog = useCallback(() => {

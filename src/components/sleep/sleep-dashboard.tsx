@@ -8,6 +8,8 @@ import { TimelineSection } from './timeline-section'
 import { EventSheet, type EventSheetData } from './event-sheet'
 import { ChatDrawer } from './chat-drawer'
 import type { SleepState } from '@/lib/state-machine'
+import { getCountdownContext } from '@/lib/state-machine'
+import { useNow } from '@/lib/hooks/use-now'
 import type { Baby, SleepEvent, EventType, Context } from '@/types/database'
 import type { SleepPlan } from '@/lib/ai/schemas/sleep-plan'
 
@@ -48,11 +50,6 @@ interface SleepDashboardProps {
   /** Called when a chat message is sent */
   onSendMessage: (text: string) => void
   className?: string
-}
-
-function getTimeBadgeForEvent(allEvents: SleepEvent[], eventType: EventType, time: Date): string | undefined {
-  // No time badge needed for async logging
-  return undefined
 }
 
 export function SleepDashboard({
@@ -136,8 +133,11 @@ export function SleepDashboard({
     })
   }, [onCreateEvent])
 
+  // Live `now` so the countdown ring ticks (every 30s).
+  const now = useNow(30_000)
+
   // Derive UI from state
-  const stateConfig = getStateConfig(currentState, baby.name, sleepPlan, allEvents)
+  const stateConfig = getStateConfig(currentState, baby, sleepPlan, allEvents, now)
 
   return (
     <div className={cn('mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2 md:max-w-xl lg:max-w-2xl', className)}>
@@ -245,22 +245,36 @@ function getLastEventTime(events: SleepEvent[], type: EventType): string {
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
-function getDurationSince(events: SleepEvent[], type: EventType): string {
+function getDurationSince(events: SleepEvent[], type: EventType, now: Date = new Date()): string {
   const match = [...events].reverse().find(e => e.event_type === type)
   if (!match) return ''
-  return formatDuration(Date.now() - new Date(match.event_time).getTime())
+  return formatDuration(now.getTime() - new Date(match.event_time).getTime())
 }
 
 function getStateConfig(
   state: SleepState,
-  _babyName: string,
+  baby: Baby,
   sleepPlan: SleepPlan | null,
-  events: SleepEvent[]
+  events: SleepEvent[],
+  now: Date
 ): StateConfig {
+  // Single source of truth for the live countdown arc + expected label block.
+  const ctx = getCountdownContext(state, events, sleepPlan, baby.birth_date, now)
+  const countdown = {
+    progress: ctx.progress,
+    timeRemaining: ctx.timeRemaining,
+    timeLabel: ctx.timeLabel,
+  }
+  const expectedLabel = {
+    icon: ctx.expectedIcon,
+    text: ctx.expectedText,
+    time: ctx.expectedTime,
+  }
+
   switch (state) {
     case 'overnight_sleep': {
       const bedtimeTime = getLastEventTime(events, 'bedtime')
-      const sleepingFor = getDurationSince(events, 'bedtime')
+      const sleepingFor = getDurationSince(events, 'bedtime', now)
       const bedtimeEvent = [...events].reverse().find(e => e.event_type === 'bedtime')
       const nightWakeCount = bedtimeEvent
         ? events.filter(
@@ -278,12 +292,8 @@ function getStateConfig(
           { icon: '🌙', label: `Bedtime ${bedtimeTime}`, color: 'lavender', eventId: bedtimeEvent?.id },
           { dot: true, label: `Sleeping for ${sleepingFor}`, color: 'lavender' },
         ],
-        countdown: {
-          progress: 0.55,
-          timeRemaining: '6h 12m',
-          timeLabel: 'until wake',
-        },
-        expectedLabel: { icon: '🌅', text: 'Expected wake', time: '6:48am' },
+        countdown,
+        expectedLabel,
         buttons: [
           { icon: '☀️', label: 'Log Wake Up', eventType: 'wake', accent: 'purple' as const },
           { icon: '👀', label: 'Night Wake', subtitle: nightWakeCount > 0 ? `${nightWakeCount} already` : undefined, eventType: 'night_wake', variant: 'secondary' as const },
@@ -292,10 +302,13 @@ function getStateConfig(
     }
 
     case 'daytime_awake': {
-      const bedtimeNext = sleepPlan ? true : false
-      if (bedtimeNext) {
+      // Branch off the schedule: bedtime is "next" only when every nap on the
+      // plan is completed or skipped. Otherwise we're counting down to the
+      // next nap (a baby waking in the morning is almost certainly expecting a
+      // nap later, not bedtime).
+      if (ctx.mode === 'bedtime') {
         const napEndTime = getLastEventTime(events, 'nap_end') || getLastEventTime(events, 'wake')
-        const awakeFor = getDurationSince(events, 'nap_end') || getDurationSince(events, 'wake')
+        const awakeFor = getDurationSince(events, 'nap_end', now) || getDurationSince(events, 'wake', now)
         const napEndEvent = [...events].reverse().find(e => e.event_type === 'nap_end')
         const wakeEvent = [...events].reverse().find(e => e.event_type === 'wake')
         return {
@@ -307,45 +320,44 @@ function getStateConfig(
             { icon: '🌤️', label: napEndTime ? `Nap ended ${napEndTime}` : 'Awake', color: 'peach', eventId: napEndEvent?.id ?? wakeEvent?.id },
             { dot: true, label: `Awake for ${awakeFor}`, color: 'peach' },
           ],
-          countdown: {
-            progress: 0.7,
-            timeRemaining: '1h 20m',
-            timeLabel: 'until bedtime',
-          },
-          expectedLabel: { icon: '🌙', text: 'Target bedtime', time: '7:00pm' },
+          countdown,
+          expectedLabel,
           buttons: [
-            { icon: '🌙', label: 'Start Bedtime!', subtitle: 'Nighttime sleep', eventType: 'bedtime', accent: 'sunset' as const },
+            { icon: '🌙', label: 'Start Bedtime', subtitle: 'Nighttime sleep', eventType: 'bedtime', accent: 'sunset' as const },
           ],
         }
       }
 
+      // Default (nap next): use last wake as the anchor event for the pills.
       const wakeTime = getLastEventTime(events, 'wake')
-      const awakeFor = getDurationSince(events, 'wake')
-      const latestWake = [...events].reverse().find(e => e.event_type === 'wake')
+      const napEndEvent = [...events].reverse().find(e => e.event_type === 'nap_end')
+      const wakeEvent = [...events].reverse().find(e => e.event_type === 'wake')
+      const pillAnchor = wakeEvent ?? napEndEvent
+      const pillAnchorType = wakeEvent ? 'wake' : 'nap_end'
+      const pillLabel = wakeTime
+        ? `Woke at ${wakeTime}`
+        : pillAnchorType === 'nap_end' ? `Nap ended ${getLastEventTime(events, 'nap_end')}` : 'Awake'
+      const awakeFor = getDurationSince(events, pillAnchorType, now)
       return {
         accent: 'peach',
         icon: '☀️',
         title: 'Awake & Playing',
         elevated: false,
         pills: [
-          { icon: '🌅', label: wakeTime ? `Woke at ${wakeTime}` : 'Awake', color: 'peach', eventId: latestWake?.id },
+          { icon: '🌅', label: pillLabel, color: 'peach', eventId: pillAnchor?.id },
           { dot: true, label: `Awake for ${awakeFor}`, color: 'peach' },
         ],
-        countdown: {
-          progress: 0.4,
-          timeRemaining: '2h 10m',
-          timeLabel: 'until next nap',
-        },
-        expectedLabel: { icon: '😴', text: 'Next nap', time: '9:00am' },
+        countdown,
+        expectedLabel,
         buttons: [
-          { icon: '😴', label: 'Start Nap', subtitle: 'First nap of the day', eventType: 'nap_start', accent: 'green' as const },
+          { icon: '😴', label: 'Log Nap', subtitle: 'Start a nap', eventType: 'nap_start', accent: 'green' as const },
         ],
       }
     }
 
     case 'daytime_napping': {
       const napStartTime = getLastEventTime(events, 'nap_start')
-      const nappingFor = getDurationSince(events, 'nap_start')
+      const nappingFor = getDurationSince(events, 'nap_start', now)
       const napStartEvent = [...events].reverse().find(e => e.event_type === 'nap_start')
       return {
         accent: 'mint',
@@ -353,50 +365,36 @@ function getStateConfig(
         title: 'Taking a Nap',
         elevated: false,
         pills: [
-          { icon: '😴', label: napStartTime ? `Started ${napStartTime}` : 'Napping', color: 'mint', eventId: napStartEvent?.id },
+          { icon: '😴', label: napStartTime ? `Nap started ${napStartTime}` : 'Napping', color: 'mint', eventId: napStartEvent?.id },
           { dot: true, label: `Napping for ${nappingFor}`, color: 'mint' },
         ],
-        countdown: {
-          progress: 0.3,
-          timeRemaining: '35m',
-          timeLabel: 'remaining',
-        },
-        expectedLabel: { icon: '🌤️', text: 'Expected end', time: '10:00am' },
+        countdown,
+        expectedLabel,
         buttons: [
-          { icon: '🌤️', label: 'Wake Up', subtitle: 'End this nap', eventType: 'nap_end', accent: 'green' as const },
+          { icon: '🌤️', label: 'End Nap', subtitle: 'Wake baby up', eventType: 'nap_end', accent: 'green' as const },
         ],
       }
     }
 
-    case 'awaiting_morning_wake': {
-      return {
-        accent: 'lavender',
-        icon: '🌙',
-        title: 'Good Morning!',
-        elevated: false,
-        pills: [],
-        countdown: {
-          progress: 0.85,
-          timeRemaining: '6:48am',
-          timeLabel: 'time to wake',
-        },
-        expectedLabel: { icon: '☀️', text: 'Log wake-up to start the day', time: '' },
-        buttons: [
-          { icon: '☀️', label: 'Morning Wake', subtitle: 'Start the day', eventType: 'wake', accent: 'purple' as const },
-        ],
-      }
-    }
-
-    default:
+    case 'awaiting_morning_wake':
+    default: {
+      // Zero-events / freshly-onboarded state. Per spec there is no "Good
+      // Morning" steady-state card — instead we welcome the user and prompt
+      // them to log the baby's current overnight sleep (the most common first
+      // event after setup). Logging `bedtime` transitions straight to
+      // overnight_sleep.
       return {
         accent: 'lavender',
         icon: '👋',
-        title: 'Welcome',
+        title: `Welcome, ${baby.name}`,
         elevated: false,
         pills: [],
-        countdown: { progress: 0, timeRemaining: '--', timeLabel: 'start' },
-        expectedLabel: { icon: '✨', text: 'Log your first event to begin', time: '' },
-        buttons: [],
+        countdown,
+        expectedLabel,
+        buttons: [
+          { icon: '🌙', label: 'Log Bedtime', subtitle: 'Start overnight sleep', eventType: 'bedtime', accent: 'purple' as const },
+        ],
       }
+    }
   }
 }

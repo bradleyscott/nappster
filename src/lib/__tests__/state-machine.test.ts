@@ -6,6 +6,7 @@ import {
   getQuickEntryButtons,
   shouldShowBedtime,
   getSuggestedQuestions,
+  getCountdownContext,
   SLEEP_STATES,
   type SleepState,
 } from '../state-machine'
@@ -81,7 +82,8 @@ describe('computeCurrentState', () => {
 })
 
 describe('isValidEvent', () => {
-  it('allows wake from awaiting_morning_wake', () => {
+  it('allows bedtime and wake from awaiting_morning_wake', () => {
+    expect(isValidEvent('awaiting_morning_wake', 'bedtime')).toBe(true)
     expect(isValidEvent('awaiting_morning_wake', 'wake')).toBe(true)
     expect(isValidEvent('awaiting_morning_wake', 'nap_start')).toBe(false)
   })
@@ -114,6 +116,9 @@ describe('getNextState', () => {
   })
 
   it('transitions correctly for valid events', () => {
+    // From the freshly-onboarded state, logging a bedtime jumps straight into
+    // overnight_sleep (the Welcome card's primary action).
+    expect(getNextState('awaiting_morning_wake', 'bedtime')).toBe('overnight_sleep')
     expect(getNextState('awaiting_morning_wake', 'wake')).toBe('daytime_awake')
     expect(getNextState('daytime_awake', 'nap_start')).toBe('daytime_napping')
     expect(getNextState('daytime_napping', 'nap_end')).toBe('daytime_awake')
@@ -127,10 +132,12 @@ describe('getNextState', () => {
 })
 
 describe('getQuickEntryButtons', () => {
-  it('returns only morning wake from awaiting_morning_wake', () => {
+  it('returns a bedtime quick action from awaiting_morning_wake (no Good Morning)', () => {
+    // The empty-events startup state prompts the user to log the baby's current
+    // overnight sleep — there is intentionally no "Morning Wake" steady state.
     const buttons = getQuickEntryButtons('awaiting_morning_wake')
     expect(buttons).toHaveLength(1)
-    expect(buttons[0].eventType).toBe('wake')
+    expect(buttons[0].eventType).toBe('bedtime')
   })
 
   it('returns nap_start by default from daytime_awake', () => {
@@ -222,7 +229,7 @@ describe('shouldShowBedtime', () => {
 describe('getSuggestedQuestions', () => {
   it('returns state-specific questions', () => {
     expect(getSuggestedQuestions('awaiting_morning_wake', 'Luna')).toEqual([
-      'What time should Luna wake up?',
+      'What time should Luna go to bed?',
     ])
     expect(getSuggestedQuestions('daytime_awake', 'Luna')).toEqual([
       "When is Luna's next nap?",
@@ -246,5 +253,130 @@ describe('SLEEP_STATES', () => {
       'daytime_awake',
       'daytime_napping',
     ])
+  })
+})
+
+describe('getCountdownContext', () => {
+  // A minimal plan shape compatible with CountdownPlanInput.
+  const makePlan = (
+    overrides: Partial<{
+      targetBedtime: string
+      schedule: ScheduleItem[]
+    }> = {}) => ({
+      targetBedtime: overrides.targetBedtime ?? '7:00 - 7:30pm',
+      schedule: overrides.schedule ?? [],
+  })
+
+  const nap = (status: ScheduleItem['status'], timeWindow = '9:30 - 10:00am'): ScheduleItem => ({
+    type: 'nap',
+    label: 'Nap 1',
+    timeWindow,
+    status,
+    notes: '',
+  })
+
+  it('returns the welcome fallback for the empty-events state', () => {
+    const ctx = getCountdownContext('awaiting_morning_wake', [], null, '2023-06-01', new Date('2024-01-15T12:00:00Z'))
+    expect(ctx.mode).toBe('welcome')
+    expect(ctx.progress).toBe(0)
+  })
+
+  it('keeps overnight_sleep across midnight (bedtime logged before midnight)', () => {
+    // Bedtime at 22:00 yesterday; we look at the state at 01:00 today (after
+    // midnight). The state must still be overnight_sleep and the countdown must
+    // read "until wake", NOT flip to a Good-Morning state.
+    const events = [makeEvent({ event_type: 'bedtime', event_time: '2024-01-14T22:00:00Z' })]
+    const state = computeCurrentState(events)
+    expect(state).toBe('overnight_sleep')
+
+    const ctx = getCountdownContext(state, events, null, '2023-06-01', new Date('2024-01-15T01:00:00Z'))
+    expect(ctx.mode).toBe('overnight')
+    expect(ctx.timeLabel).toBe('until wake')
+    expect(ctx.progress).toBeGreaterThan(0)
+    expect(ctx.progress).toBeLessThan(1)
+    expect(ctx.targetTime).not.toBeNull()
+    expect(ctx.startedAt).not.toBeNull()
+    // Remaining time should be a positive countdown string.
+    expect(ctx.timeRemaining.length).toBeGreaterThan(0)
+  })
+
+  it('counts down to the next nap when the schedule still has upcoming naps', () => {
+    // Morning wake at 06:45; now 07:00. Plan has one upcoming nap at 9:30–10am.
+    const events = [makeEvent({ event_type: 'wake', event_time: '2024-01-15T06:45:00Z' })]
+    const state = computeCurrentState(events)
+    expect(state).toBe('daytime_awake')
+
+    const plan = makePlan({ schedule: [nap('upcoming', '9:30 - 10:00am')] })
+    const ctx = getCountdownContext(state, events, plan, '2023-06-01', new Date('2024-01-15T07:00:00Z'))
+    expect(ctx.mode).toBe('nap')
+    expect(ctx.timeLabel).toBe('until next nap')
+    expect(ctx.expectedText).toBe('Next nap')
+    expect(ctx.progress).toBeGreaterThanOrEqual(0)
+    expect(ctx.progress).toBeLessThan(1)
+    expect(ctx.targetTime).not.toBeNull()
+  })
+
+  it('switches to bedtime mode only when all scheduled naps are completed/skipped', () => {
+    const events = [makeEvent({ event_type: 'wake', event_time: '2024-01-15T06:45:00Z' })]
+    const state = computeCurrentState(events)
+    expect(state).toBe('daytime_awake')
+
+    const plan = makePlan({
+      schedule: [
+        nap('completed', '9:30 - 10:00am'),
+        nap('completed', '12:30 - 1:30pm'),
+        { type: 'bedtime', label: 'Bedtime', timeWindow: '7:00 - 7:30pm', status: 'upcoming', notes: '' },
+      ],
+    })
+    const ctx = getCountdownContext(state, events, plan, '2023-06-01', new Date('2024-01-15T17:00:00Z'))
+    expect(ctx.mode).toBe('bedtime')
+    expect(ctx.timeLabel).toBe('until bedtime')
+    expect(ctx.expectedText).toBe('Target bedtime')
+    expect(ctx.progress).toBeGreaterThanOrEqual(0)
+    expect(ctx.progress).toBeLessThanOrEqual(1)
+  })
+
+  it('treats daytime_awake as nap-next by default when there is no plan', () => {
+    // No plan → after a morning wake we must count down to the next nap, NOT
+    // jump straight to bedtime (a baby waking is almost always expecting a nap).
+    const events = [makeEvent({ event_type: 'wake', event_time: '2024-01-15T06:45:00Z' })]
+    const state = computeCurrentState(events)
+    const ctx = getCountdownContext(state, events, null, '2023-06-01', new Date('2024-01-15T07:00:00Z'))
+    expect(ctx.mode).toBe('nap')
+    expect(ctx.timeLabel).toBe('until next nap')
+  })
+
+  it('counts down the current nap toward its expected end', () => {
+    // Uses the age-based default nap duration so the target does not depend on
+    // the test runner's timezone (nap windows come from the user's tz in prod).
+    const events = [makeEvent({ event_type: 'nap_start', event_time: '2024-01-15T09:00:00Z' })]
+    const state = computeCurrentState(events)
+    expect(state).toBe('daytime_napping')
+
+    const ctx = getCountdownContext(state, events, null, '2023-06-01', new Date('2024-01-15T09:30:00Z'))
+    expect(ctx.mode).toBe('nap_end')
+    expect(ctx.timeLabel).toBe('remaining')
+    expect(ctx.expectedText).toBe('Expected end')
+    // 30m elapsed of a default nap duration → strictly inside (0, 1).
+    expect(ctx.progress).toBeGreaterThan(0)
+    expect(ctx.progress).toBeLessThan(1)
+  })
+
+  it('parses an in-progress nap window target from the plan (label/mode only)', () => {
+    // The schedule-derived branch is exercised structurally; the absolute target
+    // time depends on the plan's tz framing so we only assert the mode/labels.
+    const events = [makeEvent({ event_type: 'nap_start', event_time: '2024-01-15T09:00:00Z' })]
+    const plan = makePlan({ schedule: [nap('in_progress', '9:30 - 10:30am')] })
+    const ctx = getCountdownContext('daytime_napping', events, plan, '2023-06-01', new Date('2024-01-15T09:45:00Z'))
+    expect(ctx.mode).toBe('nap_end')
+    expect(ctx.timeLabel).toBe('remaining')
+  })
+
+  it('reports progress = 1 (full ring) exactly when the target is reached', () => {
+    // Bedtime at 22:00; default overnight target = +11h = 09:00 next day.
+    const events = [makeEvent({ event_type: 'bedtime', event_time: '2024-01-14T22:00:00Z' })]
+    const ctx = getCountdownContext('overnight_sleep', events, null, '2023-06-01', new Date('2024-01-15T09:00:00Z'))
+    expect(ctx.progress).toBe(1)
+    expect(ctx.timeRemaining).toBe('0m')
   })
 })
