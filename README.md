@@ -1,6 +1,10 @@
 # Nappster
 
+![CI](https://github.com/bradley/nappster/actions/workflows/ci.yml/badge.svg)
+
 A Progressive Web App for tracking baby sleep with AI-powered schedule recommendations. Built to replace ad-hoc ChatGPT conversations with a purpose-built experience that multiple caregivers can share.
+
+> Replace `bradley/nappster` in the badge URL with your actual GitHub owner/repo name.
 
 ## Screenshots
 
@@ -107,6 +111,7 @@ src/
 │
 ├── lib/
 │   ├── ai/tools/                 # AI tool definitions
+│   ├── services/                 # Typed data-access services
 │   ├── supabase/                 # Database client factories
 │   ├── mock/                     # In-memory mock for dev
 │   ├── hooks/                    # Custom React hooks
@@ -136,10 +141,12 @@ The AI assistant can:
 ## Scripts
 
 ```bash
-npm run dev      # Start development server
-npm run build    # Production build
-npm run start    # Start production server
-npm run lint     # Run ESLint
+npm run dev          # Start development server
+npm run build        # Production build
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run test         # Run Vitest suite
+npm run test:coverage # Run tests with coverage report
 ```
 
 ## Deployment

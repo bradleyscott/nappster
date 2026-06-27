@@ -6,6 +6,8 @@ import { SleepPlanRow } from '@/types/database'
 import { CURRENT_STATE_VALUES } from '@/types/database'
 import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
 import { requireBabyAccess, authErrorResponse, apiError } from '@/lib/api'
+import { getActiveSleepPlan } from '@/lib/services/sleep-plans'
+import { getTodaySleepEvents } from '@/lib/services/sleep-events'
 
 // Schemas for validating JSON fields from database
 const nextActionSchema = sleepPlanSchema.shape.nextAction
@@ -57,17 +59,9 @@ export async function GET(
     const today = new Date().toISOString().split('T')[0]
 
     // Fetch the active plan for this baby (most recent for today)
-    const { data: planRow, error: planError } = await supabase
-      .from('sleep_plans')
-      .select('*')
-      .eq('baby_id', babyId)
-      .eq('is_active', true)
-      .eq('plan_date', today)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
+    const { data: planRow, error: planError } = await getActiveSleepPlan(supabase, babyId, today)
 
-    if (planError && planError.code !== 'PGRST116') {
+    if (planError && (planError as { code?: string }).code !== 'PGRST116') {
       // PGRST116 = no rows returned, which is fine
       console.error('Error fetching sleep plan:', planError)
       return NextResponse.json(
@@ -77,12 +71,7 @@ export async function GET(
     }
 
     // Compute current events hash for staleness check
-    const { data: events, error: eventsError } = await supabase
-      .from('sleep_events')
-      .select('id, event_time, event_type')
-      .eq('baby_id', babyId)
-      .gte('event_time', `${today}T00:00:00`)
-      .order('event_time', { ascending: true })
+    const { data: events, error: eventsError } = await getTodaySleepEvents(supabase, babyId, 'UTC')
 
     if (eventsError) {
       console.error('Error fetching events for hash:', eventsError)

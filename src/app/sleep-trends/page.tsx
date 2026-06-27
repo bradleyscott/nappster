@@ -5,6 +5,9 @@ import Image from 'next/image'
 import { BackButton } from '@/components/back-button'
 import { getStartOfDaysAgoForTimezone } from '@/lib/timezone'
 import { SleepTrendsChart } from '@/components/sleep-trends-chart'
+import { getFamilyMembersForUser } from '@/lib/services/family-members'
+import { getBabyById } from '@/lib/services/babies'
+import { getSleepEventsSince } from '@/lib/services/sleep-events'
 
 export default async function SleepTrendsPage() {
   const supabase = await createClient()
@@ -16,22 +19,15 @@ export default async function SleepTrendsPage() {
     redirect('/auth/login')
   }
 
-  const { data: familyMembers } = await supabase
-    .from('family_members')
-    .select('baby_id')
-    .eq('user_id', user.id)
+  const { data: familyMembers } = await getFamilyMembersForUser(supabase, user.id)
 
   if (!familyMembers || familyMembers.length === 0) {
     redirect('/onboarding')
   }
 
-  const babyId = (familyMembers[0] as { baby_id: string }).baby_id
+  const babyId = familyMembers[0].baby_id
 
-  const { data: baby } = await supabase
-    .from('babies')
-    .select('*')
-    .eq('id', babyId)
-    .single()
+  const { data: baby } = await getBabyById(supabase, babyId)
 
   if (!baby) {
     redirect('/onboarding')
@@ -43,12 +39,7 @@ export default async function SleepTrendsPage() {
   // Fetch 16 days of events (14 days + buffer for overnight sessions spanning day boundaries)
   const startDate = getStartOfDaysAgoForTimezone(timezone, 16)
 
-  const { data: sleepEvents } = await supabase
-    .from('sleep_events')
-    .select('*')
-    .eq('baby_id', babyId)
-    .gte('event_time', startDate)
-    .order('event_time', { ascending: true })
+  const { data: sleepEvents } = await getSleepEventsSince(supabase, babyId, startDate)
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-background">

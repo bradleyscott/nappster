@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Baby, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { createBaby } from '@/lib/services/babies'
+import { createFamilyMember } from '@/lib/services/family-members'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,15 +51,13 @@ export default function OnboardingPage() {
 
     const babyId = crypto.randomUUID()
 
-    const { error: babyError } = await supabase
-      .from('babies')
-      .insert({
-        id: babyId,
-        name,
-        birth_date: birthDate,
-        sleep_training_method: sleepMethod || null,
-        pattern_notes: patternNotes || null,
-      })
+    const { error: babyError } = await createBaby(supabase, {
+      id: babyId,
+      name,
+      birth_date: birthDate,
+      sleep_training_method: sleepMethod || null,
+      pattern_notes: patternNotes || null,
+    })
 
     if (babyError) {
       setError(babyError.message)
@@ -65,13 +65,11 @@ export default function OnboardingPage() {
       return
     }
 
-    const { error: linkError } = await supabase
-      .from('family_members')
-      .insert({
-        user_id: user.id,
-        baby_id: babyId,
-        role: 'parent',
-      })
+    const { error: linkError } = await createFamilyMember(supabase, {
+      user_id: user.id,
+      baby_id: babyId,
+      role: 'parent',
+    })
 
     if (linkError) {
       setError(linkError.message)

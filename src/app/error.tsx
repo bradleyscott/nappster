@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { reportError } from '@/lib/error-reporting'
 
 export default function Error({
   error,
@@ -11,7 +12,7 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('App error boundary caught:', error)
+    reportError(error, { source: 'app-error-boundary' })
   }, [error])
 
   return (

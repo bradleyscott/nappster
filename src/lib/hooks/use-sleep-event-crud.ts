@@ -3,6 +3,11 @@
 import { useState, useCallback, useRef } from 'react'
 import { SleepEvent, EventType, Context } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
+import {
+  createSleepEvent,
+  updateSleepEvent,
+  deleteSleepEvent,
+} from '@/lib/services/sleep-events'
 
 export interface CreateEventData {
   event_type: EventType
@@ -155,20 +160,16 @@ export function useSleepEventCRUD({
 
   // Create a new sleep event
   const createEvent = useCallback(async (data: CreateEventData): Promise<SleepEvent | null> => {
-    const { data: newEvent, error } = await supabase
-      .from('sleep_events')
-      .insert({
-        baby_id: babyId,
-        event_type: data.event_type,
-        event_time: data.event_time,
-        end_time: data.end_time ?? null,
-        context: data.context,
-        notes: data.notes,
-      })
-      .select()
-      .single()
+    const { data: newEvent, error } = await createSleepEvent(supabase, {
+      baby_id: babyId,
+      event_type: data.event_type,
+      event_time: data.event_time,
+      end_time: data.end_time ?? null,
+      context: data.context,
+      notes: data.notes,
+    })
 
-    if (error) {
+    if (error || !newEvent) {
       console.error('Error creating event:', error)
       return null
     }
@@ -185,20 +186,15 @@ export function useSleepEventCRUD({
   const saveEvent = useCallback(async (data: SaveEventData): Promise<boolean> => {
     if (data.id) {
       // Update existing event
-      const { data: updatedEvent, error } = await supabase
-        .from('sleep_events')
-        .update({
-          event_type: data.event_type,
-          event_time: data.event_time,
-          end_time: data.end_time,
-          context: data.context,
-          notes: data.notes,
-        })
-        .eq('id', data.id)
-        .select()
-        .single()
+      const { data: updatedEvent, error } = await updateSleepEvent(supabase, data.id, {
+        event_type: data.event_type,
+        event_time: data.event_time,
+        end_time: data.end_time,
+        context: data.context,
+        notes: data.notes,
+      })
 
-      if (error) {
+      if (error || !updatedEvent) {
         console.error('Error updating event:', error)
         return false
       }
@@ -222,10 +218,7 @@ export function useSleepEventCRUD({
 
   // Delete an event
   const deleteEvent = useCallback(async (event: SleepEvent): Promise<boolean> => {
-    const { error } = await supabase
-      .from('sleep_events')
-      .delete()
-      .eq('id', event.id)
+    const { error } = await deleteSleepEvent(supabase, event.id)
 
     if (error) {
       console.error('Error deleting event:', error)
@@ -247,18 +240,13 @@ export function useSleepEventCRUD({
   // Save a session (paired events like nap_start/nap_end)
   const saveSession = useCallback(async (data: SaveSessionData): Promise<boolean> => {
     // Update start event
-    const { data: startData, error: startError } = await supabase
-      .from('sleep_events')
-      .update({
-        event_time: data.startEvent.event_time,
-        context: data.startEvent.context,
-        notes: data.startEvent.notes,
-      })
-      .eq('id', data.startEvent.id)
-      .select()
-      .single()
+    const { data: startData, error: startError } = await updateSleepEvent(supabase, data.startEvent.id, {
+      event_time: data.startEvent.event_time,
+      context: data.startEvent.context,
+      notes: data.startEvent.notes,
+    })
 
-    if (startError) {
+    if (startError || !startData) {
       console.error('Error updating start event:', startError)
       return false
     }
@@ -268,30 +256,22 @@ export function useSleepEventCRUD({
     if (data.endEvent) {
       if (data.endEvent.id) {
         // Update existing end event
-        const { data: endResult, error: endError } = await supabase
-          .from('sleep_events')
-          .update({
-            event_time: data.endEvent.event_time,
-            context: data.endEvent.context,
-            notes: data.endEvent.notes,
-          })
-          .eq('id', data.endEvent.id)
-          .select()
-          .single()
+        const { data: endResult, error: endError } = await updateSleepEvent(supabase, data.endEvent.id, {
+          event_time: data.endEvent.event_time,
+          context: data.endEvent.context,
+          notes: data.endEvent.notes,
+        })
 
         if (endError) {
           console.error('Error updating end event:', endError)
           // Revert start event to maintain consistency
           const originalStart = localEvents.find(e => e.id === data.startEvent.id)
           if (originalStart) {
-            await supabase
-              .from('sleep_events')
-              .update({
-                event_time: originalStart.event_time,
-                context: originalStart.context,
-                notes: originalStart.notes,
-              })
-              .eq('id', data.startEvent.id)
+            await updateSleepEvent(supabase, data.startEvent.id, {
+              event_time: originalStart.event_time,
+              context: originalStart.context,
+              notes: originalStart.notes,
+            })
           }
           return false
         }
@@ -299,37 +279,30 @@ export function useSleepEventCRUD({
         endData = endResult
       } else {
         // Create new end event
-        const { data: endResult, error: endError } = await supabase
-          .from('sleep_events')
-          .insert({
-            baby_id: babyId,
-            event_type: data.endEvent.event_type!,
-            event_time: data.endEvent.event_time,
-            context: data.endEvent.context,
-            notes: data.endEvent.notes,
-          })
-          .select()
-          .single()
+        const { data: endResult, error: endError } = await createSleepEvent(supabase, {
+          baby_id: babyId,
+          event_type: data.endEvent.event_type!,
+          event_time: data.endEvent.event_time,
+          context: data.endEvent.context,
+          notes: data.endEvent.notes,
+        })
 
         if (endError) {
           console.error('Error creating end event:', endError)
           // Revert start event to maintain consistency
           const originalStart = localEvents.find(e => e.id === data.startEvent.id)
           if (originalStart) {
-            await supabase
-              .from('sleep_events')
-              .update({
-                event_time: originalStart.event_time,
-                context: originalStart.context,
-                notes: originalStart.notes,
-              })
-              .eq('id', data.startEvent.id)
+            await updateSleepEvent(supabase, data.startEvent.id, {
+              event_time: originalStart.event_time,
+              context: originalStart.context,
+              notes: originalStart.notes,
+            })
           }
           return false
         }
 
         // Track locally created event to avoid duplicate from realtime
-        locallyCreatedEventIds.current.add(endResult.id)
+        locallyCreatedEventIds.current.add(endResult!.id)
         endData = endResult
       }
     }
@@ -350,7 +323,7 @@ export function useSleepEventCRUD({
 
     onEventChange?.()
     return true
-  }, [supabase, onEventChange, localEvents])
+  }, [supabase, onEventChange, localEvents, babyId])
 
   // Delete a session (both start and end events)
   const deleteSession = useCallback(async (
@@ -362,10 +335,7 @@ export function useSleepEventCRUD({
     const startEvent = allEvents.find(e => e.id === startId)
     const endEvent = endId ? allEvents.find(e => e.id === endId) : null
 
-    const { error: startError } = await supabase
-      .from('sleep_events')
-      .delete()
-      .eq('id', startId)
+    const { error: startError } = await deleteSleepEvent(supabase, startId)
 
     if (startError) {
       console.error('Error deleting start event:', startError)
@@ -378,10 +348,7 @@ export function useSleepEventCRUD({
     }
 
     if (endId) {
-      const { error: endError } = await supabase
-        .from('sleep_events')
-        .delete()
-        .eq('id', endId)
+      const { error: endError } = await deleteSleepEvent(supabase, endId)
 
       if (endError) {
         console.error('Error deleting end event:', endError)

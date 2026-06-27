@@ -15,53 +15,70 @@ export function createMockSupabaseClient() {
   const fromCalls: string[] = []
   const eqCalls: Array<{ column: string; value: unknown }> = []
   const updateCalls: unknown[] = []
+  const rpcCalls: string[] = []
 
-  // Build the chainable query builder
+  const resolveSelect = () => Promise.resolve(mockSelectResponse)
+  const resolveInsert = () => Promise.resolve(mockInsertResponse)
+
+  const createThenable = (resolve: () => Promise<{ data: unknown; error: unknown }>) => {
+    const thenable = {
+      then: (onFulfilled?: (value: { data: unknown; error: unknown }) => unknown) =>
+        resolve().then(onFulfilled),
+    } as unknown as Promise<{ data: unknown; error: unknown }>
+    return Object.assign(thenable, chainMethods)
+  }
+
+  const chainMethods = {
+    eq: vi.fn((column: string, value: unknown) => {
+      eqCalls.push({ column, value })
+      return chainable
+    }),
+    gte: vi.fn(() => chainable),
+    lt: vi.fn(() => chainable),
+    is: vi.fn(() => chainable),
+    order: vi.fn(() => chainable),
+    limit: vi.fn((count: number) => {
+      void count
+      return chainable
+    }),
+    single: vi.fn(() => resolveSelect()),
+  }
+
+  const chainable = createThenable(resolveSelect)
+
   const createQueryBuilder = () => {
     const builder = {
       insert: vi.fn((data: unknown) => {
         insertCalls.push(data)
-        return {
+        const insertChain = {
           select: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve(mockInsertResponse)),
+            single: vi.fn(() => resolveInsert()),
           })),
+          then: (onFulfilled?: (value: { data: unknown; error: unknown }) => unknown) =>
+            resolveInsert().then(onFulfilled),
         }
+        return insertChain
       }),
       select: vi.fn((columns?: string) => {
         if (columns) selectCalls.push(columns)
-        return {
-          eq: vi.fn((column: string, value: unknown) => {
-            eqCalls.push({ column, value })
-            return {
-              order: vi.fn(() => ({
-                data: mockSelectResponse.data,
-                error: mockSelectResponse.error,
-                then: (resolve: (val: unknown) => void) => resolve(mockSelectResponse),
-              })),
-              single: vi.fn(() => Promise.resolve(mockSelectResponse)),
-              gte: vi.fn(() => ({
-                lt: vi.fn(() => ({
-                  order: vi.fn(() => Promise.resolve(mockSelectResponse)),
-                })),
-                order: vi.fn(() => Promise.resolve(mockSelectResponse)),
-              })),
-              limit: vi.fn(() => Promise.resolve(mockSelectResponse)),
-            }
-          }),
-          single: vi.fn(() => Promise.resolve(mockSelectResponse)),
-          order: vi.fn(() => ({
-            limit: vi.fn(() => Promise.resolve(mockSelectResponse)),
-          })),
-        }
+        return chainable
       }),
       update: vi.fn((data: unknown) => {
         updateCalls.push(data)
         return {
-          eq: vi.fn(() => ({
-            select: vi.fn(() => ({
-              single: vi.fn(() => Promise.resolve(mockInsertResponse)),
-            })),
-          })),
+          eq: vi.fn(() => {
+            const updateEqChain = {
+              eq: vi.fn(() => updateEqChain),
+              select: vi.fn(() => ({
+                single: vi.fn(() => resolveInsert()),
+              })),
+              then: (onFulfilled?: (value: { data: unknown; error: unknown }) => unknown) =>
+                resolveInsert().then(onFulfilled),
+            }
+            return updateEqChain
+          }),
+          then: (onFulfilled?: (value: { data: unknown; error: unknown }) => unknown) =>
+            resolveInsert().then(onFulfilled),
         }
       }),
       delete: vi.fn(() => ({
@@ -72,6 +89,16 @@ export function createMockSupabaseClient() {
   }
 
   const client = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    rpc: vi.fn((fnName: string, _params?: unknown) => {
+      rpcCalls.push(fnName)
+      return resolveSelect()
+    }),
+    auth: {
+      getUser: vi.fn(() =>
+        Promise.resolve({ data: { user: { id: 'mock-user-123' } }, error: null })
+      ),
+    },
     from: vi.fn((table: string) => {
       fromCalls.push(table)
       return createQueryBuilder()
@@ -84,6 +111,9 @@ export function createMockSupabaseClient() {
     _setSelectResponse: (response: { data: unknown; error: unknown }) => {
       mockSelectResponse = response
     },
+    _setRpcResponse: (response: { data: unknown; error: unknown }) => {
+      mockSelectResponse = response
+    },
 
     // Test helpers to inspect calls
     _getInsertCalls: () => insertCalls,
@@ -91,6 +121,7 @@ export function createMockSupabaseClient() {
     _getFromCalls: () => fromCalls,
     _getEqCalls: () => eqCalls,
     _getUpdateCalls: () => updateCalls,
+    _getRpcCalls: () => rpcCalls,
 
     // Reset all mocks
     _reset: () => {
@@ -99,6 +130,7 @@ export function createMockSupabaseClient() {
       fromCalls.length = 0
       eqCalls.length = 0
       updateCalls.length = 0
+      rpcCalls.length = 0
       mockInsertResponse = { data: null, error: null }
       mockSelectResponse = { data: [], error: null }
     },

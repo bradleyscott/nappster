@@ -1,7 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import type { ToolExecutionOptions } from 'ai'
 import { createCreateSleepEventTool } from '../create-event'
 import { createMockSupabaseClient, MockSupabaseClient } from '@/lib/__tests__/mocks/supabase'
 import { ToolContext } from '../types'
+
+async function executeTool<TInput, TOutput>(
+  tool: { execute?: (input: TInput, options: ToolExecutionOptions) => AsyncIterable<TOutput> | PromiseLike<TOutput> | TOutput },
+  input: TInput
+): Promise<TOutput> {
+  if (!tool.execute) throw new Error('Tool execute is undefined')
+  const options: ToolExecutionOptions = { toolCallId: 'test-call-id', messages: [] }
+  const result = await tool.execute(input, options)
+  return result as TOutput
+}
 
 describe('createCreateSleepEventTool', () => {
   let mockSupabase: MockSupabaseClient
@@ -28,7 +39,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    await tool.execute({
+    await executeTool(tool, {
       event_type: 'wake',
       event_time: '2024-01-15T12:00:00Z',
     })
@@ -57,7 +68,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    await tool.execute({
+    await executeTool(tool, {
       event_type: 'night_wake',
       event_time: '2024-01-15T03:00:00Z',
       end_time: '2024-01-15T03:45:00Z',
@@ -83,7 +94,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    await tool.execute({
+    await executeTool(tool, {
       event_type: 'nap_start',
       event_time: '2024-01-15T09:30:00Z',
       end_time: '2024-01-15T10:00:00Z', // Should be ignored
@@ -105,7 +116,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    const result = await tool.execute({
+    const result = await executeTool(tool, {
       event_type: 'wake',
       event_time: '2024-01-15T12:00:00Z',
     })
@@ -129,7 +140,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    const result = await tool.execute({
+    const result = await executeTool(tool, {
       event_type: 'nap_end',
       event_time: '2024-01-15T14:00:00Z',
       force: true, // Bypass state validation for insert behavior testing
@@ -147,7 +158,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    await tool.execute({
+    await executeTool(tool, {
       event_type: 'nap_end',
       event_time: '2024-01-15T14:00:00Z',
       context: 'daycare',
@@ -169,7 +180,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    await tool.execute({
+    await executeTool(tool, {
       event_type: 'bedtime',
       event_time: '2024-01-15T19:00:00Z',
       notes: 'Seemed tired, fell asleep quickly',
@@ -191,7 +202,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    await tool.execute({
+    await executeTool(tool, {
       event_type: 'wake',
       event_time: '2024-01-15T07:00:00Z',
     })
@@ -217,7 +228,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    const result = await tool.execute({
+    const result = await executeTool(tool, {
       event_type: 'night_wake',
       event_time: '2024-01-15T03:00:00Z',
       end_time: '2024-01-15T03:30:00Z',
@@ -236,7 +247,7 @@ describe('createCreateSleepEventTool', () => {
     })
 
     const tool = createCreateSleepEventTool(context)
-    const result = await tool.execute({
+    const result = await executeTool(tool, {
       event_type: 'nap_start',
       event_time: '2024-01-15T09:30:00Z',
       context: 'daycare',
@@ -256,7 +267,7 @@ describe('createCreateSleepEventTool', () => {
       })
 
       const tool = createCreateSleepEventTool(context)
-      const result = await tool.execute({
+      const result = await executeTool(tool, {
         event_type: eventType,
         event_time: '2024-01-15T12:00:00Z',
         force: true, // Bypass state validation for insert behavior testing

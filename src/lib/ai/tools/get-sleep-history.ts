@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { ToolContext } from './types'
 import { formatTime, calculateDurationMinutes } from '@/lib/sleep-utils'
 import { getStartOfDaysAgoForTimezone } from '@/lib/timezone'
+import { getSleepEventsSince } from '@/lib/services/sleep-events'
 
 interface DaySummary {
   day: string
@@ -83,15 +84,10 @@ Examples of when to use:
     execute: async ({ days }) => {
       const startDate = getStartOfDaysAgoForTimezone(timezone, days)
 
-      const { data: historyEvents, error } = await supabase
-        .from('sleep_events')
-        .select('*')
-        .eq('baby_id', babyId)
-        .gte('event_time', startDate)
-        .order('event_time', { ascending: true })
+      const { data: historyEvents, error } = await getSleepEventsSince(supabase, babyId, startDate)
 
       if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: error.message } as const
       }
 
       // Group events by day
@@ -119,7 +115,7 @@ Examples of when to use:
         days_retrieved: days,
         total_events: historyEvents?.length || 0,
         summaries,
-      }
+      } as const
     },
   })
 }
