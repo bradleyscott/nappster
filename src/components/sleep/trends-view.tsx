@@ -96,6 +96,17 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
 
             {/* 24h timeline bar */}
             <div
+              onClick={() => {
+                if (activeExpected) {
+                  setDetailRow({
+                    label: activeExpected.label,
+                    dateKey: 'expected',
+                    isDaycareDay: contextFilter === 'daycare',
+                    blocks: activeExpected.blocks,
+                    nightWakes: [],
+                  })
+                }
+              }}
               className="relative mb-3 h-14 cursor-pointer overflow-hidden rounded-2xl bg-[repeating-linear-gradient(90deg,#F8F5FF_0px,#F8F5FF_calc(100%/24-1px),rgba(0,0,0,0.015)_calc(100%/24-1px),rgba(0,0,0,0.015)_calc(100%/24))] active:scale-[0.98] transition-transform"
             >
               {activeExpected.blocks.map((block, i) => (
