@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
 interface ChatDrawerProps {
@@ -25,6 +25,36 @@ export function ChatDrawer({
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const messagesRef = useRef<HTMLDivElement>(null)
+  const stickToBottomRef = useRef(true)
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const el = messagesRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+  }, [])
+
+  // Track whether the user is parked at the bottom of the message chain
+  const handleScroll = useCallback(() => {
+    const el = messagesRef.current
+    if (!el) return
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  }, [])
+
+  // Default to the most recent messages whenever the drawer opens
+  useEffect(() => {
+    if (isOpen) {
+      stickToBottomRef.current = true
+      scrollToBottom('auto')
+    }
+  }, [isOpen, scrollToBottom])
+
+  // Stay glued to the bottom as messages stream in / arrive, unless the user scrolled up
+  useEffect(() => {
+    if (isOpen && stickToBottomRef.current) {
+      scrollToBottom('auto')
+    }
+  })
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -128,7 +158,11 @@ export function ChatDrawer({
         />
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-5 pb-4">
+        <div
+          ref={messagesRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto px-5 pb-4"
+        >
           {children}
         </div>
 
