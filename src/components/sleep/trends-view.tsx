@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
@@ -11,25 +11,39 @@ import {
   type SleepBlock,
   type NightWakeMarker,
 } from '@/lib/sleep-trends'
-import type { SleepEvent } from '@/types/database'
+import { useSleepEventCRUD } from '@/lib/hooks/use-sleep-event-crud'
+import { EventSheet, type EventSheetData } from './event-sheet'
+import type { SleepEvent, EventType, Context } from '@/types/database'
 
 interface TrendsViewProps {
   events: SleepEvent[]
   timezone: string
   babyName: string
+  babyId: string
 }
 
-export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
+export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewProps) {
   const router = useRouter()
   const [contextFilter, setContextFilter] = useState<'home' | 'daycare'>('home')
   const [detailRow, setDetailRow] = useState<DayRow | null>(null)
   const [timeRange, setTimeRange] = useState(14)
+  const [editingEvent, setEditingEvent] = useState<SleepEvent | null>(null)
+
+  const { localEvents, saveEvent, deleteEvent } = useSleepEventCRUD({
+    babyId,
+    onEventChange: () => {},
+  })
+
+  const allEvents = useMemo(() => {
+    const ids = new Set(localEvents.map(e => e.id))
+    return [...localEvents, ...events.filter(e => !ids.has(e.id))]
+  }, [events, localEvents])
 
   const { rows, expected } = useMemo(() => {
-    const r = buildDayRows(events, timezone, timeRange)
+    const r = buildDayRows(allEvents, timezone, timeRange)
     const e = computeExpectedDays(r)
     return { rows: r, expected: e }
-  }, [events, timezone, timeRange])
+  }, [allEvents, timezone, timeRange])
 
   const activeExpected = contextFilter === 'daycare' && expected.daycare
     ? expected.daycare : expected.home
@@ -39,6 +53,36 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
     if (!activeExpected) return null
     return computeExpectedStats(activeExpected)
   }, [activeExpected])
+
+  const handleEditEvent = useCallback((event: SleepEvent) => {
+    setEditingEvent(event)
+    setDetailRow(null)
+  }, [])
+
+  const handleSheetSave = useCallback(async (data: EventSheetData) => {
+    let hour = parseInt(data.hour, 10)
+    if (data.ampm === 'PM' && hour !== 12) hour += 12
+    if (data.ampm === 'AM' && hour === 12) hour = 0
+    const eventTime = new Date(`${data.date}T${String(hour).padStart(2, '0')}:${data.minute}:00`)
+
+    if (editingEvent) {
+      await saveEvent({
+        id: editingEvent.id,
+        event_type: data.eventType,
+        event_time: eventTime.toISOString(),
+        context: data.context ?? 'home',
+        notes: data.notes || null,
+      })
+    }
+    setEditingEvent(null)
+  }, [editingEvent, saveEvent])
+
+  const handleSheetDelete = useCallback(async () => {
+    if (editingEvent) {
+      await deleteEvent(editingEvent)
+    }
+    setEditingEvent(null)
+  }, [editingEvent, deleteEvent])
 
   return (
     <div className="mx-auto max-w-md pb-6">
@@ -223,7 +267,21 @@ export function TrendsView({ events, timezone, babyName }: TrendsViewProps) {
       {detailRow && (
         <DayDetailSheet
           row={detailRow}
+          events={allEvents}
           onClose={() => setDetailRow(null)}
+          onEditEvent={handleEditEvent}
+        />
+      )}
+
+      {/* ===== EVENT EDIT SHEET ===== */}
+      {editingEvent && (
+        <EventSheet
+          open={!!editingEvent}
+          mode="edit"
+          event={editingEvent}
+          onSave={handleSheetSave}
+          onDelete={handleSheetDelete}
+          onClose={() => setEditingEvent(null)}
         />
       )}
     </div>
@@ -319,7 +377,7 @@ function DayHistoryRow({ row, onClick }: { row: DayRow; onClick: () => void }) {
   )
 }
 
-function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) {
+function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; events: SleepEvent[]; onClose: () => void; onEditEvent: (event: SleepEvent) => void }) {
   const overnight = row.blocks.filter(b => b.type === 'bedtime' || b.type === 'wake')
   const naps = row.blocks.filter(b => b.type === 'nap')
   const allBlocks = row.blocks
@@ -372,7 +430,14 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
                   <div className="w-0.5 flex-1 rounded-full bg-[#E8E5F0]" />
                 )}
               </div>
-              <div className="flex min-w-0 flex-1 items-center gap-2 pb-3">
+              <button
+                onClick={() => {
+                  const event = block.eventId ? events.find(e => e.id === block.eventId) : null
+                  if (event) onEditEvent(event)
+                }}
+                disabled={!block.eventId}
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-xl pb-3 text-left active:scale-[0.98] transition-transform disabled:active:scale-100"
+              >
                 <span className="text-sm">{block.type === 'nap' ? '😴' : '🌙'}</span>
                 <div className="flex-1">
                   <span className="text-sm font-bold text-[var(--text)]">
@@ -385,7 +450,8 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
                 <span className="text-xs font-bold text-[var(--text-secondary)]">
                   {fmtMin(Math.round((block.endHour - block.startHour) * 60))}
                 </span>
-              </div>
+                {block.eventId && <span className="text-xs text-[var(--text-muted)]">›</span>}
+              </button>
             </div>
           ))}
 
@@ -425,24 +491,6 @@ function DayDetailSheet({ row, onClose }: { row: DayRow; onClose: () => void }) 
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-2xl border-2 border-[#EEE] bg-white py-3.5 text-sm font-bold text-[var(--text-secondary)] active:bg-[#F8F5FF] transition-colors"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              const text = formatDayForSharing(row)
-              navigator.clipboard.writeText(text)
-            }}
-            className="flex-1 rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] active:scale-[0.97] transition-all"
-          >
-            Share This Day
-          </button>
-        </div>
       </div>
     </>
   )
@@ -484,12 +532,3 @@ function computeExpectedStats(expected: ExpectedDay) {
   }
 }
 
-function formatDayForSharing(row: DayRow): string {
-  const lines = [`Sleep log for ${row.label}`]
-  for (const block of row.blocks) {
-    const type = block.type === 'nap' ? 'Nap' : 'Night sleep'
-    const minutes = Math.round((block.endHour - block.startHour) * 60)
-    lines.push(`${block.type === 'nap' ? '😴' : '🌙'} ${type}: ${minutes}m`)
-  }
-  return lines.join('\n')
-}

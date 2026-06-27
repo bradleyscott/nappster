@@ -14,6 +14,8 @@ export interface SleepBlock {
   endHour: number
   type: 'bedtime' | 'wake' | 'nap'
   isDaycare: boolean
+  /** ID of the primary event this block represents (editable) */
+  eventId?: string
 }
 
 /** A night wake marker positioned on the timeline. */
@@ -98,14 +100,14 @@ export function buildDayRows(
     if (lastBedtime) {
       const zonedDate = toZonedTime(parseISO(lastBedtime.event_time), timezone)
       const hour = toAxisHour(zonedDate)
-      blocks.push({ startHour: hour, endHour: 24, type: 'bedtime', isDaycare: lastBedtime.context === 'daycare' })
+      blocks.push({ startHour: hour, endHour: 24, type: 'bedtime', isDaycare: lastBedtime.context === 'daycare', eventId: lastBedtime.id })
       if (lastBedtime.context === 'daycare') isDaycareDay = true
     }
 
     if (lastWake) {
       const zonedDate = toZonedTime(parseISO(lastWake.event_time), timezone)
       const hour = toAxisHour(zonedDate)
-      blocks.push({ startHour: 0, endHour: hour, type: 'wake', isDaycare: lastWake.context === 'daycare' })
+      blocks.push({ startHour: 0, endHour: hour, type: 'wake', isDaycare: lastWake.context === 'daycare', eventId: lastWake.id })
       if (lastWake.context === 'daycare') isDaycareDay = true
     }
 
@@ -143,6 +145,7 @@ export function buildDayRows(
             endHour: clampedEnd,
             type: 'nap',
             isDaycare: event.context === 'daycare',
+            eventId: event.id,
           })
         }
       } else if (event.event_type === 'night_wake') {
@@ -174,6 +177,7 @@ export function buildDayRows(
           endHour: currentHour,
           type: 'wake',
           isDaycare: false,
+          eventId: lastEvent.id,
         })
       }
     }
