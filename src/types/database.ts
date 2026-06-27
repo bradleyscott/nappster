@@ -259,6 +259,18 @@ export type Database = {
 // Convenience types
 export type Baby = Database['public']['Tables']['babies']['Row']
 export type FamilyMember = Database['public']['Tables']['family_members']['Row']
+
+// Enriched family member row returned by the get_family_members_for_baby RPC,
+// which joins auth.users so co-caregivers' emails are visible to baby members.
+export type FamilyMemberWithIdentity = {
+  id: string
+  user_id: string
+  baby_id: string
+  role: string
+  created_at: string
+  email: string | null
+  is_you: boolean
+}
 export type SleepEvent = Database['public']['Tables']['sleep_events']['Row']
 export type EventType = 'wake' | 'nap_start' | 'nap_end' | 'bedtime' | 'night_wake'
 export type Context = 'home' | 'daycare' | 'travel' | null

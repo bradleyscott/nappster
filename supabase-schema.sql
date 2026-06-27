@@ -44,6 +44,7 @@ alter table public.family_members enable row level security;
 alter table public.sleep_events enable row level security;
 
 -- RLS Policies for babies table
+drop policy if exists "Users can view babies they are linked to" on public.babies;
 create policy "Users can view babies they are linked to"
   on public.babies for select
   using (
@@ -53,10 +54,12 @@ create policy "Users can view babies they are linked to"
     )
   );
 
+drop policy if exists "Users can insert babies" on public.babies;
 create policy "Users can insert babies"
   on public.babies for insert
   with check (true);
 
+drop policy if exists "Users can update their babies" on public.babies;
 create policy "Users can update their babies"
   on public.babies for update
   using (
@@ -66,16 +69,37 @@ create policy "Users can update their babies"
     )
   );
 
--- RLS Policies for family_members table
-create policy "Users can view their family memberships"
-  on public.family_members for select
-  using (user_id = auth.uid());
+-- Helper: return the set of baby_ids the calling user belongs to.
+-- SECURITY DEFINER runs as the owner so the inner read on family_members skips RLS,
+-- which is required for the family_members SELECT policy below (avoids recursion).
+create or replace function public.user_baby_ids()
+ returns setof uuid
+ language sql
+ security definer
+ set search_path = public
+ as $$
+  select baby_id from public.family_members where user_id = auth.uid();
+ $$;
 
+-- RLS Policies for family_members table
+-- Note: the SELECT policy uses the SECURITY DEFINER helper public.user_baby_ids()
+-- (defined just above) rather than a self-referencing subquery on family_members. A
+-- direct subquery `baby_id in (select baby_id from family_members where user_id = auth.uid())`
+-- would re-apply this same policy to the inner scan and recurse; the helper runs as
+-- owner so it bypasses RLS and returns only the caller's own baby ids.
+drop policy if exists "Users can view family members of their babies" on public.family_members;
+drop policy if exists "Users can view their family memberships" on public.family_members;
+create policy "Users can view family members of their babies"
+  on public.family_members for select
+  using (baby_id in (select public.user_baby_ids()));
+
+drop policy if exists "Users can insert family memberships for themselves" on public.family_members;
 create policy "Users can insert family memberships for themselves"
   on public.family_members for insert
   with check (user_id = auth.uid());
 
 -- RLS Policies for sleep_events table
+drop policy if exists "Users can view sleep events for their babies" on public.sleep_events;
 create policy "Users can view sleep events for their babies"
   on public.sleep_events for select
   using (
@@ -85,6 +109,7 @@ create policy "Users can view sleep events for their babies"
     )
   );
 
+drop policy if exists "Users can insert sleep events for their babies" on public.sleep_events;
 create policy "Users can insert sleep events for their babies"
   on public.sleep_events for insert
   with check (
@@ -94,6 +119,7 @@ create policy "Users can insert sleep events for their babies"
     )
   );
 
+drop policy if exists "Users can update sleep events for their babies" on public.sleep_events;
 create policy "Users can update sleep events for their babies"
   on public.sleep_events for update
   using (
@@ -103,6 +129,7 @@ create policy "Users can update sleep events for their babies"
     )
   );
 
+drop policy if exists "Users can delete sleep events for their babies" on public.sleep_events;
 create policy "Users can delete sleep events for their babies"
   on public.sleep_events for delete
   using (
@@ -129,6 +156,7 @@ create index if not exists idx_chat_messages_baby_created on public.chat_message
 alter table public.chat_messages enable row level security;
 
 -- RLS Policies for chat_messages table
+drop policy if exists "Users can view chat messages for their babies" on public.chat_messages;
 create policy "Users can view chat messages for their babies"
   on public.chat_messages for select
   using (
@@ -138,6 +166,7 @@ create policy "Users can view chat messages for their babies"
     )
   );
 
+drop policy if exists "Users can insert chat messages for their babies" on public.chat_messages;
 create policy "Users can insert chat messages for their babies"
   on public.chat_messages for insert
   with check (
@@ -173,6 +202,7 @@ create index if not exists idx_sleep_plans_baby_date on public.sleep_plans(baby_
 alter table public.sleep_plans enable row level security;
 
 -- RLS Policies for sleep_plans table
+drop policy if exists "Users can view sleep plans for their babies" on public.sleep_plans;
 create policy "Users can view sleep plans for their babies"
   on public.sleep_plans for select
   using (
@@ -182,6 +212,7 @@ create policy "Users can view sleep plans for their babies"
     )
   );
 
+drop policy if exists "Users can insert sleep plans for their babies" on public.sleep_plans;
 create policy "Users can insert sleep plans for their babies"
   on public.sleep_plans for insert
   with check (
@@ -191,6 +222,7 @@ create policy "Users can insert sleep plans for their babies"
     )
   );
 
+drop policy if exists "Users can update sleep plans for their babies" on public.sleep_plans;
 create policy "Users can update sleep plans for their babies"
   on public.sleep_plans for update
   using (
@@ -221,10 +253,12 @@ create index if not exists idx_invite_codes_created_by on public.invite_codes(cr
 alter table public.invite_codes enable row level security;
 
 -- RLS Policies for invite_codes table
+drop policy if exists "Users can view their own invite codes" on public.invite_codes;
 create policy "Users can view their own invite codes"
   on public.invite_codes for select
   using (created_by = auth.uid());
 
+drop policy if exists "Family members can create invite codes" on public.invite_codes;
 create policy "Family members can create invite codes"
   on public.invite_codes for insert
   with check (
@@ -298,9 +332,92 @@ begin
 end;
 $$;
 
+-- Return all family members for a given baby, enriched with the member's email
+-- (from auth.users) and an is_you flag. SECURITY DEFINER bypasses RLS so a parent
+-- can see co-caregivers whose rows they do not own, but access is guarded by first
+-- checking the caller is actually a member of the requested baby.
+create or replace function public.get_family_members_for_baby(
+  baby_id_arg uuid
+) returns table (
+  id uuid,
+  user_id uuid,
+  baby_id uuid,
+  role text,
+  created_at timestamp with time zone,
+  email text,
+  is_you boolean
+)
+ language plpgsql
+ security definer
+ set search_path = public
+ as $$
+begin
+  if auth.uid() is null then
+    return;
+  end if;
+
+  -- Caller must already be a member of this baby to list its members.
+  -- Columns are alias-qualified because the RETURNS TABLE column names
+  -- (user_id, baby_id) become PL/pgSQL variables and would otherwise be
+  -- ambiguous with the table columns (ERROR 42702).
+  if not exists (
+    select 1 from public.family_members fm
+    where fm.user_id = auth.uid() and fm.baby_id = baby_id_arg
+  ) then
+    return;
+  end if;
+
+  -- Each column is explicitly cast to its declared RETURNS TABLE type. Without this,
+  -- PostgreSQL raises 'structure of query does not match function result type' because
+  -- the cross-schema join (auth.users) and the boolean expression can resolve a column
+  -- with a collation/typmod that doesn't satisfy the declared column type.
+  return query
+    select
+      fm.id::uuid,
+      fm.user_id::uuid,
+      fm.baby_id::uuid,
+      fm.role::text,
+      fm.created_at::timestamp with time zone,
+      au.email::text,
+      (fm.user_id = auth.uid())::boolean as is_you
+    from public.family_members fm
+    left join auth.users au on au.id = fm.user_id
+    where fm.baby_id = baby_id_arg
+    order by (fm.user_id = auth.uid()) desc, fm.created_at asc;
+end;
+$$;
+
 -- Enable Realtime for multi-family member synchronization
--- This allows changes made by one family member to appear in realtime for others
+-- This allows changes made by one family member to appear in realtime for others.
+-- Wrapped in DO blocks because `alter publication ... add table` errors if the table
+-- is already a member (there is no if-not-exists clause for that statement).
 -- Note: Can also be enabled via Supabase Dashboard > Database > Replication
-alter publication supabase_realtime add table public.sleep_events;
-alter publication supabase_realtime add table public.chat_messages;
-alter publication supabase_realtime add table public.sleep_plans;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'sleep_events'
+  ) then
+    alter publication supabase_realtime add table public.sleep_events;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'chat_messages'
+  ) then
+    alter publication supabase_realtime add table public.chat_messages;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'sleep_plans'
+  ) then
+    alter publication supabase_realtime add table public.sleep_plans;
+  end if;
+end $$;

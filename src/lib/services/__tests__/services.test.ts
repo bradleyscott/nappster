@@ -5,6 +5,7 @@ import {
   getFamilyMembersForUser,
   checkBabyAccess,
   getFamilyMembersForBaby,
+  getFamilyMembersForBabyWithIdentity,
   createFamilyMember,
   redeemInviteCode,
 } from '../family-members'
@@ -129,6 +130,27 @@ describe('services', () => {
       expect(error).toBeNull()
       expect(data?.user_id).toBe('user-2')
       expect(mockSupabase._getInsertCalls()).toHaveLength(1)
+    })
+
+    it('getFamilyMembersForBabyWithIdentity calls the enriched-list RPC', async () => {
+      mockSupabase._setRpcResponse({
+        data: [
+          { id: 'fm-1', user_id: 'user-1', baby_id: 'baby-1', role: 'parent', created_at: '2023-01-01', email: 'dev@example.com', is_you: true },
+          { id: 'fm-2', user_id: 'user-2', baby_id: 'baby-1', role: 'caregiver', created_at: '2023-01-02', email: 'dev2@example.com', is_you: false },
+        ],
+        error: null,
+      })
+
+      const { data, error } = await getFamilyMembersForBabyWithIdentity(
+        mockSupabase as unknown as Parameters<typeof getFamilyMembersForBabyWithIdentity>[0],
+        'baby-1'
+      )
+
+      expect(error).toBeNull()
+      expect(data).toHaveLength(2)
+      expect(data?.[0].email).toBe('dev@example.com')
+      expect(data?.[1].is_you).toBe(false)
+      expect(mockSupabase._getRpcCalls()).toContain('get_family_members_for_baby')
     })
 
     it('redeemInviteCode calls the RPC', async () => {

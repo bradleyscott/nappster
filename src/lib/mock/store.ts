@@ -50,6 +50,13 @@ export const mockStore = {
       role: 'parent',
       created_at: birthDate.toISOString(),
     },
+    {
+      id: 'mock-fm-790',
+      user_id: MOCK_USER_2.id,
+      baby_id: MOCK_BABY_ID,
+      role: 'caregiver',
+      created_at: birthDate.toISOString(),
+    },
   ] as FamilyMember[],
 
   sleep_events: [...generateHistoricalEvents(), ...generateTodayEvents()],

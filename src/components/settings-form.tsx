@@ -4,16 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { Baby, type FamilyMember } from '@/types/database'
+import { Baby, type FamilyMemberWithIdentity } from '@/types/database'
 import { updateBaby } from '@/lib/services/babies'
 import { PageHeader } from '@/components/sleep/page-header'
 
 interface SettingsFormProps {
   baby: Baby
-  familyMembers: FamilyMember[]
+  familyMembers: FamilyMemberWithIdentity[]
+  familyMembersError?: Error | null
 }
 
-export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
+export function SettingsForm({ baby, familyMembers, familyMembersError }: SettingsFormProps) {
   const [name, setName] = useState(baby.name)
   const [birthDate, setBirthDate] = useState(baby.birth_date)
   const [patternNotes, setPatternNotes] = useState(baby.pattern_notes || '')
@@ -210,6 +211,11 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
 
           {/* Current members */}
           <div className="mb-4 flex flex-col gap-2">
+            {familyMembersError && (
+              <div className="rounded-xl bg-[var(--rose-bg)] px-4 py-3 text-xs font-bold text-[var(--rose)]">
+                Couldn&apos;t load caregivers: {familyMembersError.message}
+              </div>
+            )}
             {familyMembers.length === 0 && (
               <div className="rounded-xl bg-white/70 px-4 py-3 text-center text-sm font-semibold text-[var(--text-muted)]">
                 No family members yet
@@ -221,18 +227,18 @@ export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
                 className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-sm font-extrabold text-[var(--lavender)]">
-                  {member.role === 'parent' ? '👤' : '👤'}
+                  {member.is_you ? '⭐' : member.role === 'parent' ? '👤' : '🤝'}
                 </div>
-                <div className="flex-1">
-                  <div className="text-sm font-bold text-[var(--text)]">
-                    {member.role === 'parent' ? 'You' : 'Caregiver'}
+                <div className="flex-1 min-w-0">
+                  <div className="truncate text-sm font-bold text-[var(--text)]">
+                    {member.is_you ? 'You' : (member.email || 'Caregiver')}
                   </div>
                   <div className="text-[11px] font-semibold text-[var(--text-muted)]">
                     {member.role}
                   </div>
                 </div>
                 <span className="rounded-md bg-[var(--mint-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--mint)]">
-                  {member.role === 'parent' ? 'You' : 'Connected'}
+                  {member.is_you ? 'You' : 'Connected'}
                 </span>
               </div>
             ))}
