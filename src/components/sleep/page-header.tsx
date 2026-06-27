@@ -27,7 +27,7 @@ export function PageHeader({
     <header className={cn('relative px-4 pt-3 pb-1', className)}>
       {/* Back button */}
       {onBack && (
-        <div className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
+        <div className="absolute left-8 top-1/2 z-10 -translate-y-1/2">
           <button
             onClick={onBack}
             disabled={isNavigatingBack}
@@ -45,7 +45,7 @@ export function PageHeader({
 
       {/* Right actions */}
       {rightActions && (
-        <div className="absolute right-4 top-1/2 z-10 flex -translate-y-1/2 gap-2">
+        <div className="absolute right-8 top-1/2 z-10 flex -translate-y-1/2 gap-2">
           {rightActions}
         </div>
       )}
@@ -53,8 +53,8 @@ export function PageHeader({
       {/* Pill card header */}
       <div
         className={cn(
-          'flex flex-col items-center justify-center rounded-full bg-white px-5 py-2.5 text-center shadow-[var(--shadow-sm)]',
-          (onBack || rightActions) && 'px-14'
+          'flex w-full flex-col items-center justify-center rounded-full bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]',
+          (!onBack && !rightActions) && 'px-5'
         )}
       >
         <span className="text-lg font-black leading-tight text-[var(--text)]">{title}</span>
