@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth & Onboarding Redesign</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-light: #E8D8FF;
+      --lavender-bg: #F5EEFF;
+      --peach: #FFB07C;
+      --peach-bg: #FFF3EA;
+      --mint: #6FCF97;
+      --rose: #FF8FAB;
+      --sunset: #FF8F6B;
+      --text: #2D2B3A;
+      --text-secondary: #8B88A0;
+      --text-muted: #B8B5CC;
+      --bg: #FFF8F0;
+      --card: #fff;
+      --shadow-sm: 0 2px 8px rgba(45,43,58,0.06);
+      --shadow-md: 0 4px 16px rgba(45,43,58,0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; }
+    p.subtitle { text-align: center; color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .option-label {
+      font-size: 0.75rem; font-weight: 800; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;
+    }
+    .phone {
+      background: linear-gradient(180deg, #F8F6FF 0%, var(--bg) 100%);
+      border-radius: 32px; overflow: hidden;
+      border: 6px solid #fff;
+      box-shadow: 0 12px 40px rgba(45,43,58,0.12);
+      position: relative; height: 680px;
+    }
+    .screen { min-height: 100%; padding: 1.5rem; display: flex; flex-direction: column; }
+
+    .logo-bubble {
+      width: 90px; height: 90px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 8px 24px rgba(124,77,255,0.25);
+      font-size: 2.5rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 24px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-md);
+      width: 100%; max-width: 340px;
+      margin: 0 auto;
+    }
+    .card-title { font-size: 1.35rem; font-weight: 900; text-align: center; margin-bottom: 0.25rem; }
+    .card-subtitle { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); text-align: center; margin-bottom: 1.25rem; line-height: 1.35; }
+    label { display: block; font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.35rem; }
+    input, textarea {
+      width: 100%;
+      border: 2px solid #EEE;
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem; font-weight: 700;
+      outline: none; margin-bottom: 0.75rem;
+      background: #fff;
+    }
+    input:focus, textarea:focus { border-color: var(--lavender); }
+    .btn {
+      width: 100%; border: none; border-radius: 16px;
+      padding: 0.9rem;
+      font-size: 0.95rem; font-weight: 900; color: #fff;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      box-shadow: 0 4px 14px rgba(124,77,255,0.25);
+      margin-top: 0.5rem; cursor: pointer;
+    }
+    .btn-secondary {
+      background: #fff; color: var(--text);
+      border: 2px solid var(--lavender-light);
+      box-shadow: none;
+    }
+    .link { text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-top: 1rem; }
+    .link a { color: var(--lavender); text-decoration: none; }
+    .error { background: var(--rose-bg); color: #C44; border-radius: 12px; padding: 0.75rem; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .success { background: var(--mint-bg); color: #2A6; border-radius: 12px; padding: 0.75rem; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.75rem; }
+
+    .choice-btn {
+      width: 100%; background: #fff; border: 2px solid var(--lavender-light);
+      border-radius: 18px; padding: 1rem;
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 0.75rem; text-align: left;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+    }
+    .choice-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: var(--lavender-bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; flex-shrink: 0;
+    }
+    .choice-title { font-weight: 900; font-size: 0.95rem; }
+    .choice-desc { font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; }
+    .back { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 0.75rem; background: none; border: none; }
+
+    .landing-title { font-size: 2rem; font-weight: 900; text-align: center; }
+    .landing-desc { font-size: 0.95rem; font-weight: 700; color: var(--text-secondary); text-align: center; line-height: 1.4; margin-bottom: 1.5rem; }
+    .pill-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .pill { background: #fff; border-radius: 999px; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); box-shadow: var(--shadow-sm); }
+
+    .error-emoji { font-size: 3.5rem; text-align: center; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Auth & Onboarding Redesign</h1>
+  <p class="subtitle">Landing, login, signup, onboarding, and error pages in the new playful style.</p>
+
+  <div class="grid">
+    <!-- Landing -->
+    <div>
+      <div class="option-label">Landing</div>
+      <div class="phone">
+        <div class="screen" style="justify-content:center;">
+          <div class="logo-bubble">🌙</div>
+          <div class="landing-title">Nappster</div>
+          <div class="landing-desc">Track your baby's sleep and get AI-powered recommendations for nap times and bedtime.</div>
+          <div class="pill-list">
+            <span class="pill">🌙 Sleep tracking</span>
+            <span class="pill">🤖 AI coach</span>
+            <span class="pill">👨‍👩‍👧 Family sync</span>
+          </div>
+          <div class="card" style="max-width:100%;">
+            <button class="btn" style="margin-top:0;">Get Started</button>
+            <button class="btn btn-secondary">Sign In</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login -->
+    <div>
+      <div class="option-label">Login</div>
+      <div class="phone">
+        <div class="screen" style="justify-content:center;">
+          <div class="logo-bubble">🌙</div>
+          <div class="card">
+            <div class="card-title">Welcome back</div>
+            <div class="card-subtitle">Sign in to track your baby's sleep</div>
+            <label>Email</label>
+            <input type="email" placeholder="you@example.com" />
+            <label>Password</label>
+            <input type="password" placeholder="••••••••" />
+            <button class="btn">Sign in</button>
+            <div class="link">Don't have an account? <a href="#">Sign up</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signup -->
+    <div>
+      <div class="option-label">Signup</div>
+      <div class="phone">
+        <div class="screen" style="justify-content:center;">
+          <div class="logo-bubble">🌙</div>
+          <div class="card">
+            <div class="card-title">Create account</div>
+            <div class="card-subtitle">Start tracking your baby's sleep</div>
+            <div class="success">Check your email for the confirmation link!</div>
+            <label>Email</label>
+            <input type="email" placeholder="you@example.com" />
+            <label>Password</label>
+            <input type="password" placeholder="••••••••" />
+            <label>Confirm Password</label>
+            <input type="password" placeholder="••••••••" />
+            <button class="btn">Sign up</button>
+            <div class="link">Already have an account? <a href="#">Sign in</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onboarding choice -->
+    <div>
+      <div class="option-label">Onboarding · Choice</div>
+      <div class="phone">
+        <div class="screen" style="justify-content:center;">
+          <div class="logo-bubble">🌙</div>
+          <div class="card-title" style="margin-bottom:0.25rem;">Welcome to Nappster</div>
+          <div class="card-subtitle">How would you like to get started?</div>
+          <div class="card" style="max-width:100%;">
+            <button class="choice-btn">
+              <div class="choice-icon">👶</div>
+              <div><div class="choice-title">Add a new baby</div><div class="choice-desc">Set up a new profile</div></div>
+            </button>
+            <button class="choice-btn">
+              <div class="choice-icon">👨‍👩‍👧</div>
+              <div><div class="choice-title">I am family</div><div class="choice-desc">Enter an invite code</div></div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onboarding create -->
+    <div>
+      <div class="option-label">Onboarding · Create</div>
+      <div class="phone">
+        <div class="screen" style="justify-content:center;">
+          <button class="back">← Back</button>
+          <div class="card">
+            <div class="card-title">Set up profile</div>
+            <div class="card-subtitle">This helps us give personalized sleep recommendations</div>
+            <label>Baby's name</label>
+            <input type="text" placeholder="Luna" />
+            <label>Birth date</label>
+            <input type="date" />
+            <label>Known patterns (optional)</label>
+            <textarea rows="3" placeholder="e.g., short naps are normal"></textarea>
+            <p style="font-size:0.65rem;color:var(--text-muted);font-weight:700;margin-top:-0.25rem;margin-bottom:0.75rem;">Include any patterns the AI should know about</p>
+            <button class="btn" style="margin-top:0;">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onboarding join -->
+    <div>
+      <div class="option-label">Onboarding · Join</div>
+      <div class="phone">
+        <div class="screen" style="justify-content:center;">
+          <button class="back">← Back</button>
+          <div class="card">
+            <div class="card-title">I'm family</div>
+            <div class="card-subtitle">Enter the 6-digit invite code from your partner</div>
+            <input type="text" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:0.6em;font-family:monospace;font-size:1.5rem;" />
+            <button class="btn" style="margin-top:0;">Join</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div>
+      <div class="option-label">Error</div>
+      <div class="phone">
+        <div class="screen" style="justify-content:center;">
+          <div class="card" style="text-align:center;">
+            <div class="error-emoji">😵‍💫</div>
+            <div class="card-title">Something went wrong</div>
+            <div class="card-subtitle">An unexpected error occurred. Your data is safe.</div>
+            <button class="btn">Try again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
