@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { SleepEvent, SleepPlanRow, Json } from '@/types/database'
+import { mergeEvents, mergeMessages, mergeSleepPlans } from '@/lib/merge-data'
 import type { ChatMessageData } from './use-chat-history'
 import type { UIMessage } from '@ai-sdk/react'
 
@@ -50,109 +51,26 @@ export function useTimelineBuilder({
   initialSleepPlans,
   localSleepPlans,
 }: UseTimelineBuilderOptions): UseTimelineBuilderReturn {
-  // Combine all messages (history, initial, live) deduplicating by id
+  // Convert live messages to ChatMessageData format and merge all sources
   const allMessages = useMemo(() => {
-    const seen = new Set<string>()
-    const combined: ChatMessageData[] = []
-
-    // Add history messages first (oldest loaded via scroll)
-    for (const msg of historyMessages) {
-      if (!seen.has(msg.id)) {
-        seen.add(msg.id)
-        combined.push(msg)
-      }
-    }
-
-    // Add initial messages (loaded on page mount)
-    for (const msg of initialMessages) {
-      if (!seen.has(msg.id)) {
-        seen.add(msg.id)
-        combined.push(msg)
-      }
-    }
-
-    // Add live messages (new messages from current session)
-    // Use current time - live messages naturally sort after persisted ones
     const now = new Date().toISOString()
-    for (const msg of liveMessages) {
-      if (!seen.has(msg.id)) {
-        seen.add(msg.id)
-        combined.push({
-          id: msg.id,
-          role: msg.role as 'user' | 'assistant',
-          parts: msg.parts as Json,
-          createdAt: now,
-        })
-      }
-    }
-
-    return combined
+    const liveChatMessages: ChatMessageData[] = liveMessages.map(msg => ({
+      id: msg.id,
+      role: msg.role as 'user' | 'assistant',
+      parts: msg.parts as Json,
+      createdAt: now,
+    }))
+    return mergeMessages(historyMessages, initialMessages, liveChatMessages)
   }, [historyMessages, initialMessages, liveMessages])
 
-  // Combine all sleep events, deduplicating by id.
-  // localEvents are processed first so edits take priority over stale server data.
+  // Combine all sleep events. localEvents are first so edits take priority.
   const allSleepEvents = useMemo(() => {
-    const seen = new Set<string>()
-    const combined: SleepEvent[] = []
-
-    for (const event of localEvents) {
-      if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
-        seen.add(event.id)
-        combined.push(event)
-      }
-    }
-
-    for (const event of initialSleepEvents) {
-      if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
-        seen.add(event.id)
-        combined.push(event)
-      }
-    }
-
-    for (const event of historySleepEvents) {
-      if (!seen.has(event.id) && !deletedEventIds.has(event.id)) {
-        seen.add(event.id)
-        combined.push(event)
-      }
-    }
-
-    // Sort by event_time
-    return combined.sort(
-      (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
-    )
+    return mergeEvents(deletedEventIds, localEvents, initialSleepEvents, historySleepEvents)
   }, [historySleepEvents, initialSleepEvents, localEvents, deletedEventIds])
 
-  // Combine all sleep plans (history + initial + local), deduplicating by id
-  // Include active plans so they appear in the timeline at their chronological position
+  // Combine all sleep plans (history + initial + local)
   const allSleepPlans = useMemo(() => {
-    const seen = new Set<string>()
-    const combined: SleepPlanRow[] = []
-
-    for (const plan of historySleepPlans) {
-      if (!seen.has(plan.id)) {
-        seen.add(plan.id)
-        combined.push(plan)
-      }
-    }
-
-    for (const plan of initialSleepPlans) {
-      if (!seen.has(plan.id)) {
-        seen.add(plan.id)
-        combined.push(plan)
-      }
-    }
-
-    for (const plan of localSleepPlans) {
-      if (!seen.has(plan.id)) {
-        seen.add(plan.id)
-        combined.push(plan)
-      }
-    }
-
-    // Sort by created_at
-    return combined.sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
+    return mergeSleepPlans(historySleepPlans, initialSleepPlans, localSleepPlans)
   }, [historySleepPlans, initialSleepPlans, localSleepPlans])
 
   // Create interleaved timeline of messages, sleep events, and sleep plans
