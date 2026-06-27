@@ -1,37 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Loader2, Copy, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { Baby } from '@/types/database'
+import { Baby, type FamilyMember } from '@/types/database'
 import { updateBaby } from '@/lib/services/babies'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-
-const sleepMethods = [
-  { value: '', label: 'Select a method (optional)' },
-  { value: 'Taking Cara Babies', label: 'Taking Cara Babies' },
-  { value: 'Ferber', label: 'Ferber Method' },
-  { value: 'Chair Method', label: 'Chair Method' },
-  { value: 'Pick Up Put Down', label: 'Pick Up Put Down' },
-  { value: 'Cry It Out', label: 'Cry It Out' },
-  { value: 'No Formal Training', label: 'No Formal Training' },
-  { value: 'Other', label: 'Other' },
-]
+import { PageHeader } from '@/components/sleep/page-header'
 
 interface SettingsFormProps {
   baby: Baby
+  familyMembers: FamilyMember[]
 }
 
-export function SettingsForm({ baby }: SettingsFormProps) {
+export function SettingsForm({ baby, familyMembers }: SettingsFormProps) {
   const [name, setName] = useState(baby.name)
   const [birthDate, setBirthDate] = useState(baby.birth_date)
-  const [sleepMethod, setSleepMethod] = useState(baby.sleep_training_method || '')
   const [patternNotes, setPatternNotes] = useState(baby.pattern_notes || '')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -40,8 +24,21 @@ export function SettingsForm({ baby }: SettingsFormProps) {
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const patternTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const adjustPatternHeight = () => {
+    const el = patternTextareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
+
+  useEffect(() => {
+    adjustPatternHeight()
+  }, [patternNotes])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,7 +48,6 @@ export function SettingsForm({ baby }: SettingsFormProps) {
     const { error: updateError } = await updateBaby(supabase, baby.id, {
       name,
       birth_date: birthDate,
-      sleep_training_method: sleepMethod || null,
       pattern_notes: patternNotes || null,
     })
 
@@ -69,6 +65,13 @@ export function SettingsForm({ baby }: SettingsFormProps) {
     e.preventDefault()
     setIsNavigatingBack(true)
     router.push('/')
+  }
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
   }
 
   const handleGenerateCode = async () => {
@@ -104,148 +107,226 @@ export function SettingsForm({ baby }: SettingsFormProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col p-4 pt-safe-area-inset-top pb-safe-area-inset-bottom">
-      <Card className="w-full max-w-md mx-auto flex flex-col flex-1">
-        <CardHeader className="text-center">
-          <Link
-            href="/"
-            onClick={handleBackClick}
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
-          >
-            {isNavigatingBack ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <ArrowLeft className="h-4 w-4 mr-1" />
-            )}
-            {isNavigatingBack ? 'Loading...' : 'Back to dashboard'}
-          </Link>
-          <CardTitle className="text-2xl">Edit {baby.name}&apos;s profile</CardTitle>
-          <CardDescription>
-            Update sleep training details and patterns
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-          <CardContent className="space-y-4 flex-1 flex flex-col">
-            {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
-                {error}
-              </div>
-            )}
+    <div className="min-h-dvh bg-[var(--bg)] pb-6">
+      <PageHeader
+        title="Profile & Family"
+        onBack={handleBackClick}
+        isNavigatingBack={isNavigatingBack}
+      />
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Baby&apos;s name</Label>
-              <Input
-                id="name"
+      <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
+        {/* ===== PROFILE CARD ===== */}
+        <div className="mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]">
+          {/* Avatar */}
+          <div className="mx-auto mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] border-[var(--peach)] bg-gradient-to-br from-[var(--peach-light)] to-[var(--peach-bg)] text-3xl">
+            👶
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded-xl bg-[var(--rose-bg)] px-4 py-3 text-sm font-bold text-[var(--rose)]">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            {/* Name */}
+            <div className="mb-4">
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+                👤 Baby&apos;s name
+              </label>
+              <input
                 type="text"
-                placeholder="Luna"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-bold text-[var(--text)] outline-none transition-colors focus:border-[var(--lavender)]"
+                placeholder="Luna"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="birthDate">Birth date</Label>
-              <Input
-                id="birthDate"
+            {/* Birth date */}
+            <div className="mb-4">
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+                🎂 Birth date
+              </label>
+              <input
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
                 required
+                className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-bold text-[var(--text)] outline-none transition-colors focus:border-[var(--lavender)]"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sleepMethod">Sleep training method</Label>
-              <select
-                id="sleepMethod"
-                value={sleepMethod}
-                onChange={(e) => setSleepMethod(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                {sleepMethods.map((method) => (
-                  <option key={method.value} value={method.value}>
-                    {method.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2 flex-1 flex flex-col">
-              <Label htmlFor="patternNotes">Known patterns</Label>
+            {/* Pattern notes */}
+            <div className="mb-5">
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+                📝 Known patterns
+              </label>
               <textarea
-                id="patternNotes"
-                placeholder="e.g., 30-minute naps are normal for this baby, doesn't do well with early bedtime"
+                ref={patternTextareaRef}
                 value={patternNotes}
-                onChange={(e) => setPatternNotes(e.target.value)}
-                className="flex-1 min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                onChange={(e) => {
+                  setPatternNotes(e.target.value)
+                  adjustPatternHeight()
+                }}
+                placeholder="e.g., 30-minute naps are normal, doesn't do well with early bedtime"
+                rows={1}
+                className="min-h-[88px] w-full resize-none overflow-hidden rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
               />
-              <p className="text-xs text-muted-foreground">
-                Include any patterns the AI should know about
+              <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)] leading-tight">
+                The AI coach uses these notes for personalised recommendations
               </p>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Saving...' : 'Save changes'}
-            </Button>
-          </CardFooter>
-        </form>
 
-        <Separator className="my-2" />
-
-        <CardHeader className="text-center pt-4">
-          <CardTitle className="text-lg">Family</CardTitle>
-          <CardDescription>
-            Invite someone to help track {baby.name}&apos;s sleep
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pb-6">
-          {inviteError && (
-            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
-              {inviteError}
-            </div>
-          )}
-          {!inviteCode ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleGenerateCode}
-              disabled={inviteLoading}
+            {/* Save button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={cn(
+                'w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-4 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97]',
+                loading && 'opacity-70'
+              )}
             >
-              {inviteLoading ? 'Generating...' : 'Generate invite code'}
-            </Button>
-          ) : (
-            <div className="text-center space-y-3">
-              <div className="text-3xl font-mono tracking-[0.5em] font-bold py-2">
-                {inviteCode}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCopyCode}
-              >
-                {inviteCopied ? (
-                  <>
-                    <Check className="h-4 w-4 mr-1" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-1" />
-                    Copy code
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                This code expires in 24 hours and can be used once.
-              </p>
+              {loading ? '💾 Saving...' : '💾 Save Changes'}
+            </button>
+          </form>
+        </div>
+
+        {/* ===== FAMILY CARD ===== */}
+        <div className="mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]">
+          {/* Header */}
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-xl">
+              👨‍👩‍👧‍👧
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div>
+              <div className="text-base font-extrabold text-[var(--text)]">Family</div>
+              <div className="text-xs font-semibold text-[var(--text-secondary)]">
+                Caregivers who help track {baby.name}&apos;s sleep
+              </div>
+            </div>
+          </div>
+
+          {/* Current members */}
+          <div className="mb-4 flex flex-col gap-2">
+            {familyMembers.length === 0 && (
+              <div className="rounded-xl bg-white/70 px-4 py-3 text-center text-sm font-semibold text-[var(--text-muted)]">
+                No family members yet
+              </div>
+            )}
+            {familyMembers.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-sm font-extrabold text-[var(--lavender)]">
+                  {member.role === 'parent' ? '👤' : '👤'}
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-[var(--text)]">
+                    {member.role === 'parent' ? 'You' : 'Caregiver'}
+                  </div>
+                  <div className="text-[11px] font-semibold text-[var(--text-muted)]">
+                    {member.role}
+                  </div>
+                </div>
+                <span className="rounded-md bg-[var(--mint-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--mint)]">
+                  {member.role === 'parent' ? 'You' : 'Connected'}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-4 h-px bg-gradient-to-r from-[var(--lavender-light)] to-transparent" />
+
+          {/* Invite section */}
+          <div className="text-center">
+            <div className="mb-3 flex items-center justify-center gap-1.5 text-sm font-bold text-[var(--text)]">
+              🤝 Invite a caregiver
+            </div>
+
+            {inviteError && (
+              <div className="mb-3 rounded-xl bg-[var(--rose-bg)] px-4 py-2.5 text-xs font-bold text-[var(--rose)]">
+                {inviteError}
+              </div>
+            )}
+
+            {!inviteCode ? (
+              <>
+                <button
+                  onClick={handleGenerateCode}
+                  disabled={inviteLoading}
+                  className={cn(
+                    'w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] transition-all active:scale-[0.97]',
+                    inviteLoading && 'opacity-70'
+                  )}
+                >
+                  {inviteLoading ? '✨ Generating...' : '✨ Generate Invite Code'}
+                </button>
+                <p className="mt-2 text-xs font-semibold text-[var(--text-muted)] leading-tight">
+                  Share this code with anyone who helps care for {baby.name}. They&apos;ll enter it during sign-up.
+                </p>
+              </>
+            ) : (
+              <div className="rounded-2xl border-2 border-dashed border-[var(--lavender-light)] bg-gradient-to-br from-[var(--lavender-bg)] to-[#F0EAFF] px-4 py-5">
+                <div className="mb-2 text-2xl">🔑</div>
+                <div className="mb-1 text-2xl font-black tracking-[0.15em] text-[#5B2ED9]">
+                  {inviteCode}
+                </div>
+                <div className="mb-3 text-[11px] font-semibold text-[var(--text-secondary)]">
+                  ⏰ Expires in 24 hours · One-time use
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleGenerateCode}
+                    disabled={inviteLoading}
+                    className="flex-1 rounded-xl border-2 border-[var(--lavender-light)] bg-white py-2.5 text-xs font-bold text-[var(--text-secondary)] active:bg-[var(--lavender-bg)] transition-colors"
+                  >
+                    ↻ New Code
+                  </button>
+                  <button
+                    onClick={handleCopyCode}
+                    className={cn(
+                      'flex-1 rounded-xl py-2.5 text-xs font-bold text-white transition-all active:scale-[0.97]',
+                      inviteCopied
+                        ? 'bg-gradient-to-br from-[var(--mint)] to-[#4CAF74] shadow-[0_4px_12px_rgba(111,207,151,0.2)]'
+                        : 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] shadow-[0_4px_12px_rgba(124,77,255,0.2)]'
+                    )}
+                  >
+                    {inviteCopied ? '✅ Copied!' : '📋 Copy Code'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ===== DANGER ZONE ===== */}
+        <div className="rounded-[var(--radius-lg)] border-[1.5px] border-[var(--rose-light)] bg-white px-5 pb-5 pt-4 shadow-[var(--shadow-sm)]">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-lg">⚠️</span>
+            <span className="text-sm font-extrabold text-[var(--rose)]">Danger Zone</span>
+          </div>
+          <button
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="mb-3 flex w-full items-center justify-center rounded-xl border-2 border-[#EEE] bg-white py-3 text-sm font-bold text-[var(--text-secondary)] transition-colors active:bg-[var(--bg)] disabled:opacity-60"
+          >
+            {isSigningOut ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />
+            ) : (
+              'Sign Out'
+            )}
+          </button>
+          <button
+            onClick={() => alert('Delete confirmation flow')}
+            className="w-full rounded-xl border-2 border-[var(--rose-light)] bg-[var(--rose-bg)] py-3 text-sm font-bold text-[var(--rose)] transition-colors active:bg-[var(--rose-light)]"
+          >
+            Delete {baby.name}&apos;s Data
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

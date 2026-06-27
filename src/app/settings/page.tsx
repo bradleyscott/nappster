@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SettingsForm } from '@/components/settings-form'
+import { getFamilyMembersForBaby } from '@/lib/services/family-members'
 import { getFamilyMembersForUser } from '@/lib/services/family-members'
 import { getBabyById } from '@/lib/services/babies'
 
@@ -24,10 +25,11 @@ export default async function SettingsPage() {
   const babyId = familyMembers[0].baby_id
 
   const { data: baby } = await getBabyById(supabase, babyId)
+  const { data: allFamilyMembers } = await getFamilyMembersForBaby(supabase, babyId)
 
   if (!baby) {
     redirect('/onboarding')
   }
 
-  return <SettingsForm baby={baby} />
+  return <SettingsForm baby={baby} familyMembers={allFamilyMembers ?? []} />
 }

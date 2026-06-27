@@ -142,9 +142,9 @@ describe('useTimelineBuilder', () => {
 
     const items = result.current.timelineItems
     expect(items).toHaveLength(3)
-    expect(items[0].kind).toBe('sleep_event')   // 08:00
+    expect(items[0].kind).toBe('message')        // 10:00 (live)
     expect(items[1].kind).toBe('message')        // 09:00 (history)
-    expect(items[2].kind).toBe('message')        // 10:00 (live)
+    expect(items[2].kind).toBe('sleep_event')   // 08:00
   })
 
   it('groups messages with events within 60s time window', () => {
