@@ -1,0 +1,249 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import type { ToolExecutionOptions } from 'ai'
+import { createGetBabyProfileTool } from '../get-baby-profile'
+import { createGetTodayEventsTool } from '../get-today-events'
+import { createGetSleepHistoryTool } from '../get-sleep-history'
+import { createGetChatHistoryTool } from '../get-chat-history'
+import { createUpdatePatternNotesTool } from '../update-notes'
+import { createUpdateSleepPlanTool } from '../update-sleep-plan'
+import { createMockSupabaseClient, MockSupabaseClient } from '@/lib/__tests__/mocks/supabase'
+import { ToolContext } from '../types'
+
+async function executeTool<TInput, TOutput>(
+  tool: { execute?: (input: TInput, options: ToolExecutionOptions) => AsyncIterable<TOutput> | PromiseLike<TOutput> | TOutput },
+  input: TInput
+): Promise<TOutput> {
+  if (!tool.execute) throw new Error('Tool execute is undefined')
+  const options: ToolExecutionOptions = { toolCallId: 'test-call-id', messages: [] }
+  const result = await tool.execute(input, options)
+  return result as TOutput
+}
+
+describe('AI tools', () => {
+  let mockSupabase: MockSupabaseClient
+  let context: ToolContext
+
+  beforeEach(() => {
+    mockSupabase = createMockSupabaseClient()
+    context = {
+      supabase: mockSupabase as unknown as ToolContext['supabase'],
+      babyId: 'test-baby-123',
+      timezone: 'America/New_York',
+    }
+    mockSupabase._reset()
+  })
+
+  describe('getBabyProfile', () => {
+    it('returns baby profile', async () => {
+      mockSupabase._setSelectResponse({
+        data: {
+          id: 'test-baby-123',
+          name: 'Luna',
+          birth_date: '2023-06-15',
+          sleep_training_method: 'Taking Cara Babies',
+          pattern_notes: 'Short naps',
+          created_at: '2023-06-15T00:00:00Z',
+        },
+        error: null,
+      })
+
+      const tool = createGetBabyProfileTool(context)
+      const result = await executeTool(tool, {})
+
+      expect(result.success).toBe(true)
+      if (!result.success) throw new Error(result.error)
+      expect(result.baby.name).toBe('Luna')
+      expect(result.baby.age).toMatch(/\d+ months?|newborn/)
+      expect(result.baby.sleepTrainingMethod).toBe('Taking Cara Babies')
+    })
+
+    it('returns error when baby not found', async () => {
+      mockSupabase._setSelectResponse({ data: null, error: null })
+
+      const tool = createGetBabyProfileTool(context)
+      const result = await executeTool(tool, {})
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('Baby not found')
+    })
+  })
+
+  describe('getTodayEvents', () => {
+    it('returns today events and state', async () => {
+      mockSupabase._setSelectResponse({
+        data: [
+          {
+            id: 'evt-1',
+            baby_id: 'test-baby-123',
+            event_type: 'wake',
+            event_time: new Date().toISOString(),
+            end_time: null,
+            context: 'home',
+            notes: null,
+            created_at: new Date().toISOString(),
+          },
+        ],
+        error: null,
+      })
+
+      const tool = createGetTodayEventsTool(context)
+      const result = await executeTool(tool, {})
+
+      expect(result.success).toBe(true)
+      if (!result.success) throw new Error(result.error)
+      expect(result.events).toHaveLength(1)
+      expect(result.currentState).toBe('daytime_awake')
+      expect(result.summary.hasWake).toBe(true)
+    })
+
+    it('returns default state when no events', async () => {
+      mockSupabase._setSelectResponse({ data: [], error: null })
+
+      const tool = createGetTodayEventsTool(context)
+      const result = await executeTool(tool, {})
+
+      expect(result.success).toBe(true)
+      expect(result.events).toHaveLength(0)
+      expect(result.currentState).toBe('awaiting_morning_wake')
+    })
+  })
+
+  describe('getSleepHistory', () => {
+    it('returns day summaries', async () => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      yesterday.setHours(7, 0, 0, 0)
+
+      mockSupabase._setSelectResponse({
+        data: [
+          {
+            id: 'evt-1',
+            baby_id: 'test-baby-123',
+            event_type: 'wake',
+            event_time: yesterday.toISOString(),
+            end_time: null,
+            context: 'home',
+            notes: null,
+            created_at: yesterday.toISOString(),
+          },
+          {
+            id: 'evt-2',
+            baby_id: 'test-baby-123',
+            event_type: 'bedtime',
+            event_time: new Date(yesterday.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+            end_time: null,
+            context: 'home',
+            notes: null,
+            created_at: new Date(yesterday.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+          },
+        ],
+        error: null,
+      })
+
+      const tool = createGetSleepHistoryTool(context)
+      const result = await executeTool(tool, { days: 7 })
+
+      expect(result.success).toBe(true)
+      if (!result.success) throw new Error(result.error)
+      expect(result.total_events).toBe(2)
+      expect(result.summaries).toHaveLength(1)
+      expect(result.summaries[0].wakeTime).not.toBeNull()
+    })
+  })
+
+  describe('getChatHistory', () => {
+    it('returns formatted chat messages', async () => {
+      mockSupabase._setSelectResponse({
+        data: [
+          {
+            message_id: 'msg-1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'Hello' }],
+            created_at: new Date().toISOString(),
+          },
+        ],
+        error: null,
+      })
+
+      const tool = createGetChatHistoryTool(context)
+      const result = await executeTool(tool, { days: 7, limit: 50 })
+
+      expect(result.success).toBe(true)
+      if (!result.success) throw new Error(result.error)
+      expect(result.messages).toHaveLength(1)
+      expect(result.messages[0].text).toBe('Hello')
+    })
+  })
+
+  describe('updatePatternNotes', () => {
+    it('appends new pattern notes', async () => {
+      mockSupabase._setSelectResponse({
+        data: {
+          id: 'test-baby-123',
+          pattern_notes: 'Existing note',
+        },
+        error: null,
+      })
+
+      const tool = createUpdatePatternNotesTool(context)
+      const result = await executeTool(tool, { pattern_info: 'New pattern' })
+
+      expect(result.success).toBe(true)
+      expect(result.current_notes).toContain('Existing note')
+      expect(result.current_notes).toContain('New pattern')
+      expect(mockSupabase._getUpdateCalls()).toHaveLength(1)
+    })
+
+    it('returns error when notes exceed max length', async () => {
+      mockSupabase._setSelectResponse({
+        data: { id: 'test-baby-123', pattern_notes: 'a'.repeat(1900) },
+        error: null,
+      })
+
+      const tool = createUpdatePatternNotesTool(context)
+      const result = await executeTool(tool, { pattern_info: 'b'.repeat(200) })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('too long')
+    })
+  })
+
+  describe('updateSleepPlan', () => {
+    it('persists a sleep plan', async () => {
+      mockSupabase._setSelectResponse({
+        data: [],
+        error: null,
+      })
+      mockSupabase._setInsertResponse({
+        data: {
+          id: 'plan-1',
+          baby_id: 'test-baby-123',
+          current_state: 'daytime_awake',
+          next_action: { label: 'Nap 1', timeWindow: '9:00am', isUrgent: false },
+          schedule: [{ type: 'nap', label: 'Nap 1', timeWindow: '9:00am', status: 'upcoming', notes: '' }],
+          target_bedtime: '7:00pm',
+          summary: 'Plan summary',
+          events_hash: 'abc123',
+          plan_date: '2024-01-15',
+          is_active: true,
+          created_by: null,
+          created_at: new Date().toISOString(),
+        },
+        error: null,
+      })
+
+      const tool = createUpdateSleepPlanTool(context)
+      const result = await executeTool(tool, {
+        currentState: 'daytime_awake',
+        nextAction: { label: 'Nap 1', timeWindow: '9:00am', isUrgent: false },
+        schedule: [{ type: 'nap', label: 'Nap 1', timeWindow: '9:00am', status: 'upcoming', notes: '' }],
+        targetBedtime: '7:00pm',
+        summary: 'Plan summary',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.persisted).toBe(true)
+      expect(mockSupabase._getInsertCalls()).toHaveLength(1)
+    })
+  })
+})
