@@ -40,7 +40,7 @@ export function AppHeader({ baby }: AppHeaderProps) {
   }
 
   return (
-    <header className="relative px-4 pt-3 pb-1 text-center">
+    <header className="relative px-4 pt-3 pb-1">
       {/* Floating action buttons */}
       <div className="absolute right-4 top-3 flex gap-2">
         <Link
@@ -69,10 +69,15 @@ export function AppHeader({ baby }: AppHeaderProps) {
         </Link>
       </div>
 
-      <div className="text-xs font-bold text-[var(--text-muted)]">{getGreeting()}</div>
-      <div className="text-xl font-black text-[var(--text)]">{baby.name}</div>
-      <div className="mt-1.5 inline-flex items-center rounded-full bg-[var(--lavender-bg)] px-2.5 py-1 text-[10px] font-extrabold text-[var(--lavender)]">
-        {formatAge(baby.birth_date)}
+      {/* Soft pill card header */}
+      <div className="flex flex-col items-center rounded-full bg-white px-5 py-2.5 text-center shadow-[var(--shadow-sm)]">
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
+          {getGreeting()}
+        </span>
+        <span className="text-xl font-black leading-tight text-[var(--text)]">{baby.name}</span>
+        <span className="mt-0.5 inline-flex items-center rounded-full bg-[var(--lavender-bg)] px-2 py-0.5 text-[10px] font-extrabold text-[var(--lavender)]">
+          {formatAge(baby.birth_date)}
+        </span>
       </div>
     </header>
   )
