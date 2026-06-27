@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-Developers need to run the app without a live Supabase project or OpenAI API key. Setting up a full backend for every contributor is too heavy.
+Developers need to run the app without a live Supabase project. Setting up a full backend for every contributor is too heavy. (The OpenAI API key is still required for AI chat features, but Supabase — auth, database, realtime — is fully mocked.)
 
 ## Decision
 Implement a `NEXT_PUBLIC_USE_MOCK_DATA=true` mode that swaps the Supabase client for an in-memory mock client. The mock provides auth, query building, and CRUD for all used tables. All data resets on page refresh.
