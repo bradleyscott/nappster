@@ -411,7 +411,7 @@ export function ChatContent({
         )}
       </div>
     )
-  }, [groupedMessages, status, formatMessageTime, lastMessageHasToolCalls])
+  }, [groupedMessages, status, formatMessageTime])
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
@@ -503,7 +503,6 @@ function ToolCallCard({ parts, isStreaming }: { parts: ToolPart[]; isStreaming?:
             const toolName = part.type.replace('tool-', '')
             const info = toolInfo[toolName]
             const isComplete = part.state === 'output-available'
-            const isActive = !isComplete
             return (
               <div
                 key={idx}
