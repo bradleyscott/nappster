@@ -261,8 +261,14 @@ function getStateConfig(
     case 'overnight_sleep': {
       const bedtimeTime = getLastEventTime(events, 'bedtime')
       const sleepingFor = getDurationSince(events, 'bedtime')
-      const nightWakeCount = events.filter(e => e.event_type === 'night_wake').length
       const bedtimeEvent = [...events].reverse().find(e => e.event_type === 'bedtime')
+      const nightWakeCount = bedtimeEvent
+        ? events.filter(
+            e =>
+              e.event_type === 'night_wake' &&
+              new Date(e.event_time) > new Date(bedtimeEvent.event_time)
+          ).length
+        : events.filter(e => e.event_type === 'night_wake').length
       return {
         accent: 'lavender',
         icon: '🌙',
