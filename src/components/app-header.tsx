@@ -69,12 +69,12 @@ export function AppHeader({ baby }: AppHeaderProps) {
         </Link>
       </div>
 
-      {/* Soft pill card header */}
-      <div className="flex flex-col items-center rounded-full bg-white px-5 py-2.5 text-center shadow-[var(--shadow-sm)]">
+      {/* Rounded card header */}
+      <div className="flex min-h-[60px] flex-col items-center justify-center rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]">
         <span className="text-[10px] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
           {getGreeting()}
         </span>
-        <span className="text-xl font-black leading-tight text-[var(--text)]">{baby.name}</span>
+        <span className="text-lg font-black leading-tight text-[var(--text)]">{baby.name}</span>
         <span className="mt-0.5 inline-flex items-center rounded-full bg-[var(--lavender-bg)] px-2 py-0.5 text-[10px] font-extrabold text-[var(--lavender)]">
           {formatAge(baby.birth_date)}
         </span>
