@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { useMediaQuery } from '@/lib/hooks/use-media-query'
 import { CountdownRing } from './countdown-ring'
 import { SubtitlePills } from './subtitle-pills'
 import type { Pill } from './subtitle-pills'
@@ -69,6 +70,9 @@ export function StateHero({
   onPillTap,
 }: StateHeroProps) {
   const a = accentMap[accentColor]
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const isTablet = useMediaQuery('(min-width: 768px)')
+  const ringSize = isDesktop ? 220 : isTablet ? 190 : 150
 
   return (
     <div
@@ -107,6 +111,7 @@ export function StateHero({
           gradient={a.gradient}
           timeRemaining={countdown.timeRemaining}
           timeLabel={countdown.timeLabel}
+          size={ringSize}
         />
       </div>
 

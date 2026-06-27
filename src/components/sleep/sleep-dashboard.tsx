@@ -140,7 +140,7 @@ export function SleepDashboard({
   const stateConfig = getStateConfig(currentState, baby.name, sleepPlan, allEvents)
 
   return (
-    <div className={cn('mx-auto flex max-w-md flex-col gap-4 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2 md:max-w-xl lg:max-w-2xl', className)}>
+    <div className={cn('mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2 md:max-w-xl lg:max-w-2xl', className)}>
       {/* State Hero */}
       <StateHero
         accentColor={stateConfig.accent}
