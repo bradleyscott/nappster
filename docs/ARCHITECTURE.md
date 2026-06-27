@@ -8,6 +8,9 @@ This document provides a comprehensive overview of the Nappster application arch
 - [Directory Structure](#directory-structure)
 - [Data Flow](#data-flow)
 - [AI Integration](#ai-integration)
+- [Deterministic State Machine](#deterministic-state-machine)
+- [Sleep Trends](#sleep-trends)
+- [Data Access Layer](#data-access-layer)
 - [Database Schema](#database-schema)
 - [Authentication](#authentication)
 - [Realtime Sync](#realtime-sync)
@@ -19,9 +22,10 @@ This document provides a comprehensive overview of the Nappster application arch
 
 Nappster is a Progressive Web App for tracking baby sleep patterns and generating AI-powered schedule recommendations. The architecture prioritizes:
 
-- **Mobile-first UX** - Large tap targets, one-handed operation
-- **Multi-caregiver collaboration** - Real-time sync between family members
-- **AI-assisted decision making** - Tool-calling AI that can read and write data
+- **Mobile-first UX** - Large tap targets, one-handed operation, a swipe-up chat drawer
+- **State-driven dashboard** - A deterministic sleep state machine drives the hero card and quick actions
+- **Multi-caregiver collaboration** - Real-time sync between family members, joinable via 6-digit invite codes
+- **AI-assisted decision making** - Tool-calling AI that can read and write data, kept in a drawer until needed
 - **Offline development** - Mock mode for local development without external services
 
 ### Technology Stack
@@ -30,14 +34,17 @@ Nappster is a Progressive Web App for tracking baby sleep patterns and generatin
 ┌─────────────────────────────────────────────────────────────┐
 │                         Client                              │
 │  Next.js 16 App Router + React 19 + Tailwind CSS 4          │
-│  shadcn/ui components + Vercel AI SDK (@ai-sdk/react)       │
+│  shadcn/ui + Motion + Vercel AI SDK (@ai-sdk/react)         │
+│  Serwist 9 service worker (precache + runtime caching)       │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      API Routes                             │
-│  /api/chat - Streaming chat with tool calling               │
-│  /api/sleep-plan/[babyId] - Fetch active sleep plan         │
+│  /api/chat                 - Streaming chat + tools         │
+│  /api/chat/messages        - Chat history pagination         │
+│  /api/sleep-plan/[babyId]  - Fetch active sleep plan        │
+│  /api/invite, /invite/redeem - Caregiver invite codes       │
 └─────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┴───────────────┐
@@ -55,86 +62,155 @@ Nappster is a Progressive Web App for tracking baby sleep patterns and generatin
 src/
 ├── app/                              # Next.js App Router
 │   ├── page.tsx                      # Main dashboard (server component)
+│   ├── sleep-trends/page.tsx         # 7/14-day trends + typical-day view
 │   ├── layout.tsx                    # Root layout with providers
+│   ├── error.tsx                     # Error boundary
 │   ├── auth/
 │   │   ├── login/page.tsx            # Email/password login
 │   │   ├── signup/page.tsx           # Account creation
 │   │   └── callback/route.ts         # OAuth callback handler
 │   ├── onboarding/page.tsx           # Baby profile setup
-│   ├── settings/page.tsx             # User preferences
+│   ├── settings/page.tsx             # Profile, caregivers, invite codes
+│   ├── sw.ts                         # Serwist service worker entry
 │   └── api/
 │       ├── chat/
 │       │   ├── route.ts              # POST: Streaming chat endpoint
 │       │   └── messages/route.ts     # POST: Chat history pagination
-│       └── sleep-plan/
-│           ├── route.ts              # POST: Generate new plan
-│           └── [babyId]/route.ts     # GET: Fetch active plan
+│       ├── sleep-plan/
+│       │   └── [babyId]/route.ts     # GET: Fetch active plan (staleness check)
+│       └── invite/
+│           ├── route.ts              # POST: Generate invite code
+│           └── redeem/route.ts      # POST: Redeem invite to join baby
 │
 ├── components/
-│   ├── ui/                           # shadcn/ui primitives (13 components)
-│   │   ├── button.tsx
-│   │   ├── dialog.tsx
-│   │   ├── input.tsx
-│   │   └── ...
+│   ├── ui/                           # shadcn/ui primitives
+│   │   ├── button.tsx, button-group.tsx, card.tsx, dialog.tsx,
+│   │   │   input.tsx, input-group.tsx, textarea.tsx, label.tsx,
+│   │   │   scroll-area.tsx, separator.tsx, skeleton.tsx,
+│   │   │   collapsible.tsx, tooltip.tsx
 │   ├── ai-elements/                  # Chat UI components
 │   │   ├── conversation.tsx          # Scrollable message container
 │   │   ├── message.tsx               # Message bubble
-│   │   ├── chain-of-thought.tsx      # Tool invocation display
-│   │   ├── reasoning.tsx             # Extended thinking display
-│   │   └── prompt-input.tsx          # Message input field
-│   ├── chat-content.tsx              # Main chat interface (client)
-│   ├── chat-input.tsx                # Input with quick actions
-│   ├── sleep-event-dialog.tsx        # Edit single event
-│   ├── sleep-session-dialog.tsx      # Edit paired events
-│   └── app-header.tsx                # Navigation header
+│   │   ├── chain-of-thought.tsx     # Tool invocation display
+│   │   ├── reasoning.tsx            # Extended thinking display
+│   │   ├── prompt-input.tsx         # Message input field
+│   │   ├── loader.tsx, shimmer.tsx, suggestion.tsx
+│   ├── sleep/                       # Dashboard composition
+│   │   ├── sleep-dashboard.tsx      # State-driven dashboard shell
+│   │   ├── state-hero.tsx           # Countdown-ring hero card
+│   │   ├── countdown-ring.tsx       # Circular progress ring
+│   │   ├── subtitle-pills.tsx       # Tappable sub-label chips
+│   │   ├── action-buttons.tsx       # Primary/secondary quick actions
+│   │   ├── timeline-section.tsx    # Grouped, editable day timeline
+│   │   ├── event-sheet.tsx         # Bottom-sheet create/edit event
+│   │   ├── chat-drawer.tsx          # Swipe-up AI chat drawer + FAB
+│   │   ├── trends-view.tsx          # Typical-day + history trends UI
+│   │   └── page-header.tsx         # Shared rounded-card header
+│   ├── chat-content.tsx             # Main page client component (wires dashboard + chat)
+│   ├── chat-input.tsx               # Quick-action input (legacy chat mode)
+│   ├── app-header.tsx               # Dashboard header (trends + settings nav)
+│   ├── nappster-logo.tsx            # Brand logo
+│   ├── settings-form.tsx            # Profile + caregiver + invite management
+│   ├── mock-user-toggle.tsx
+│   ├── service-worker-register.tsx
+│   ├── timezone-provider.tsx
+│   ├── back-button.tsx
+│   ├── event-type-selector.tsx
+│   ├── night-wake-form.tsx
+│   ├── sleep-event-button.tsx, sleep-event-dialog.tsx
+│   ├── sleep-session-dialog.tsx
+│   ├── unified-event-dialog.tsx, unified-edit-dialog.tsx
+│   ├── unified-nap-form.tsx, unified-sleep-form.tsx
+│   ├── delete-confirmation-dialog.tsx
+│   ├── timeline-renderer.tsx
+│   └── sleep-plan-card.tsx
 │
 ├── lib/
-│   ├── ai/tools/                     # AI tool definitions
-│   │   ├── index.ts                  # Tool exports and factories
-│   │   ├── types.ts                  # ToolContext type
-│   │   ├── get-baby-profile.ts       # Read baby info
-│   │   ├── get-today-events.ts       # Read today's sleep events
-│   │   ├── get-sleep-history.ts      # Read historical events
-│   │   ├── get-chat-history.ts       # Read past conversations
-│   │   ├── create-event.ts           # Create sleep event
-│   │   ├── update-notes.ts           # Update pattern notes
-│   │   └── update-sleep-plan.ts      # Save generated plan
+│   ├── ai/
+│   │   ├── tools/                   # AI tool definitions
+│   │   │   ├── index.ts             # createChatTools / createReadOnlyTools
+│   │   │   ├── types.ts             # ToolContext type
+│   │   │   ├── get-baby-profile.ts, get-today-events.ts,
+│   │   │   │   get-sleep-history.ts, get-chat-history.ts
+│   │   │   └── create-event.ts, update-notes.ts, update-sleep-plan.ts
+│   │   ├── prompts.ts               # System prompt builder
+│   │   ├── schemas/sleep-plan.ts    # Zod schema for AI plan output
+│   │   └── format-context.ts
+│   ├── services/                    # Typed data-access layer
+│   │   ├── sleep-events.ts, sleep-plans.ts, chat-messages.ts,
+│   │   │   babies.ts, family-members.ts, invite-codes.ts
 │   ├── supabase/
-│   │   ├── server.ts                 # Server-side client (cookies)
-│   │   └── client.ts                 # Client-side client (browser)
-│   ├── mock/                         # Development mock system
-│   │   ├── store.ts                  # In-memory data store
-│   │   ├── client.ts                 # Mock Supabase client
-│   │   ├── auth.ts                   # Mock auth provider
-│   │   └── query-builder.ts          # Mock query builder
-│   ├── hooks/                        # React hooks
-│   │   ├── use-realtime-sync.ts      # Multi-user sync hook
-│   │   ├── use-sleep-event-crud.ts   # Local + server event state
-│   │   ├── use-sleep-plan-sync.ts    # Local sleep plan state
-│   │   ├── use-background-refresh.ts # Missed-event recovery
+│   │   ├── server.ts                # Server-side client (cookies)
+│   │   └── client.ts                # Client-side client (browser)
+│   ├── mock/                        # Development mock system
+│   │   ├── store.ts, client.ts, auth.ts, query-builder.ts
+│   ├── hooks/
+│   │   ├── use-realtime-sync.ts     # Multi-user sync
+│   │   ├── use-sleep-event-crud.ts  # Optimistic event create/update/delete
+│   │   ├── use-sleep-plan-sync.ts   # Local plan state + active selection
+│   │   ├── use-background-refresh.ts # Reconnect/visibility recovery
 │   │   ├── use-chat-transport.ts     # Chat API transport setup
-│   │   ├── use-timeline-builder.ts   # Prepare timeline props
+│   │   ├── use-chat-history.ts       # Paginated history loading
+│   │   ├── use-timeline-builder.ts   # Merge streams into timeline props
 │   │   ├── use-tool-outputs.ts       # Extract AI tool results
 │   │   ├── use-today-sleep-state.ts  # Current sleep state
-│   │   └── use-event-dialog-handlers.ts # Dialog save/delete helpers
-│   ├── sleep-utils.ts                # Event grouping, formatting
-│   ├── timezone.ts                   # Timezone utilities
-│   ├── error-reporting.ts            # Configurable error reporting
-│   ├── env.ts                        # Environment validation
-│   └── utils.ts                      # General utilities (cn, etc.)
+│   │   ├── use-event-dialog-handlers.ts
+│   │   └── use-media-query.ts
+│   ├── api/                         # API route helpers
+│   │   ├── auth.ts (requireBabyAccess, authErrorResponse)
+│   │   ├── validation.ts (validateRequest + zod)
+│   │   ├── responses.ts (apiSuccess, apiError)
+│   │   └── index.ts
+│   ├── state-machine.ts             # Deterministic sleep-state computation
+│   ├── sleep-utils.ts               # Event grouping, formatting, events hash
+│   ├── sleep-trends.ts              # Trends day-row + typical-day builder
+│   ├── sleep-trend-stats.ts         # Aggregate trend stats
+│   ├── merge-data.ts                # Merge initial/local/realtime/refresh streams
+│   ├── timezone.ts                  # Timezone utilities (date-fns-tz)
+│   ├── env.ts                       # Environment validation
+│   ├── error-reporting.ts           # Configurable error reporting
+│   └── utils.ts                     # General utilities (cn, etc.)
 │
 ├── types/
-│   └── database.ts                   # TypeScript types
+│   └── database.ts                  # TypeScript types
 │
-└── proxy.ts                          # Auth middleware
+└── proxy.ts                         # Auth middleware (supabase-ssr)
 ```
 
 ## Data Flow
 
+### Main Page (Dashboard) Load
+
+```text
+GET / (Home)
+         │
+         ▼
+page.tsx (Server Component)
+  ├── supabase.auth.getUser()
+  │     └── No user → render landing page (Get Started / Sign In)
+  ├── getFamilyMembersForUser() ─── no baby? → redirect("/onboarding")
+  ├── getBabyById(babyId)
+  ├── getChatMessages(babyId, limit: 50)      ┐ parallel
+  ├── getSleepEvents(babyId, from: yesterday) ┘
+  └── getSleepPlansSinceCreatedAt(babyId, ...)
+         │
+         ▼
+ChatContent (Client Component)
+  ├── AppHeader (logo, greeting, trends + settings nav)
+  ├── SleepDashboard
+  │     ├── computeCurrentState(events)        ← state-machine.ts
+  │     ├── StateHero (countdown ring, pills)
+  │     ├── ActionButtons (queued from VALID_EVENTS[state])
+  │     ├── TimelineSection (grouped, editable)
+  │     ├── EventSheet (create/edit bottom sheet)
+  │     └── ChatDrawer (FAB + swipe-up drawer)
+  └── UnifiedEditDialog (dispatches single vs paired event edits)
+```
+
 ### User Message Flow
 
 ```text
-User types message in ChatInput
+User opens ChatDrawer and types
          │
          ▼
 ChatContent.handleSendMessage()
@@ -144,9 +220,10 @@ useChat.sendMessage() ───────────────────�
          │                                               │
          ▼                                               │
 POST /api/chat                                          │
-  ├── Model: gpt-5.2 (reasoning enabled)                │
+  ├── Model: gpt-5.2 (reasoning: medium)                │
   ├── System prompt with tool instructions              │
-  └── Tools: 7 available                                │
+  ├── stopWhen: stepCountIs(MAX_TOOL_STEPS)             │
+  └── Tools: createChatTools(context)                   │
          │                                               │
          ▼                                               │
 AI calls tools as needed:                               │
@@ -166,7 +243,8 @@ Stream response with:                                   │
          │                                               │
          ▼                                               │
 Client processes stream: ◄──────────────────────────────┘
-  ├── Extract tool outputs → update local state
+  ├── useToolOutputs extracts createSleepEvent / updateSleepPlan
+  │   outcomes → update local event/plan state
   ├── Display reasoning in collapsible section
   └── Render markdown response
 
@@ -180,34 +258,36 @@ After stream completes:
 Events change (create/update/delete)
          │
          ▼
-Increment refreshKey state
+Events hash changes (djb2 in sleep-utils.computeEventsHash)
          │
          ▼
-SleepPlanCard detects key change
+Sleep plan is (re)generated by the AI during chat via the
+updateSleepPlan tool — there is NO separate generation endpoint:
+  ├── Deactivates existing active plans
+  ├── Computes and stores events_hash (cache invalidation)
+  └── Inserts new plan into sleep_plans table
          │
          ▼
-Compute events hash (djb2 algorithm)
+GET /api/sleep-plan/[babyId] reads the active plan and
+compares its events_hash to current events to report staleness.
+```
+
+### Event Logging Flow (quick action)
+
+```text
+Dashboard action button tapped (or EventSheet saved)
          │
-         ├── Hash unchanged? → Use cached plan
+         ▼
+useSleepEventCRUD optimistic insert/update/delete
          │
-         └── Hash changed? → AI chat generates new plan
-                   │
-                   ▼
-              AI uses updateSleepPlan tool:
-                ├── Computes events hash
-                ├── Deactivates existing plans
-                └── Inserts new plan
-                   │
-                   ▼
-              Saved to sleep_plans table:
-                {
-                  currentState: 'daytime_awake' | ...
-                  nextAction: { label, timeWindow, isUrgent }
-                  schedule: [...]
-                  targetBedtime: string
-                  summary: string
-                }
-              (with events_hash for cache invalidation)
+         ▼
+State updates immediately (UI)
+         │
+         ▼
+computeCurrentState() rerun → StateHero + buttons change
+         │
+         ▼
+Realtime broadcast → other caregivers' UIs update
 ```
 
 ### Realtime Sync Flow
@@ -230,7 +310,7 @@ Family member B's useRealtimeSync hook
                       (via broadcast workaround)
          │
          ▼
-Trigger plan refresh → New schedule generated
+merge-data.ts merges all streams → triggers plan refresh
 ```
 
 ## AI Integration
@@ -285,7 +365,7 @@ streamText({
   system: buildToolBasedSystemPrompt(timezone),
   messages: await convertToModelMessages(messages),
   tools: createChatTools(toolContext),
-  stopWhen: stepCountIs(6),  // Max tool call rounds
+  stopWhen: stepCountIs(MAX_TOOL_STEPS),  // Max tool call rounds
   providerOptions: {
     openai: {
       reasoningEffort: "medium",  // Extended thinking
@@ -296,7 +376,41 @@ streamText({
 
 ### Sleep Plan Generation
 
-Sleep plans are generated via the `updateSleepPlan` AI tool during chat, not through a separate API endpoint. The `GET /api/sleep-plan/[babyId]` route fetches the active plan and checks staleness against current events.
+Sleep plans are generated via the `updateSleepPlan` AI tool during chat, not through a separate API endpoint. The `GET /api/sleep-plan/[babyId]` route fetches the active plan and checks staleness against current events using the stored `events_hash`.
+
+## Deterministic State Machine
+
+The dashboard is driven by a pure, deterministic state machine in `src/lib/state-machine.ts` — sleep state is computed from events, never inferred by the LLM.
+
+### States
+
+```text
+awaiting_morning_wake   ──wake──▶   daytime_awake
+overnight_sleep         ──wake──▶   daytime_awake
+overnight_sleep     ──night_wake──▶ overnight_sleep (logs event, no state change)
+daytime_awake      ──nap_start──▶ daytime_napping
+daytime_awake         ──bedtime──▶ overnight_sleep
+daytime_napping       ──nap_end──▶ daytime_awake
+```
+
+### API
+
+- `computeCurrentState(events): SleepState` — pure function; infers state from the last event but also supports transition-based computation for edge cases (e.g., missing morning wake).
+- `VALID_EVENTS[state]` — which quick-action buttons to render.
+- `getQuickEntryButtons(state, { showBedtimeOverNap })` — button config per state.
+- `shouldShowBedtime(schedule, targetBedtime, now)` — swap nap button for bedtime when all naps are done or within 1 hour of target.
+- `getSuggestedQuestions(state, babyName)` — contextual chat prompts.
+
+`SleepDashboard.getStateConfig()` maps each state to a hero accent, icon, title, subtitle pills, countdown, expected transition label, and action buttons. The hero accent rotates across four brand palettes: `lavender` (overnight), `peach` (awake), `mint` (napping), `sunset` (bedtime near).
+
+## Sleep Trends
+
+The `/sleep-trends` page (`src/app/sleep-trends/page.tsx`) fetches 16 days of events (14 days + buffer for overnight sessions crossing midnight) and renders via `TrendsView` (`src/components/sleep/trends-view.tsx`):
+
+1. **Typical Day card** — `computeExpectedDays()` in `src/lib/sleep-trends.ts` reduces the history into an aggregated "expected day" for both `home` and `daycare` contexts, rendered as a 24-hour bar with night/naps/awake split and stat pills.
+2. **Stat cards** — average naps, average bedtime, average wake time (`src/lib/sleep-trend-stats.ts`).
+3. **History** — `buildDayRows()` produces per-day rows with overnight blocks, nap blocks (daycare naps colored peach, home naps mint), and night-wake markers. Tapping a row opens a `DayDetailSheet` timeline of the day's blocks.
+4. **Edit-in-place** — events can be edited from the detail sheet via `useSleepEventCRUD` + `EventSheet`.
 
 ## Data Access Layer
 
@@ -310,8 +424,8 @@ All direct Supabase queries live in `src/lib/services/`. Components, hooks, API 
 | `sleep-plans.ts` | Active plan lookup, create plan, deactivate old plans, recent plans. |
 | `chat-messages.ts` | Persist and paginate chat messages. |
 | `babies.ts` | Baby profile CRUD. |
-| `family-members.ts` | Membership lookup, access checks, invite redemption. |
-| `invite-codes.ts` | Invite code generation. |
+| `family-members.ts` | Membership lookup, access checks, invite redemption, all-caregivers lookup (via SECURITY DEFINER RPC). |
+| `invite-codes.ts` | 6-digit invite code generation and lookup. |
 
 ### Design Rules
 
@@ -334,23 +448,33 @@ All direct Supabase queries live in `src/lib/services/`. Components, hooks, API 
 └──────────────────┘      │ created_at       │      │ pattern_notes    │
                           └──────────────────┘      │ created_at       │
                                                     └──────────────────┘
-                                                            │
-                          ┌─────────────────────────────────┼─────────────────────────────────┐
-                          │                                 │                                 │
-                          ▼                                 ▼                                 ▼
-               ┌──────────────────┐              ┌──────────────────┐              ┌──────────────────┐
-               │  sleep_events    │              │  chat_messages   │              │   sleep_plans    │
-               │──────────────────│              │──────────────────│              │──────────────────│
-               │ id (PK)          │              │ id (PK)          │              │ id (PK)          │
-               │ baby_id (FK)     │              │ baby_id (FK)     │              │ baby_id (FK)     │
-               │ event_type       │              │ message_id       │              │ current_state    │
-               │ event_time       │              │ role             │              │ next_action      │
-               │ end_time         │              │ parts (JSONB)    │              │ schedule (JSONB) │
-               │ context          │              │ created_at       │              │ events_hash      │
-               │ notes            │              └──────────────────┘              │ is_active        │
-               │ created_at       │                                                │ plan_date        │
-               └──────────────────┘                                                │ created_at       │
-                                                                                   └──────────────────┘
+                            │         │                 │
+       ┌────────────────────┘         │                 │
+       ▼                              ▼                 ▼
+┌──────────────────┐      ┌──────────────────┐   ┌──────────────────┐
+│   sleep_events    │      │ invite_codes     │   │   sleep_plans    │
+│──────────────────│      │──────────────────│   │──────────────────│
+│ id (PK)          │      │ id (PK)          │   │ id (PK)          │
+│ baby_id (FK)     │      │ baby_id (FK)     │   │ baby_id (FK)     │
+│ event_type       │      │ code             │   │ current_state    │
+│ event_time       │      │ created_by (FK)  │   │ next_action      │
+│ end_time         │      │ expires_at       │   │ schedule (JSONB) │
+│ context          │      │ created_at       │   │ events_hash      │
+│ notes            │      └──────────────────┘   │ is_active        │
+│ created_at       │                              │ plan_date        │
+└──────────────────┘                              │ created_at       │
+                                                  └──────────────────┘
+
+                       ┌──────────────────┐
+                       │  chat_messages   │
+                       │──────────────────│
+                       │ id (PK)          │
+                       │ baby_id (FK)     │
+                       │ message_id        │
+                       │ role (user/assistant) │
+                       │ parts (JSONB)    │
+                       │ created_at       │
+                       └──────────────────┘
 ```
 
 ### Table Details
@@ -362,8 +486,7 @@ CREATE TABLE babies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   birth_date DATE NOT NULL,
-  sleep_training_method TEXT,
-  pattern_notes TEXT,         -- AI-generated patterns
+  pattern_notes TEXT,         -- AI-generated + user notes about patterns
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
@@ -390,7 +513,7 @@ CREATE TABLE sleep_events (
   event_type TEXT NOT NULL,   -- 'wake', 'nap_start', 'nap_end', 'bedtime', 'night_wake'
   event_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ,       -- For night_wake duration
-  context TEXT,               -- 'home', 'daycare', 'travel'
+  context TEXT,               -- NULL, 'home', 'daycare', 'travel'
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -414,7 +537,7 @@ CREATE INDEX idx_chat_messages_baby_time ON chat_messages(baby_id, created_at DE
 **sleep_plans**
 
 ```sql
-CREATE TABLE sleep_plans (
+CREATE TABLE sleep_plans(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   baby_id UUID REFERENCES babies(id) ON DELETE CASCADE,
   current_state TEXT NOT NULL,
@@ -431,6 +554,20 @@ CREATE TABLE sleep_plans (
 CREATE INDEX idx_sleep_plans_active ON sleep_plans(baby_id, is_active, created_at DESC);
 ```
 
+**invite_codes** (Caregiver onboarding)
+
+```sql
+CREATE TABLE invite_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  baby_id UUID REFERENCES babies(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,           -- 6-digit numeric
+  created_by UUID REFERENCES auth.users(id),
+  expires_at TIMESTAMPTZ NOT NULL,  -- 24-hour expiry
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE UNIQUE INDEX idx_invite_codes_code ON invite_codes(code);
+```
+
 ## Authentication
 
 ### Flow
@@ -439,7 +576,7 @@ CREATE INDEX idx_sleep_plans_active ON sleep_plans(baby_id, is_active, created_a
 1. User visits / (home)
    └── proxy.ts middleware checks supabase.auth.getUser()
        ├── Authenticated → Allow access
-       └── Unauthenticated → Redirect to /auth/login
+       └── Unauthenticated → Landing page (Get Started / Sign In)
 
 2. User signs up at /auth/signup
    └── Create account via Supabase Auth
@@ -450,14 +587,19 @@ CREATE INDEX idx_sleep_plans_active ON sleep_plans(baby_id, is_active, created_a
        └── Link user to baby via family_members
            └── Redirect to home
 
-4. Session management
+4. Caregiver joins via invite
+   └── POST /api/invite/redeem with a 6-digit code
+       └── family_members row created for the new user
+
+5. Session management
    └── proxy.ts refreshes session on each request
        └── Cookies managed by @supabase/ssr
+       └── Mock mode (NEXT_PUBLIC_USE_MOCK_DATA=true) bypasses auth entirely
 ```
 
 ### Row Level Security
 
-All tables have RLS policies that check `family_members` junction:
+All tables have RLS policies that check `family_members` membership:
 
 ```sql
 -- Example: sleep_events SELECT policy
@@ -471,6 +613,8 @@ USING (
   )
 );
 ```
+
+The `family_members` table also exposes a `SECURITY DEFINER` RPC (used by the settings page) to list all caregivers of a baby, since a regular SELECT on `family_members` would be RLS-scoped to the current user only.
 
 ## Realtime Sync
 
@@ -493,7 +637,7 @@ export function useRealtimeSync({
         table: 'sleep_events',
         filter: `baby_id=eq.${babyId}`,
       }, handleSleepEventChange)
-      // ... similar for other tables
+      // ... similar for chat_messages and sleep_plans
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -519,6 +663,7 @@ await channel.send({
 - Exponential backoff on connection failure
 - Max 10 reconnection attempts
 - Backoff caps at 30 seconds
+- Background refresh refetches missed data on reconnect/visibility change
 
 ## State Management
 
@@ -559,6 +704,7 @@ const allSleepPlans = mergeSleepPlans(initialPlans, localPlans, refreshedPlans)
 | `useSleepPlanSync` | Local plan state, active-plan selection, realtime plan handling. |
 | `useBackgroundRefresh` | Refetch missed data on reconnect/visibility change. |
 | `useChatTransport` | Build `DefaultChatTransport` with pre-injected context. |
+| `useChatHistory` | Paginated loading of older chat messages. |
 | `useToolOutputs` | Extract `createSleepEvent`/`updateSleepPlan` results from message parts. |
 | `useTodaySleepState` | Compute current sleep state from today's events. |
 | `useEventDialogHandlers` | Wrap save/delete handlers with dialog close logic. |
@@ -570,24 +716,45 @@ const allSleepPlans = mergeSleepPlans(initialPlans, localPlans, refreshedPlans)
 
 ```text
 page.tsx (Server Component)
-├── Fetch user, baby, events, messages, plan
+├── Landing page (if no user)
 └── ChatContent (Client Component)
     ├── AppHeader
-    │   └── Settings, Sign Out
-    ├── Conversation (ai-elements)
-    │   ├── Message (user)
-    │   │   └── MessageContent
-    │   └── Message (assistant)
-    │       ├── ChainOfThought (tool calls)
-    │       ├── Reasoning (extended thinking)
-    │       └── MessageContent (markdown)
-    ├── ChatInput
-    │   ├── Quick action buttons
-    │   └── Text input
-    └── Dialogs
-        ├── SleepEventDialog
-        ├── SleepSessionDialog
-        └── DeleteConfirmationDialog
+    │   └── Trends link, Settings link
+    └── SleepDashboard
+        ├── StateHero
+        │   └── CountdownRing + SubtitlePills (tappable to edit source event)
+        ├── ActionButtons (Primary / Secondary, from VALID_EVENTS[state])
+        ├── TimelineSection
+        │   └── grouped, editable day entries (+/edit → EventSheet)
+        ├── EventSheet (bottom-sheet create/edit)
+        └── ChatDrawer
+            ├── FAB (💬)
+            └── Drawer (open)
+                ├── AI identity header (Nappster, online)
+                ├── Conversation (ai-elements)
+                │   ├── Message (user) → MessageContent
+                │   └── Message (assistant)
+                │       ├── ChainOfThought (tool calls)
+                │       ├── Reasoning (extended thinking)
+                │       └── MessageContent (markdown)
+                └── Input form (textarea + send)
+    └── UnifiedEditDialog (single vs paired event dispatcher)
+```
+
+### Sleep Trends Page Hierarchy
+
+```text
+sleep-trends/page.tsx (Server Component)
+└── TrendsView (Client Component)
+    ├── PageHeader (back → /)
+    ├── Typical Day card (home / daycare toggle)
+    │   ├── 24h bar (night/naps/awake)
+    │   └── stat pills (night / naps / awake)
+    ├── Stat cards (avg naps, avg bedtime, avg wake)
+    ├── History (7d / 14d toggle)
+    │   └── DayHistoryRow (overnight + nap blocks + night-wake markers)
+    ├── DayDetailSheet (tappable day timeline + totals)
+    └── EventSheet (edit an event from detail sheet)
 ```
 
 ### AI Elements (Reusable Chat Components)
@@ -600,6 +767,7 @@ page.tsx (Server Component)
 | `ChainOfThought` | Collapsible tool invocation list     |
 | `Reasoning`      | Extended thinking display            |
 | `Loader`         | Spinning indicator                   |
+| `Shimmer`        | Streaming placeholder               |
 | `Suggestion`     | Quick reply button                   |
 
 ## Key Patterns
@@ -656,6 +824,14 @@ interface MessagePart =
   | { type: 'tool-invocation'; toolName: string; input: object; output: object }
 ```
 
+### PWA / Service Worker
+
+Nappster is a PWA via [Serwist](https://serwist.pages.dev/) (migrated from next-pwa):
+
+- `src/app/sw.ts` declares the service worker with `precacheEntries` from Serwist's injected manifest and `defaultCache` runtime caching (fonts, static assets, images, API).
+- `src/components/service-worker-register.tsx` registers the worker in production.
+- `public/manifest.json` + `public/icons/` provide the installable web app manifest and icons.
+
 ### Mock Development Mode
 
 Set `NEXT_PUBLIC_USE_MOCK_DATA=true` to:
@@ -663,6 +839,7 @@ Set `NEXT_PUBLIC_USE_MOCK_DATA=true` to:
 - Skip Supabase auth (auto-login as `dev@example.com`)
 - Use in-memory store instead of database
 - Auto-generate sample events based on current time
+- Provide a second caregiver (`dev2@example.com`) for family-sync testing
 - Enable full CRUD (resets on refresh)
 
 Implementation in `src/lib/mock/`:

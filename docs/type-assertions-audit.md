@@ -56,7 +56,9 @@ Audit of `as` type assertions in non-test source code, conducted 2026-06-27.
 
 ## Action Plan
 
-1. Extract a `validateParts()` helper for `timeline-renderer.tsx` — ✅
-2. Add zod schema for `sleep-plan-card.tsx` schedule/nextAction — ✅
-3. Add type guard helpers for dialog Context/EventType casts — ✅
-4. Add zod schemas for AI tool outputs in `api/chat/route.ts` — deferred (requires more extensive refactor)
+Status re-verified 2026-06-27:
+
+1. Extract a `validateParts()` helper for `timeline-renderer.tsx` — ❌ **open**. The `parts as Array<...>` casts at lines 91 and 103 are still present and no `validateParts`/parts type guard exists yet.
+2. Add zod schema for `sleep-plan-card.tsx` schedule/nextAction — ✅ **done**. The `as unknown as ScheduleItem[]` double cast is gone; `sleep-plan-card.tsx` now uses a `validateSchedule()` helper (see also `src/lib/ai/schemas/sleep-plan.ts`).
+3. Add type guard helpers for dialog Context/EventType casts — ❌ **open**. `context as Context` / `event_type as EventType` casts remain across `sleep-event-dialog.tsx`, `sleep-session-dialog.tsx`, `unified-edit-dialog.tsx`, and `chat-content.tsx`. UI selects constrain input but direct callers can still bypass.
+4. Add zod schemas for AI tool outputs in `api/chat/route.ts` — deferred (requires more extensive refactor). The `output as Record<string, unknown>` and `o.summary as Record<string, unknown>` casts at lines ~246, 265, 293 are still present.
