@@ -1,6 +1,6 @@
 import { mockAuth, getActiveMockUser } from './auth'
 import { createQueryBuilder } from './query-builder'
-import { mockStore, insertRecord } from './store'
+import { mockStore, insertRecord, MOCK_USER, MOCK_USER_2 } from './store'
 
 type TableName = 'babies' | 'family_members' | 'sleep_events' | 'chat_messages' | 'sleep_plans' | 'invite_codes'
 
@@ -9,6 +9,39 @@ export function createMockClient() {
     auth: mockAuth,
     from: <T = unknown>(table: TableName) => createQueryBuilder<T>(table),
     rpc: async (fnName: string, params: Record<string, unknown>) => {
+      if (fnName === 'get_family_members_for_baby') {
+        const babyId = params.baby_id_arg as string
+        const activeUser = getActiveMockUser()
+
+        // Resemble the real SECURITY DEFINER function: only members of the baby
+        // get the (enriched) list back, including co-caregivers they don't own.
+        const isMember = mockStore.family_members.some(
+          (fm) => fm.baby_id === babyId && fm.user_id === activeUser.id
+        )
+        if (!isMember) {
+          return { data: [], error: null }
+        }
+
+        const mockUsers = [MOCK_USER, MOCK_USER_2]
+        const rows = mockStore.family_members
+          .filter((fm) => fm.baby_id === babyId)
+          .map((fm) => {
+            const user = mockUsers.find((u) => u.id === fm.user_id)
+            return {
+              id: fm.id,
+              user_id: fm.user_id,
+              baby_id: fm.baby_id,
+              role: fm.role,
+              created_at: fm.created_at,
+              email: user?.email ?? null,
+              is_you: fm.user_id === activeUser.id,
+            }
+          })
+          .sort((a, b) => (a.is_you === b.is_you ? 0 : a.is_you ? -1 : 1))
+
+        return { data: rows, error: null }
+      }
+
       if (fnName === 'redeem_invite_code') {
         const code = params.invite_code as string
         const activeUser = getActiveMockUser()

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { FamilyMember } from '@/types/database'
+import type { FamilyMember, FamilyMemberWithIdentity } from '@/types/database'
 
 export interface CreateFamilyMemberInput {
   id?: string
@@ -45,6 +45,26 @@ export async function getFamilyMembersForBaby(
     .eq('baby_id', babyId)
 
   return { data: data as FamilyMember[] | null, error: error as Error | null }
+}
+
+/**
+ * Fetch all family members for a baby, enriched with email + is_you via the
+ * get_family_members_for_baby SQL function. Uses SECURITY DEFINER server-side
+ * to bypass RLS so co-caregivers (rows the caller doesn't own) are visible.
+ * Access is verified inside the function: only baby members see the list.
+ */
+export async function getFamilyMembersForBabyWithIdentity(
+  supabase: SupabaseClient,
+  babyId: string
+): Promise<{ data: FamilyMemberWithIdentity[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_family_members_for_baby', {
+    baby_id_arg: babyId,
+  })
+
+  return {
+    data: data as FamilyMemberWithIdentity[] | null,
+    error: error as Error | null,
+  }
 }
 
 export async function createFamilyMember(
