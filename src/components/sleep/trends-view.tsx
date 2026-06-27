@@ -28,6 +28,12 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
   const [detailRow, setDetailRow] = useState<DayRow | null>(null)
   const [timeRange, setTimeRange] = useState(14)
   const [editingEvent, setEditingEvent] = useState<SleepEvent | null>(null)
+  const [isNavigatingBack, setIsNavigatingBack] = useState(false)
+
+  const handleBackClick = useCallback(() => {
+    setIsNavigatingBack(true)
+    router.push('/')
+  }, [router])
 
   const { localEvents, saveEvent, deleteEvent } = useSleepEventCRUD({
     babyId,
@@ -89,10 +95,15 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
       {/* Page header */}
       <div className="flex items-center gap-3 px-4 py-3">
         <button
-          onClick={() => router.push('/')}
+          onClick={handleBackClick}
+          disabled={isNavigatingBack}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#EEE] bg-white active:scale-90 transition-transform"
         >
-          ←
+          {isNavigatingBack ? (
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />
+          ) : (
+            <span>←</span>
+          )}
         </button>
         <div>
           <div className="text-lg font-extrabold text-[var(--text)]">Sleep Trends</div>
