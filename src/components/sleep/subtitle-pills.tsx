@@ -14,26 +14,34 @@ export interface Pill {
   label: string
   dot?: boolean
   color?: keyof typeof colorMap
+  /** Event ID this pill relates to — when set the pill becomes tappable */
+  eventId?: string
 }
 
 interface SubtitlePillsProps {
   pills: Pill[]
   className?: string
+  /** Called when a pill with an eventId is tapped */
+  onPillTap?: (eventId: string) => void
 }
 
-export function SubtitlePills({ pills, className }: SubtitlePillsProps) {
+export function SubtitlePills({ pills, className, onPillTap }: SubtitlePillsProps) {
   if (!pills.length) return null
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
       {pills.map((pill, i) => {
         const c = colorMap[pill.color ?? 'lavender']
+        const isTappable = !!(pill.eventId && onPillTap)
+        const Tag = isTappable ? 'button' : 'span'
         return (
-          <span
+          <Tag
             key={i}
+            onClick={isTappable ? () => onPillTap(pill.eventId!) : undefined}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-bold leading-tight',
-              c.bg, c.text, c.border
+              c.bg, c.text, c.border,
+              isTappable && 'cursor-pointer active:scale-95 active:opacity-70 transition-all duration-100'
             )}
           >
             {pill.dot && (
@@ -50,7 +58,7 @@ export function SubtitlePills({ pills, className }: SubtitlePillsProps) {
             )}
             {pill.icon && <span>{pill.icon}</span>}
             {pill.label}
-          </span>
+          </Tag>
         )
       })}
     </div>
