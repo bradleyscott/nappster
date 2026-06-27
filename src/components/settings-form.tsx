@@ -110,19 +110,16 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
   return (
     <div className="min-h-dvh bg-[var(--bg)] pb-6">
       <PageHeader
-        title="Profile & Family"
+        title="Settings"
         onBack={handleBackClick}
         isNavigatingBack={isNavigatingBack}
       />
 
       <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
         {/* ===== PROFILE CARD ===== */}
-        <div className="mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]">
-          {/* Avatar */}
-          <div className="mx-auto mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] border-[var(--peach)] bg-gradient-to-br from-[var(--peach-light)] to-[var(--peach-bg)] text-3xl">
-            👶
-          </div>
-
+        <div className="mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
+          <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
+          <div className="px-5 pb-5 pt-6">
           {error && (
             <div className="mb-4 rounded-xl bg-[var(--rose-bg)] px-4 py-3 text-sm font-bold text-[var(--rose)]">
               {error}
@@ -192,6 +189,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
               {loading ? '💾 Saving...' : '💾 Save Changes'}
             </button>
           </form>
+          </div>
         </div>
 
         {/* ===== FAMILY CARD ===== */}
