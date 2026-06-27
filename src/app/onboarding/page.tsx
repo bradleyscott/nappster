@@ -1,16 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { ArrowLeft, Baby, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { createBaby } from '@/lib/services/babies'
 import { createFamilyMember } from '@/lib/services/family-members'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 type Step = 'choice' | 'create' | 'join'
 
@@ -24,6 +18,18 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const adjustTextareaHeight = () => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
+
+  useEffect(() => {
+    adjustTextareaHeight()
+  }, [patternNotes])
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -103,181 +109,174 @@ export default function OnboardingPage() {
 
   if (step === 'choice') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-2">
-              <Image
-                src="/nappster.png"
-                alt="Nappster Logo"
-                width={80}
-                height={80}
-              />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
+        <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-4xl shadow-[0_8px_24px_rgba(124,77,255,0.3)]">
+          🌙
+        </div>
+        <h1 className="mt-6 text-2xl font-black text-[var(--text)]">Welcome to Nappster</h1>
+        <p className="mt-1 text-center text-sm font-bold text-[var(--text-secondary)]">
+          How would you like to get started?
+        </p>
+
+        <div className="mt-6 w-full max-w-xs space-y-3">
+          <button
+            onClick={() => setStep('create')}
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-[var(--lavender-light)] bg-white p-4 text-left shadow-[var(--shadow-sm)] transition-colors active:bg-[var(--lavender-bg)]"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--lavender-bg)] text-2xl">
+              👶
+            </span>
+            <div>
+              <div className="text-sm font-extrabold text-[var(--text)]">Add a new baby</div>
+              <div className="text-xs font-bold text-[var(--text-secondary)]">Set up a new profile</div>
             </div>
-            <CardTitle className="text-2xl">Welcome to Nappster</CardTitle>
-            <CardDescription>
-              How would you like to get started?
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full h-20 justify-start gap-4 px-4"
-              onClick={() => setStep("create")}
-            >
-              <Baby className="h-8 w-8 shrink-0" />
-              <div className="text-left">
-                <div className="font-semibold">Add a new baby</div>
-                <div className="text-sm text-muted-foreground font-normal">
-                  Set up a new profile for your baby
-                </div>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full h-20 justify-start gap-4 px-4"
-              onClick={() => setStep("join")}
-            >
-              <Users className="h-8 w-8 shrink-0" />
-              <div className="text-left">
-                <div className="font-semibold">I am family</div>
-                <div className="text-sm text-muted-foreground font-normal">
-                  Enter an invite code from your partner
-                </div>
-              </div>
-            </Button>
-          </CardContent>
-        </Card>
+          </button>
+
+          <button
+            onClick={() => setStep('join')}
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-[var(--lavender-light)] bg-white p-4 text-left shadow-[var(--shadow-sm)] transition-colors active:bg-[var(--lavender-bg)]"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--peach-bg)] text-2xl">
+              👨‍👩‍👧
+            </span>
+            <div>
+              <div className="text-sm font-extrabold text-[var(--text)]">I am family</div>
+              <div className="text-xs font-bold text-[var(--text-secondary)]">Enter an invite code</div>
+            </div>
+          </button>
+        </div>
       </div>
-    );
+    )
   }
 
   if (step === 'join') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <button
-              onClick={handleBack}
-              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </button>
-            <CardTitle className="text-2xl">I`&apos;`m family</CardTitle>
-            <CardDescription>
-              Enter the 6-digit invite code from your partner
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleJoinSubmit}>
-            <CardContent className="space-y-4">
-              {error && (
-                <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
-                  {error}
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="code">Invite code</Label>
-                <Input
-                  id="code"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={inviteCode}
-                  onChange={(e) =>
-                    setInviteCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  className="text-center text-2xl tracking-[0.5em] font-mono"
-                  required
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading || inviteCode.length !== 6}
-              >
-                {loading ? "Joining..." : "Join"}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-    );
-  }
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
+        <button
+          onClick={handleBack}
+          className="mb-4 flex items-center gap-1 text-sm font-extrabold text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+        >
+          ← Back
+        </button>
 
-  // step === 'create'
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <button
-            onClick={handleBack}
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </button>
-          <CardTitle className="text-2xl">Set up your baby&apos;s profile</CardTitle>
-          <CardDescription>
-            This helps us give you personalized sleep recommendations
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleCreateSubmit}>
-          <CardContent className="space-y-4">
+        <div className="w-full max-w-xs rounded-[24px] bg-white p-6 shadow-[var(--shadow-md)]">
+          <h1 className="text-center text-2xl font-black text-[var(--text)]">I&apos;m family</h1>
+          <p className="mt-1 text-center text-sm font-bold text-[var(--text-secondary)]">
+            Enter the 6-digit invite code from your partner
+          </p>
+
+          <form onSubmit={handleJoinSubmit} className="mt-5 space-y-4">
             {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+              <div className="rounded-xl bg-[var(--rose-bg)] px-3 py-2.5 text-sm font-bold text-[var(--rose)]">
                 {error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Baby&apos;s name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Luna"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+            <input
+              id="code"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="000000"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              required
+              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-4 text-center font-mono text-2xl font-bold tracking-[0.5em] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="birthDate">Birth date</Label>
-              <Input
-                id="birthDate"
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                required
-              />
-            </div>
+            <button
+              type="submit"
+              disabled={loading || inviteCode.length !== 6}
+              className="w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97] disabled:opacity-60"
+            >
+              {loading ? 'Joining...' : 'Join'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
 
-            <div className="space-y-2">
-              <Label htmlFor="patternNotes">Known patterns (optional)</Label>
-              <textarea
-                id="patternNotes"
-                placeholder="e.g., 30-minute naps are normal for this baby, doesn't do well with early bedtime"
-                value={patternNotes}
-                onChange={(e) => setPatternNotes(e.target.value)}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              />
-              <p className="text-xs text-muted-foreground">
-                Include any patterns the AI should know about
-              </p>
+  // step === 'create'
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
+      <button
+        onClick={handleBack}
+        className="mb-4 flex items-center gap-1 text-sm font-extrabold text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+      >
+        ← Back
+      </button>
+
+      <div className="w-full max-w-xs rounded-[24px] bg-white p-6 shadow-[var(--shadow-md)]">
+        <h1 className="text-center text-2xl font-black text-[var(--text)]">Set up profile</h1>
+        <p className="mt-1 text-center text-sm font-bold text-[var(--text-secondary)]">
+          This helps us give personalized sleep recommendations
+        </p>
+
+        <form onSubmit={handleCreateSubmit} className="mt-5 space-y-4">
+          {error && (
+            <div className="rounded-xl bg-[var(--rose-bg)] px-3 py-2.5 text-sm font-bold text-[var(--rose)]">
+              {error}
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Setting up...' : 'Continue'}
-            </Button>
-          </CardFooter>
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.4px] text-[var(--text-secondary)]">
+              Baby&apos;s name
+            </label>
+            <input
+              id="name"
+              type="text"
+              placeholder="Luna"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.4px] text-[var(--text-secondary)]">
+              Birth date
+            </label>
+            <input
+              id="birthDate"
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              required
+              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.4px] text-[var(--text-secondary)]">
+              Known patterns (optional)
+            </label>
+            <textarea
+              ref={textareaRef}
+              id="patternNotes"
+              rows={1}
+              placeholder="e.g., 30-minute naps are normal, doesn't do well with early bedtime"
+              value={patternNotes}
+              onChange={(e) => setPatternNotes(e.target.value)}
+              className="min-h-[80px] w-full resize-none overflow-hidden rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+            />
+            <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)] leading-tight">
+              Include any patterns the AI should know about
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97] disabled:opacity-60"
+          >
+            {loading ? 'Setting up...' : 'Continue'}
+          </button>
         </form>
-      </Card>
+      </div>
     </div>
   )
 }
