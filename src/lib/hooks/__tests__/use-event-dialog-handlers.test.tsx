@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useEventDialogHandlers } from '../use-event-dialog-handlers'
 import type { SleepEvent, SleepSession } from '@/types/database'

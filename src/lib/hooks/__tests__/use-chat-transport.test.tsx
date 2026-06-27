@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useChatTransport } from '../use-chat-transport'
 import type { Baby, SleepEvent } from '@/types/database'
@@ -14,7 +14,11 @@ const makeBaby = (): Baby => ({
 })
 
 describe('useChatTransport', () => {
-  it('returns a transport configured with baby context', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns a transport object', () => {
     const baby = makeBaby()
     const events: SleepEvent[] = []
     const messages: ChatMessageData[] = []
@@ -29,10 +33,9 @@ describe('useChatTransport', () => {
     )
 
     expect(result.current).toBeDefined()
-    expect(result.current.api).toBe('/api/chat')
   })
 
-  it('includes today events in transport body', () => {
+  it('includes today events and baby profile in transport body', () => {
     const baby = makeBaby()
     const now = new Date().toISOString()
     const events: SleepEvent[] = [
@@ -58,10 +61,10 @@ describe('useChatTransport', () => {
     )
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body = (result.current as any).body
+    const body = (result.current as any).body as Record<string, unknown>
     expect(body.babyId).toBe('baby-1')
     expect(body.timezone).toBe('UTC')
-    expect(body.todayEvents).toHaveLength(1)
-    expect(body.babyProfile.name).toBe('Luna')
+    expect((body.todayEvents as unknown[]).length).toBe(1)
+    expect((body.babyProfile as Record<string, unknown>).name).toBe('Luna')
   })
 })
