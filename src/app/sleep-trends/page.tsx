@@ -45,6 +45,7 @@ export default async function SleepTrendsPage() {
         events={sleepEvents ?? []}
         timezone={timezone}
         babyName={baby.name}
+        babyId={baby.id}
       />
     </div>
   )
