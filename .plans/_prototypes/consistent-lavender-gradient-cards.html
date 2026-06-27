@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consistent Lavender Gradient Cards</title>
+  <style>
+    :root {
+      --lavender: #B48BFF;
+      --lavender-bg: #F3EDFF;
+      --lavender-light: #D8C6FF;
+      --peach: #FFB07C;
+      --peach-bg: #FFF1E8;
+      --mint: #6FCF97;
+      --mint-bg: #E9F9F0;
+      --rose: #FF8FAB;
+      --rose-bg: #FFE8ED;
+      --sunset: #FF8F6B;
+      --bg: #FAF8FF;
+      --card: #FFFFFF;
+      --text: #2D2B3A;
+      --text-secondary: #6E6B7B;
+      --text-muted: #9B98A8;
+      --shadow-sm: 0 2px 12px rgba(45, 43, 58, 0.06);
+      --shadow-md: 0 8px 28px rgba(45, 43, 58, 0.1);
+      --radius-lg: 20px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F0EDF5;
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.5rem; }
+    p.subtitle { text-align: center; color: var(--text-secondary); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .phone {
+      background: var(--bg);
+      border-radius: 28px;
+      overflow: hidden;
+      border: 6px solid #fff;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 1rem;
+    }
+    .phone:last-child { margin-bottom: 0; }
+    .screen { min-height: 280px; padding: 1rem; }
+
+    /* Reusable gradient card */
+    .gradient-card {
+      border-radius: var(--radius-lg);
+      border: 1.5px solid var(--lavender-light);
+      background: linear-gradient(to bottom right, #fff, var(--lavender-bg));
+      box-shadow: var(--shadow-sm);
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Header */
+    .header-card {
+      border-radius: 22px;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+      min-height: 60px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0.5rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .header-title { font-size: 1.1rem; font-weight: 900; }
+    .header-subtitle { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); }
+
+    /* Dashboard specific */
+    .hero-card {
+      background: linear-gradient(135deg, var(--lavender), #9B7BFF);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+    .hero-title { font-weight: 900; font-size: 1.1rem; }
+    .hero-pills { display: flex; justify-content: center; gap: 0.4rem; margin-top: 0.5rem; }
+    .pill-tag { background: rgba(255,255,255,0.2); padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 800; }
+    .action-btn {
+      background: linear-gradient(135deg, var(--sunset), var(--rose));
+      border-radius: 18px; padding: 1rem;
+      color: #fff; font-weight: 800;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .timeline-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px dashed var(--lavender-light); }
+    .timeline-row:last-child { border-bottom: none; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--lavender); }
+
+    /* Trends specific */
+    .mini-bar { height: 28px; border-radius: 8px; overflow: hidden; display: flex; margin-bottom: 0.5rem; }
+    .bar-segment { height: 100%; }
+    .pill-nav { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .pill { padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.7rem; font-weight: 800; background: #fff; }
+    .pill.active { background: var(--lavender); color: #fff; }
+
+    /* Profile specific */
+    .avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--peach-bg), var(--peach));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin: 0 auto 0.75rem;
+    }
+    label { display: block; font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    input, textarea {
+      width: 100%; border: 2px solid var(--lavender-light);
+      border-radius: 12px; padding: 0.6rem 0.75rem;
+      font-size: 0.85rem; font-weight: 700;
+      background: rgba(255,255,255,0.6);
+    }
+    .input-group { margin-bottom: 0.75rem; }
+    .btn-primary {
+      width: 100%; border-radius: 16px; padding: 0.85rem;
+      background: linear-gradient(135deg, var(--lavender), #7C4DFF);
+      color: #fff; font-weight: 800; text-align: center;
+      box-shadow: 0 4px 14px rgba(124,77,255,0.25);
+    }
+    .danger-zone { border: 2px dashed var(--rose); background: var(--rose-bg); border-radius: var(--radius-lg); padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Consistent Lavender Gradient Treatment</h1>
+  <p class="subtitle">Every card on every page uses the family section's white-to-lavender gradient + lavender border.</p>
+
+  <div class="grid">
+    <!-- Dashboard -->
+    <div>
+      <div style="font-size:0.75rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Dashboard</div>
+      <div class="phone">
+        <div class="screen">
+          <div class="header-card"><div style="text-align:center;"><div class="header-title">Luna</div><div class="header-subtitle">Good evening · 7 months</div></div></div>
+          <div class="gradient-card hero-card" style="background:linear-gradient(135deg,var(--lavender),#9B7BFF);color:#fff;border:none;">
+            <div class="hero-title">Sleeping Soundly</div>
+            <div class="hero-pills"><span class="pill-tag">Bedtime 7:32pm</span><span class="pill-tag">2h 18m</span></div>
+          </div>
+          <div class="gradient-card action-btn" style="border:none;">Log Wake Up →</div>
+          <div class="gradient-card">
+            <div style="font-weight:900;margin-bottom:0.5rem;">Timeline</div>
+            <div class="timeline-row"><div class="dot"></div><div style="flex:1;"><div style="font-weight:800;font-size:0.85rem;">Bedtime</div><div style="font-size:0.7rem;color:var(--text-muted);">7:32pm</div></div></div>
+            <div class="timeline-row"><div class="dot" style="background:var(--mint);"></div><div style="flex:1;"><div style="font-weight:800;font-size:0.85rem;">Nap</div><div style="font-size:0.7rem;color:var(--text-muted);">2:15pm – 3:00pm</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trends -->
+    <div>
+      <div style="font-size:0.75rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Trends</div>
+      <div class="phone">
+        <div class="screen">
+          <div class="header-card"><div style="text-align:center;"><div class="header-title">Sleep Trends</div><div class="header-subtitle">Last 14 days · Luna</div></div></div>
+          <div class="gradient-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+              <div style="font-weight:900;">📋 Typical Day</div>
+              <div class="pill-nav"><span class="pill active">🏠 Home</span><span class="pill">🏫 Daycare</span></div>
+            </div>
+            <div style="height:32px;border-radius:10px;overflow:hidden;display:flex;background:#fff;border:1px solid var(--lavender-light);">
+              <div style="flex:3;background:var(--lavender);"></div>
+              <div style="flex:2;background:var(--peach);"></div>
+              <div style="flex:4;background:var(--mint);"></div>
+              <div style="flex:3;background:var(--rose);"></div>
+            </div>
+          </div>
+          <div class="gradient-card">
+            <div style="font-weight:900;margin-bottom:0.5rem;">History</div>
+            <div class="mini-bar"><div class="bar-segment" style="flex:2;background:var(--lavender);"></div><div class="bar-segment" style="flex:1;background:var(--peach);"></div><div class="bar-segment" style="flex:3;background:var(--mint);"></div></div>
+            <div class="mini-bar"><div class="bar-segment" style="flex:3;background:var(--lavender);"></div><div class="bar-segment" style="flex:2;background:var(--peach);"></div><div class="bar-segment" style="flex:2;background:var(--mint);"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div>
+      <div style="font-size:0.75rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Profile</div>
+      <div class="phone">
+        <div class="screen">
+          <div class="header-card"><div style="text-align:center;"><div class="header-title">Profile & Family</div></div></div>
+          <div class="gradient-card" style="text-align:center;">
+            <div class="avatar">👶</div>
+            <div style="font-weight:900;font-size:1.1rem;">Luna</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;">7 months old</div>
+          </div>
+          <div class="gradient-card">
+            <div class="input-group"><label>Name</label><input value="Luna" /></div>
+            <div class="input-group"><label>Birth date</label><input value="2025-11-20" /></div>
+            <div class="input-group"><label>Known patterns</label><textarea rows="3">Short naps are normal.</textarea></div>
+            <div class="btn-primary">Save Profile</div>
+          </div>
+          <div class="gradient-card" style="border-color:var(--lavender-light);">
+            <div style="font-weight:900;margin-bottom:0.5rem;">👨‍👩‍👧 Family</div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);font-weight:700;">Invite a co-parent or caregiver.</div>
+            <div class="btn-primary" style="margin-top:0.75rem;">Generate Invite Code</div>
+          </div>
+          <div class="danger-zone">
+            <div style="font-weight:900;color:var(--rose);font-size:0.85rem;">Danger Zone</div>
+            <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:0.25rem;">Sign out of your account.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
