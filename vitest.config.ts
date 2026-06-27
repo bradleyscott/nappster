@@ -14,6 +14,12 @@ export default defineConfig({
       reporter: ['text', 'lcov', 'html'],
       include: ['src/lib/**/*.ts'],
       exclude: ['src/lib/mock/**', 'src/lib/supabase/**', 'src/**/*.test.ts'],
+      thresholds: {
+        statements: 50,
+        branches: 40,
+        functions: 50,
+        lines: 50,
+      },
     },
   },
 })
