@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     title: "Nappster",
   },
   icons: {
-    icon: "/nappster.png",
-    apple: "/nappster.png",
+    icon: "/nappster.svg",
+    apple: "/nappster.svg",
   },
 };
 
