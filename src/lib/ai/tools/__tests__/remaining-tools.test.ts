@@ -245,5 +245,73 @@ describe('AI tools', () => {
       expect(result.persisted).toBe(true)
       expect(mockSupabase._getInsertCalls()).toHaveLength(1)
     })
+
+    it('returns error when events fetch fails', async () => {
+      mockSupabase._setSelectResponse({
+        data: null,
+        error: new Error('DB connection failed'),
+      })
+
+      const tool = createUpdateSleepPlanTool(context)
+      const result = await executeTool(tool, {
+        currentState: 'daytime_awake',
+        nextAction: { label: 'Nap 1', timeWindow: '9:00am', isUrgent: false },
+        schedule: [],
+        targetBedtime: '7:00pm',
+        summary: 'Test',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.persisted).toBe(false)
+      expect(result.error).toContain("today's events")
+    })
+
+    it('returns error when plan creation fails', async () => {
+      mockSupabase._setSelectResponse({
+        data: [],
+        error: null,
+      })
+      mockSupabase._setInsertResponse({
+        data: null,
+        error: new Error('Insert constraint violation'),
+      })
+
+      const tool = createUpdateSleepPlanTool(context)
+      const result = await executeTool(tool, {
+        currentState: 'daytime_awake',
+        nextAction: { label: 'Nap 1', timeWindow: '9:00am', isUrgent: false },
+        schedule: [],
+        targetBedtime: '7:00pm',
+        summary: 'Test',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.persisted).toBe(false)
+      expect(result.error).toContain('save')
+    })
+
+    it('returns error when plan data is null without error', async () => {
+      mockSupabase._setSelectResponse({
+        data: [],
+        error: null,
+      })
+      mockSupabase._setInsertResponse({
+        data: null,
+        error: null,
+      })
+
+      const tool = createUpdateSleepPlanTool(context)
+      const result = await executeTool(tool, {
+        currentState: 'daytime_awake',
+        nextAction: { label: 'Nap 1', timeWindow: '9:00am', isUrgent: false },
+        schedule: [],
+        targetBedtime: '7:00pm',
+        summary: 'Test',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.persisted).toBe(false)
+      expect(result.error).toContain('save')
+    })
   })
 })
