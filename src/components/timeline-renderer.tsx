@@ -282,11 +282,12 @@ export function TimelineRenderer({
           className="flex flex-col items-center justify-center py-12 text-center"
         >
           <Image
-            src="/nappster.png"
+            src="/nappster.svg"
             alt="Nappster"
             width={64}
             height={64}
-            className="rounded-full mb-4 shadow-md"
+            unoptimized
+            className="mb-4"
           />
           <h2 className="text-lg font-semibold mb-1">Hi there!</h2>
           <p className="text-muted-foreground mb-6">
