@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { NappsterLogo } from '@/components/nappster-logo'
 
 interface PageHeaderProps {
   title: string
@@ -53,16 +54,19 @@ export function PageHeader({
       {/* Rounded card header */}
       <div
         className={cn(
-          'flex w-full min-h-[60px] flex-col items-center justify-center rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]',
+          'flex w-full min-h-[60px] items-center justify-center gap-2.5 rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]',
           (!onBack && !rightActions) && 'px-5'
         )}
       >
-        <span className="text-lg font-black leading-tight text-[var(--text)]">{title}</span>
-        {subtitle && (
-          <span className="mt-0.5 text-[10px] font-extrabold text-[var(--text-muted)]">
-            {subtitle}
-          </span>
-        )}
+        <NappsterLogo size={36} />
+        <div className="flex flex-col items-start">
+          <span className="text-lg font-black leading-tight text-[var(--text)]">{title}</span>
+          {subtitle && (
+            <span className="mt-0.5 text-[10px] font-extrabold text-[var(--text-muted)]">
+              {subtitle}
+            </span>
+          )}
+        </div>
       </div>
     </header>
   )

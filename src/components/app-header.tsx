@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BarChart3, Baby as BabyIcon, Loader2 } from 'lucide-react'
+import { NappsterLogo } from '@/components/nappster-logo'
 import { Baby } from '@/types/database'
 import { formatAge } from '@/lib/sleep-utils'
 
@@ -70,14 +71,17 @@ export function AppHeader({ baby }: AppHeaderProps) {
       </div>
 
       {/* Rounded card header */}
-      <div className="flex w-full min-h-[60px] flex-col items-center justify-center rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]">
-        <span className="text-[10px] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
-          {getGreeting()}
-        </span>
-        <span className="text-lg font-black leading-tight text-[var(--text)]">{baby.name}</span>
-        <span className="mt-0.5 inline-flex items-center rounded-full bg-[var(--lavender-bg)] px-2 py-0.5 text-[10px] font-extrabold text-[var(--lavender)]">
-          {formatAge(baby.birth_date)}
-        </span>
+      <div className="flex w-full min-h-[60px] items-center justify-center gap-2.5 rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]">
+        <NappsterLogo size={36} />
+        <div className="flex flex-col items-start">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
+            {getGreeting()}
+          </span>
+          <span className="text-lg font-black leading-tight text-[var(--text)]">{baby.name}</span>
+          <span className="mt-0.5 inline-flex items-center rounded-full bg-[var(--lavender-bg)] px-2 py-0.5 text-[10px] font-extrabold text-[var(--lavender)]">
+            {formatAge(baby.birth_date)}
+          </span>
+        </div>
       </div>
     </header>
   )
