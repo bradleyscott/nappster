@@ -19,14 +19,14 @@ import { useToolOutputs } from '@/lib/hooks/use-tool-outputs'
 import { useTodaySleepState } from '@/lib/hooks/use-today-sleep-state'
 import { useEventDialogHandlers } from '@/lib/hooks/use-event-dialog-handlers'
 import { AppHeader } from '@/components/app-header'
-import { ChatInput } from '@/components/chat-input'
 import { UnifiedEditDialog } from '@/components/unified-edit-dialog'
+import { SleepDashboard } from '@/components/sleep/sleep-dashboard'
 import {
   Conversation,
   ConversationContent,
-  ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
-import { TimelineRenderer } from '@/components/timeline-renderer'
+import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message'
+import { Loader } from '@/components/ai-elements/loader'
 import type { SleepPlanRow } from '@/types/database'
 
 interface ChatContentProps {
@@ -233,11 +233,27 @@ export function ChatContent({
     }
   }, [createEvent, currentState])
 
-  const handleEventClick = useCallback((event: SleepEvent) => {
-    const session = findSessionForEvent(event, allSleepEvents)
-    setSelectedItem(session ?? event)
-    setEditDialogOpen(true)
-  }, [allSleepEvents])
+  // Update/delete handlers for SleepDashboard EventSheet
+  const handleUpdateEvent = useCallback(async (id: string, data: Partial<SleepEvent>) => {
+    // saveEvent requires the full SaveEventData shape — find existing event and merge
+    const existing = allSleepEvents.find(e => e.id === id)
+    if (!existing) return
+    await saveEvent({
+      id: existing.id,
+      event_type: (data.event_type ?? existing.event_type) as EventType,
+      event_time: (data.event_time ?? existing.event_time) as string,
+      end_time: data.end_time !== undefined ? data.end_time : existing.end_time,
+      context: (data.context !== undefined ? data.context : existing.context) as Context,
+      notes: data.notes !== undefined ? data.notes : existing.notes,
+    })
+  }, [saveEvent, allSleepEvents])
+
+  const handleDeleteEventById = useCallback(async (id: string) => {
+    const event = allSleepEvents.find(e => e.id === id)
+    if (event) {
+      await deleteEvent(event)
+    }
+  }, [deleteEvent, allSleepEvents])
 
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut()
@@ -245,46 +261,106 @@ export function ChatContent({
     router.refresh()
   }, [supabase, router])
 
+  // Map timeline items to the display format expected by SleepDashboard
+  const timelineDisplayItems = useMemo(() => {
+    return timelineItems
+      .filter(item => item.kind === 'sleep_event')
+      .map(item => {
+        if (item.kind !== 'sleep_event') return null
+        const e = item.event
+        const config: Record<string, { icon: string; label: string }> = {
+          wake: { icon: '🌅', label: 'Woke up' },
+          nap_start: { icon: '😴', label: 'Nap started' },
+          nap_end: { icon: '🌤️', label: 'Nap ended' },
+          bedtime: { icon: '🌙', label: 'Bedtime' },
+          night_wake: { icon: '👀', label: 'Night wake' },
+        }
+        const cfg = config[e.event_type] ?? { icon: '•', label: e.event_type }
+        const d = new Date(e.event_time)
+        return {
+          id: e.id,
+          eventType: e.event_type as EventType,
+          label: cfg.label,
+          icon: cfg.icon,
+          time: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
+          detail: e.notes ?? undefined,
+          isActive: false,
+        }
+      })
+      .filter(Boolean) as Array<{
+        id: string
+        eventType: EventType
+        label: string
+        icon: string
+        time: string
+        detail?: string
+        isActive?: boolean
+      }>
+  }, [timelineItems])
+
+  // Render chat messages for the drawer
+  const chatMessagesElement = useMemo(() => {
+    const msgs = allMessages
+    if (msgs.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <span className="text-3xl mb-3">💬</span>
+          <p className="text-sm font-700 text-[var(--text-muted)]">No messages yet</p>
+          <p className="text-xs font-600 text-[var(--text-muted)] mt-1">Ask about sleep advice or tips</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex flex-col gap-3">
+        {msgs.map((msg) => {
+          const text = extractText(msg)
+          const isUser = msg.role === 'user'
+          return (
+            <div key={msg.id} className={isUser ? 'flex justify-end' : 'flex justify-start'}>
+              <Message from={msg.role}>
+                <MessageContent
+                  className={isUser
+                    ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-white shadow-sm'
+                    : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
+                  }
+                >
+                  <p className="whitespace-pre-wrap text-sm">{text}</p>
+                </MessageContent>
+              </Message>
+            </div>
+          )
+        })}
+        {status === 'streaming' && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl bg-[var(--lavender-bg)] px-4 py-3">
+              <Loader size={16} />
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }, [allMessages, status])
+
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <AppHeader baby={baby} onSignOut={handleSignOut} />
       </div>
 
-      <Conversation className="flex-1">
-        <ConversationContent className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6 gap-4">
-          <TimelineRenderer
-            timelineItems={timelineItems}
-            allMessages={allMessages}
-            allSleepEvents={allSleepEvents}
-            allSleepPlans={allSleepPlans}
-            baby={baby}
-            status={status}
-            isLoadingHistory={isLoadingHistory}
-            hasMoreHistory={hasMoreHistory}
-            onLoadMoreHistory={loadMoreHistory}
-            onSendMessage={handleSendMessage}
-            onEventClick={handleEventClick}
-          />
-        </ConversationContent>
-        <ConversationScrollButton className="shadow-lg" />
-      </Conversation>
-
-      <div className="sticky bottom-0 border-t py-1 sm:py-3 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 chat-input-container">
-        <div className="container max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
-          <ChatInput
-            babyId={baby.id}
-            babyName={baby.name}
-            allEvents={allSleepEvents}
-            onSendMessage={handleSendMessage}
-            onCreateEvent={handleCreateEvent}
-            status={status}
-            sleepPlan={sleepPlan}
-            currentState={currentState}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
+      <SleepDashboard
+        baby={baby}
+        currentState={currentState}
+        sleepPlan={sleepPlan}
+        timelineItems={timelineDisplayItems}
+        allEvents={allSleepEvents}
+        chatMessages={chatMessagesElement}
+        isChatStreaming={isLoading}
+        onCreateEvent={handleCreateEvent}
+        onUpdateEvent={handleUpdateEvent}
+        onDeleteEvent={handleDeleteEventById}
+        onSendMessage={handleSendMessage}
+      />
 
       <UnifiedEditDialog
         open={editDialogOpen}
@@ -297,4 +373,16 @@ export function ChatContent({
       />
     </div>
   )
+}
+
+/** Extract text content from a chat message */
+function extractText(msg: ChatMessageData): string {
+  const parts = msg.parts as Array<{ type: string; text?: string }> | undefined
+  if (parts && parts.length > 0) {
+    return parts
+      .filter(p => p.type === 'text' && p.text)
+      .map(p => p.text)
+      .join(' ')
+  }
+  return ''
 }
