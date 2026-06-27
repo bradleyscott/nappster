@@ -70,7 +70,7 @@ export function AppHeader({ baby }: AppHeaderProps) {
       </div>
 
       {/* Rounded card header */}
-      <div className="flex min-h-[60px] flex-col items-center justify-center rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]">
+      <div className="flex w-full min-h-[60px] flex-col items-center justify-center rounded-[22px] bg-white px-14 py-2.5 text-center shadow-[var(--shadow-sm)]">
         <span className="text-[10px] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
           {getGreeting()}
         </span>
