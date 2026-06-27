@@ -12,24 +12,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
-const sleepMethods = [
-  { value: '', label: 'Select a method (optional)' },
-  { value: 'Taking Cara Babies', label: 'Taking Cara Babies' },
-  { value: 'Ferber', label: 'Ferber Method' },
-  { value: 'Chair Method', label: 'Chair Method' },
-  { value: 'Pick Up Put Down', label: 'Pick Up Put Down' },
-  { value: 'Cry It Out', label: 'Cry It Out' },
-  { value: 'No Formal Training', label: 'No Formal Training' },
-  { value: 'Other', label: 'Other' },
-]
-
 type Step = 'choice' | 'create' | 'join'
 
 export default function OnboardingPage() {
   const [step, setStep] = useState<Step>('choice')
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
-  const [sleepMethod, setSleepMethod] = useState('')
   const [patternNotes, setPatternNotes] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -55,7 +43,6 @@ export default function OnboardingPage() {
       id: babyId,
       name,
       birth_date: birthDate,
-      sleep_training_method: sleepMethod || null,
       pattern_notes: patternNotes || null,
     })
 
@@ -268,22 +255,6 @@ export default function OnboardingPage() {
                 onChange={(e) => setBirthDate(e.target.value)}
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sleepMethod">Sleep training method</Label>
-              <select
-                id="sleepMethod"
-                value={sleepMethod}
-                onChange={(e) => setSleepMethod(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                {sleepMethods.map((method) => (
-                  <option key={method.value} value={method.value}>
-                    {method.label}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div className="space-y-2">

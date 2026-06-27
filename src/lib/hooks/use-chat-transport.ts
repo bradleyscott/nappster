@@ -35,9 +35,8 @@ export function useChatTransport({ baby, timezone, events, initialMessages }: Us
     name: baby.name,
     age: formatAge(baby.birth_date),
     birthDate: baby.birth_date,
-    sleepTrainingMethod: baby.sleep_training_method,
     patternNotes: baby.pattern_notes,
-  }), [baby.name, baby.birth_date, baby.sleep_training_method, baby.pattern_notes])
+  }), [baby.name, baby.birth_date, baby.pattern_notes])
 
   const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/chat',

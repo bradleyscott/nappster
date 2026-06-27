@@ -37,7 +37,6 @@ export const mockStore = {
       id: MOCK_BABY_ID,
       name: 'Luna',
       birth_date: birthDate.toISOString().split('T')[0],
-      sleep_training_method: 'Taking Cara Babies',
       pattern_notes: 'Typically does 30-minute naps, prefers 3 naps per day. Usually wakes around 7am.',
       created_at: birthDate.toISOString(),
     },

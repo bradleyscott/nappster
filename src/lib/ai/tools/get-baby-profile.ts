@@ -13,7 +13,7 @@ export function createGetBabyProfileTool(context: ToolContext) {
   const { supabase, babyId } = context
 
   return tool({
-    description: `Get the baby's profile including name, age, birth date, sleep training method, and pattern notes.
+    description: `Get the baby's profile including name, age, birth date, and pattern notes.
 Call this FIRST before any other tools to understand who you're helping and their known sleep patterns.`,
     inputSchema: z.object({}),
     execute: async () => {
@@ -33,7 +33,6 @@ Call this FIRST before any other tools to understand who you're helping and thei
           name: data.name,
           age: formatAge(data.birth_date),
           birthDate: data.birth_date,
-          sleepTrainingMethod: data.sleep_training_method,
           patternNotes: data.pattern_notes
         }
       } as const

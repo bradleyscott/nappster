@@ -8,7 +8,6 @@ const baby: Baby = {
   id: 'baby-1',
   name: 'Luna',
   birth_date: '2023-06-15',
-  sleep_training_method: null,
   pattern_notes: null,
   created_at: '2023-06-15T00:00:00Z',
 }
