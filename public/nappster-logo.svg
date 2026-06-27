@@ -1,48 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="nappster-bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#B48BFF"/>
       <stop offset="100%" stop-color="#7C4DFF"/>
     </linearGradient>
-    <linearGradient id="headphoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="nappster-headphone" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#E8D8FF"/>
-      <stop offset="100%" stop-color="#D8C6FF"/>
+      <stop offset="100%" stop-color="#CDB2FF"/>
     </linearGradient>
-    <linearGradient id="pacifierGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="nappster-pacifier" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#6FCF97"/>
       <stop offset="100%" stop-color="#4CAF74"/>
     </linearGradient>
   </defs>
 
-  <!-- Outer circle -->
-  <circle cx="100" cy="100" r="96" fill="url(#bgGrad)"/>
-  <circle cx="100" cy="100" r="86" fill="#FFF8F0"/>
+  <circle cx="100" cy="100" r="98" fill="url(#nappster-bg)"/>
+  <circle cx="100" cy="100" r="88" fill="#FFF8F0"/>
 
-  <!-- Headphones band -->
-  <path d="M 42 100 C 42 50 158 50 158 100" fill="none" stroke="#B48BFF" stroke-width="10" stroke-linecap="round"/>
-  <path d="M 42 100 C 42 50 158 50 158 100" fill="none" stroke="#D8C6FF" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 38 102 C 38 42 162 42 162 102" fill="none" stroke="#B48BFF" stroke-width="14" stroke-linecap="round"/>
+  <path d="M 38 102 C 38 42 162 42 162 102" fill="none" stroke="#D8C6FF" stroke-width="6" stroke-linecap="round"/>
 
-  <!-- Head -->
-  <ellipse cx="100" cy="105" rx="48" ry="52" fill="#FFF8F0" stroke="#2D2B3A" stroke-width="4"/>
+  <ellipse cx="100" cy="106" rx="52" ry="56" fill="#FFF8F0" stroke="#2D2B3A" stroke-width="4"/>
 
-  <!-- Hair curl -->
-  <path d="M 92 62 C 92 50 108 50 108 62 C 108 70 100 72 100 80" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 88 60 C 84 46 104 44 104 58 C 104 68 94 70 96 82" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Closed eyes -->
-  <path d="M 72 100 Q 82 108 92 100" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
-  <path d="M 108 100 Q 118 108 128 100" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 70 102 Q 80 110 90 102" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 110 102 Q 120 110 130 102" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Smile -->
-  <path d="M 92 122 Q 100 130 108 122" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 92 126 Q 100 134 108 126" fill="none" stroke="#2D2B3A" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Headphone ear cups -->
-  <rect x="28" y="82" width="22" height="42" rx="10" fill="url(#headphoneGrad)" stroke="#B48BFF" stroke-width="3"/>
-  <rect x="150" y="82" width="22" height="42" rx="10" fill="url(#headphoneGrad)" stroke="#B48BFF" stroke-width="3"/>
+  <rect x="24" y="82" width="26" height="48" rx="12" fill="url(#nappster-headphone)" stroke="#B48BFF" stroke-width="3.5"/>
+  <rect x="150" y="82" width="26" height="48" rx="12" fill="url(#nappster-headphone)" stroke="#B48BFF" stroke-width="3.5"/>
+  <rect x="30" y="92" width="14" height="28" rx="6" fill="#FFF8F0" opacity="0.6"/>
+  <rect x="156" y="92" width="14" height="28" rx="6" fill="#FFF8F0" opacity="0.6"/>
 
-  <!-- Pacifier -->
-  <circle cx="100" cy="138" r="14" fill="url(#pacifierGrad)" stroke="#2D2B3A" stroke-width="3"/>
-  <circle cx="92" cy="132" r="3" fill="#FFF8F0"/>
-  <circle cx="108" cy="132" r="3" fill="#FFF8F0"/>
-  <path d="M 100 138 L 100 150" fill="none" stroke="#2D2B3A" stroke-width="3" stroke-linecap="round"/>
-  <path d="M 88 150 Q 100 158 112 150" fill="none" stroke="#2D2B3A" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="100" cy="142" rx="18" ry="16" fill="#FFF8F0" stroke="#2D2B3A" stroke-width="3.5"/>
+  <circle cx="100" cy="142" r="10" fill="url(#nappster-pacifier)" stroke="#2D2B3A" stroke-width="3"/>
+  <circle cx="96" cy="138" r="2.5" fill="#FFF8F0" opacity="0.8"/>
+  <path d="M 100 152 L 100 164" fill="none" stroke="#2D2B3A" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M 86 164 Q 100 174 114 164" fill="none" stroke="#2D2B3A" stroke-width="3.5" stroke-linecap="round"/>
 </svg>
