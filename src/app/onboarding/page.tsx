@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { NappsterLogo } from '@/components/nappster-logo'
 import { createBaby } from '@/lib/services/babies'
 import { createFamilyMember } from '@/lib/services/family-members'
 
@@ -110,9 +111,7 @@ export default function OnboardingPage() {
   if (step === 'choice') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
-        <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-4xl shadow-[0_8px_24px_rgba(124,77,255,0.3)]">
-          🌙
-        </div>
+        <NappsterLogo size={100} />
         <h1 className="mt-6 text-2xl font-black text-[var(--text)]">Welcome to Nappster</h1>
         <p className="mt-1 text-center text-sm font-bold text-[var(--text-secondary)]">
           How would you like to get started?

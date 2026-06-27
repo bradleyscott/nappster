@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { NappsterLogo } from '@/components/nappster-logo'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -34,9 +35,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
-      <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-4xl shadow-[0_8px_24px_rgba(124,77,255,0.3)]">
-        🌙
-      </div>
+      <NappsterLogo size={100} />
 
       <div className="mt-6 w-full max-w-xs rounded-[24px] bg-white p-6 shadow-[var(--shadow-md)]">
         <h1 className="text-center text-2xl font-black text-[var(--text)]">Welcome back</h1>

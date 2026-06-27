@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
+import { NappsterLogo } from '@/components/nappster-logo'
 import { ChatContent } from '@/components/chat-content'
 import { getYesterdayBoundsForTimezone } from '@/lib/timezone'
 import { getFamilyMembersForUser } from '@/lib/services/family-members'
@@ -20,9 +21,7 @@ export default async function Home() {
   if (!user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
-        <div className="flex h-28 w-28 items-center justify-center rounded-[32px] bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-5xl shadow-[0_8px_28px_rgba(124,77,255,0.3)]">
-          🌙
-        </div>
+        <NappsterLogo size={120} />
         <h1 className="mt-6 text-4xl font-black text-[var(--text)]">Nappster</h1>
         <p className="mt-2 max-w-xs text-center text-base font-bold leading-snug text-[var(--text-secondary)]">
           Track your baby&apos;s sleep and get AI-powered recommendations for nap times and bedtime.
