@@ -117,8 +117,8 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
 
       <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
         {/* ===== PROFILE CARD ===== */}
-        <div className="mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
-          <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
+        <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
+          <div className="gradient-flow h-1" />
           <div className="px-5 pb-5 pt-6">
           {error && (
             <div className="mb-4 rounded-xl bg-[var(--rose-bg)] px-4 py-3 text-sm font-bold text-[var(--rose)]">
@@ -128,7 +128,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
 
           <form onSubmit={handleSubmit}>
             {/* Name */}
-            <div className="mb-4">
+            <div className="form-field-in mb-4">
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
                 👤 Baby&apos;s name
               </label>
@@ -143,7 +143,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
             </div>
 
             {/* Birth date */}
-            <div className="mb-4">
+            <div className="form-field-in mb-4">
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
                 🎂 Birth date
               </label>
@@ -157,7 +157,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
             </div>
 
             {/* Pattern notes */}
-            <div className="mb-5">
+            <div className="form-field-in mb-5">
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
                 📝 Known patterns
               </label>
@@ -182,7 +182,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
               type="submit"
               disabled={loading}
               className={cn(
-                'w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-4 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97]',
+                'action-entrance action-shimmer w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-4 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97]',
                 loading && 'opacity-70'
               )}
             >
@@ -193,7 +193,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
         </div>
 
         {/* ===== FAMILY CARD ===== */}
-        <div className="mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]">
+        <div className="card-rise mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]" style={{ animationDelay: '0.12s' }}>
           {/* Header */}
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-xl">
@@ -219,10 +219,11 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
                 No family members yet
               </div>
             )}
-            {familyMembers.map((member) => (
+            {familyMembers.map((member, i) => (
               <div
                 key={member.id}
-                className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm"
+                className="member-row-in flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm"
+                style={{ animationDelay: `${0.1 + i * 0.08}s` }}
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-sm font-extrabold text-[var(--lavender)]">
                   {member.is_you ? '⭐' : member.role === 'parent' ? '👤' : '🤝'}
@@ -273,9 +274,9 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
                 </p>
               </>
             ) : (
-              <div className="rounded-2xl border-2 border-dashed border-[var(--lavender-light)] bg-gradient-to-br from-[var(--lavender-bg)] to-[#F0EAFF] px-4 py-5">
+              <div className="invite-reveal rounded-2xl border-2 border-dashed border-[var(--lavender-light)] bg-gradient-to-br from-[var(--lavender-bg)] to-[#F0EAFF] px-4 py-5">
                 <div className="mb-2 text-2xl">🔑</div>
-                <div className="mb-1 text-2xl font-black tracking-[0.15em] text-[#5B2ED9]">
+                <div className="code-pop mb-1 text-2xl font-black tracking-[0.15em] text-[#5B2ED9]">
                   {inviteCode}
                 </div>
                 <div className="mb-3 text-[11px] font-semibold text-[var(--text-secondary)]">
