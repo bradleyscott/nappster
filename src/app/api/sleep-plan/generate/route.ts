@@ -9,6 +9,11 @@ import { buildPlanGenerationContext } from '@/lib/ai/build-plan-context'
 import { createPlanGenerationTools } from '@/lib/ai/tools'
 import { getActiveSleepPlan } from '@/lib/services/sleep-plans'
 import {
+  acquirePlanGenerationLock,
+  releasePlanGenerationLock,
+  isPlanGenerationCooldownActive,
+} from '@/lib/services/babies'
+import {
   requireBabyAccess,
   apiError,
   apiValidationError,
@@ -86,7 +91,36 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const result = streamText({
+    // Rate-limit: skip if we already generated a plan recently (unless events changed,
+    // the hash check above would have caught that — this is a safety net).
+    const { active: cooldownActive, error: cooldownError } =
+      await isPlanGenerationCooldownActive(supabase, babyId, 60)
+    if (cooldownError) {
+      console.error('Error checking plan generation cooldown:', cooldownError)
+    }
+    if (cooldownActive) {
+      return NextResponse.json({
+        plan: activePlan ?? null,
+        regenerated: false,
+        reason: 'cooldown_active',
+      })
+    }
+
+    // Acquire a short-lived lock so concurrent requests don't both call OpenAI.
+    const { acquired, error: lockError } = await acquirePlanGenerationLock(supabase, babyId, 120)
+    if (lockError) {
+      console.error('Error acquiring plan generation lock:', lockError)
+    }
+    if (!acquired) {
+      return NextResponse.json({
+        plan: activePlan ?? null,
+        regenerated: false,
+        reason: 'generation_in_progress',
+      })
+    }
+
+    try {
+      const result = streamText({
       model: openai('gpt-5.2'),
       system: `${systemPrompt}\n\n## Task\nGenerate today's sleep plan and call the updateSleepPlan tool. Do not ask clarifying questions — use the provided context to produce the best schedule.`,
       messages: [
@@ -146,18 +180,25 @@ export async function POST(req: NextRequest) {
         ? (updatePlanResult.output as { persisted?: boolean; success?: boolean; error?: string })
         : undefined
 
-    if (resultOutput && !resultOutput.persisted && !resultOutput.success) {
-      console.error('updateSleepPlan tool failed during background generation:', resultOutput.error)
-      return apiError(
-        `Plan generation failed: ${resultOutput.error ?? 'updateSleepPlan did not persist'}`,
-        500
-      )
-    }
+      if (resultOutput && !resultOutput.persisted && !resultOutput.success) {
+        console.error('updateSleepPlan tool failed during background generation:', resultOutput.error)
+        return apiError(
+          `Plan generation failed: ${resultOutput.error ?? 'updateSleepPlan did not persist'}`,
+          500
+        )
+      }
 
-    return NextResponse.json({
-      plan: generatedPlan,
-      regenerated: true,
-    })
+      return NextResponse.json({
+        plan: generatedPlan,
+        regenerated: true,
+      })
+    } finally {
+      // Always release the lock and record the generation timestamp.
+      const { error: releaseError } = await releasePlanGenerationLock(supabase, babyId)
+      if (releaseError) {
+        console.error('Error releasing plan generation lock:', releaseError)
+      }
+    }
   } catch (error) {
     console.error('Error in sleep-plan generate API:', error)
     return apiError('Error generating sleep plan', 500)

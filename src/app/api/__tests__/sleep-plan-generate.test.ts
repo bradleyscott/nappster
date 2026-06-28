@@ -31,8 +31,19 @@ vi.mock('@/lib/services/sleep-plans', async () => {
   }
 })
 
+vi.mock('@/lib/services/babies', () => ({
+  acquirePlanGenerationLock: vi.fn().mockResolvedValue({ acquired: true, error: null }),
+  releasePlanGenerationLock: vi.fn().mockResolvedValue({ error: null }),
+  isPlanGenerationCooldownActive: vi.fn().mockResolvedValue({ active: false, error: null }),
+}))
+
 import { buildPlanGenerationContext } from '@/lib/ai/build-plan-context'
 import { getActiveSleepPlan } from '@/lib/services/sleep-plans'
+import {
+  acquirePlanGenerationLock,
+  releasePlanGenerationLock,
+  isPlanGenerationCooldownActive,
+} from '@/lib/services/babies'
 
 function makeRequest(body: unknown) {
   return new NextRequest('http://localhost/api/sleep-plan/generate', {
@@ -90,6 +101,11 @@ describe('POST /api/sleep-plan/generate', () => {
     vi.mocked(getActiveSleepPlan).mockReset()
     vi.mocked(streamText).mockReset()
     vi.mocked(buildPlanGenerationContext).mockReset()
+
+    // Reset guard mocks to their default "allow" state.
+    vi.mocked(acquirePlanGenerationLock).mockReset().mockResolvedValue({ acquired: true, error: null })
+    vi.mocked(releasePlanGenerationLock).mockReset().mockResolvedValue({ error: null })
+    vi.mocked(isPlanGenerationCooldownActive).mockReset().mockResolvedValue({ active: false, error: null })
   })
 
   afterEach(() => {
@@ -156,6 +172,38 @@ describe('POST /api/sleep-plan/generate', () => {
     expect(response.status).toBe(200)
     expect(body.regenerated).toBe(false)
     expect(body.reason).toBe('no_events_today')
+    expect(streamText).not.toHaveBeenCalled()
+  })
+
+  it('returns cooldown_active when a recent generation already happened', async () => {
+    mockContext([
+      { id: 'evt-1', event_type: 'wake', event_time: new Date().toISOString() },
+    ])
+    vi.mocked(getActiveSleepPlan).mockResolvedValue({ data: null, error: null })
+    vi.mocked(isPlanGenerationCooldownActive).mockResolvedValue({ active: true, error: null })
+
+    const response = await generatePlan(makeRequest({ babyId: TEST_BABY_ID, timezone: 'UTC' }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.regenerated).toBe(false)
+    expect(body.reason).toBe('cooldown_active')
+    expect(streamText).not.toHaveBeenCalled()
+  })
+
+  it('returns generation_in_progress when another request holds the lock', async () => {
+    mockContext([
+      { id: 'evt-1', event_type: 'wake', event_time: new Date().toISOString() },
+    ])
+    vi.mocked(getActiveSleepPlan).mockResolvedValue({ data: null, error: null })
+    vi.mocked(acquirePlanGenerationLock).mockResolvedValue({ acquired: false, error: null })
+
+    const response = await generatePlan(makeRequest({ babyId: TEST_BABY_ID, timezone: 'UTC' }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.regenerated).toBe(false)
+    expect(body.reason).toBe('generation_in_progress')
     expect(streamText).not.toHaveBeenCalled()
   })
 
