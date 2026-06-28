@@ -26,7 +26,8 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message'
 import ReactMarkdown from 'react-markdown'
-import { format, isSameDay, isToday, isYesterday } from 'date-fns'
+import { format, isSameDay, isToday, isYesterday, subDays } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
 import type { SleepPlanRow } from '@/types/database'
 
 interface ChatContentProps {
@@ -296,6 +297,18 @@ export function ChatContent({
         }
         const cfg = config[e.event_type] ?? { icon: '•', label: e.event_type }
         const d = new Date(e.event_time)
+        const zonedEvent = toZonedTime(d, timezone)
+        const zonedNow = toZonedTime(new Date(), timezone)
+        const dateKey = format(zonedEvent, 'yyyy-MM-dd')
+        let dateLabel: string
+        if (isSameDay(zonedEvent, zonedNow)) {
+          dateLabel = 'Today'
+        } else if (isSameDay(zonedEvent, subDays(zonedNow, 1))) {
+          dateLabel = 'Yesterday'
+        } else {
+          dateLabel = format(zonedEvent, 'EEE, MMM d')
+        }
+        const dateShort = format(zonedEvent, 'EEE').toUpperCase()
         return {
           id: e.id,
           eventType: e.event_type as EventType,
@@ -304,6 +317,9 @@ export function ChatContent({
           time: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
           detail: e.notes ?? undefined,
           isActive: false,
+          dateKey,
+          dateLabel,
+          dateShort,
         }
       })
       .filter(Boolean) as Array<{
@@ -314,8 +330,11 @@ export function ChatContent({
         time: string
         detail?: string
         isActive?: boolean
+        dateKey: string
+        dateLabel: string
+        dateShort: string
       }>
-  }, [timelineItems])
+  }, [timelineItems, timezone])
 
   const formatDayLabel = useCallback((date: Date) => {
     if (isToday(date)) return 'Today'

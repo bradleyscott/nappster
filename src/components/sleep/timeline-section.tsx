@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import type { EventType } from '@/types/database'
 
@@ -11,6 +12,12 @@ interface TimelineItemBase {
   time: string
   detail?: string
   isActive?: boolean
+  /** Local date key (YYYY-MM-DD) for grouping items into day sections. */
+  dateKey: string
+  /** Human-readable day label, e.g. "Today", "Yesterday", "Mon, Jan 23". */
+  dateLabel: string
+  /** Short weekday abbreviation shown inside the rail pill, e.g. "SUN". */
+  dateShort: string
 }
 
 interface TimelineSectionProps {
@@ -37,6 +44,29 @@ const glowMap: Record<EventType, string> = {
 }
 
 export function TimelineSection({ items, onAddEvent, onEditEvent, className }: TimelineSectionProps) {
+  const groups = useMemo(() => {
+    const result: {
+      dateKey: string
+      dateLabel: string
+      dateShort: string
+      items: TimelineItemBase[]
+    }[] = []
+    for (const item of items) {
+      const last = result[result.length - 1]
+      if (!last || last.dateKey !== item.dateKey) {
+        result.push({
+          dateKey: item.dateKey,
+          dateLabel: item.dateLabel,
+          dateShort: item.dateShort,
+          items: [item],
+        })
+      } else {
+        last.items.push(item)
+      }
+    }
+    return result
+  }, [items])
+
   return (
     <section className={cn('', className)}>
       {/* Header */}
@@ -60,54 +90,70 @@ export function TimelineSection({ items, onAddEvent, onEditEvent, className }: T
         </div>
       ) : (
         <div className="flex flex-col gap-0">
-          {items.map((item, i) => {
-            const isLast = i === items.length - 1
-            return (
-              <button
-                key={item.id}
-                onClick={() => onEditEvent({ id: item.id, eventType: item.eventType })}
-                className="group relative flex w-full items-stretch gap-3 rounded-xl px-2 py-2 text-left active:bg-[var(--lavender-bg)] transition-colors duration-100"
-              >
-                {/* Vertical line + dot */}
-                <div className="flex w-6 shrink-0 flex-col items-center">
-                  <div
-                    className={cn(
-                      'z-10 mt-1.5 h-3 w-3 rounded-full',
-                      dotColorMap[item.eventType],
-                      item.isActive && glowMap[item.eventType]
-                    )}
-                  />
-                  {!isLast && (
-                    <div className="mt-[-2px] w-0.5 flex-1 rounded-full bg-[#E8E5F0]" />
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="flex min-w-0 flex-1 items-center gap-2 pb-4 group-last:pb-0">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">{item.icon}</span>
-                      <span className="truncate text-sm font-bold text-[var(--text)]">
-                        {item.label}
-                      </span>
-                      <span className="ml-auto shrink-0 text-xs font-bold text-[var(--text-muted)]">
-                        {item.time}
-                      </span>
-                    </div>
-                    {item.detail && (
-                      <div className="mt-0.5 truncate text-xs font-semibold text-[var(--text-muted)] pl-[1.6rem]">
-                        {item.detail}
-                      </div>
-                    )}
-                  </div>
-                  {/* Edit hint — subtle chevrons */}
-                  <span className="shrink-0 text-xs font-bold text-[var(--text-muted)] opacity-0 transition-opacity duration-100 group-hover:opacity-40">
-                    ››
+          {groups.map((group, groupIndex) => (
+            <div key={group.dateKey} className="flex flex-col">
+              {/* Date break pill */}
+              <div className="flex items-center py-1">
+                <div className="flex w-6 shrink-0 justify-center">
+                  <span className="w-11 rounded-full bg-[var(--lavender-bg)] px-1.5 py-1 text-center text-[0.55rem] font-extrabold uppercase tracking-[0.3px] text-[var(--lavender)]">
+                    {group.dateShort}
                   </span>
                 </div>
-              </button>
-            )
-          })}
+                <span className="pl-3 text-xs font-bold text-[var(--text-secondary)]">
+                  {group.dateLabel}
+                </span>
+              </div>
+
+              {group.items.map((item, itemIndex) => {
+                const isLast = groupIndex === groups.length - 1 && itemIndex === group.items.length - 1
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onEditEvent({ id: item.id, eventType: item.eventType })}
+                    className="group relative flex w-full items-stretch gap-3 rounded-xl px-2 py-2 text-left active:bg-[var(--lavender-bg)] transition-colors duration-100"
+                  >
+                    {/* Vertical line + dot */}
+                    <div className="flex w-6 shrink-0 flex-col items-center">
+                      <div
+                        className={cn(
+                          'z-10 mt-1.5 h-3 w-3 rounded-full',
+                          dotColorMap[item.eventType],
+                          item.isActive && glowMap[item.eventType]
+                        )}
+                      />
+                      {!isLast && (
+                        <div className="mt-[-2px] w-0.5 flex-1 rounded-full bg-[#E8E5F0]" />
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex min-w-0 flex-1 items-center gap-2 pb-4 group-last:pb-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{item.icon}</span>
+                          <span className="truncate text-sm font-bold text-[var(--text)]">
+                            {item.label}
+                          </span>
+                          <span className="ml-auto shrink-0 text-xs font-bold text-[var(--text-muted)]">
+                            {item.time}
+                          </span>
+                        </div>
+                        {item.detail && (
+                          <div className="mt-0.5 truncate text-xs font-semibold text-[var(--text-muted)] pl-[1.6rem]">
+                            {item.detail}
+                          </div>
+                        )}
+                      </div>
+                      {/* Edit hint — subtle chevrons */}
+                      <span className="shrink-0 text-xs font-bold text-[var(--text-muted)] opacity-0 transition-opacity duration-100 group-hover:opacity-40">
+                        ››
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </div>
       )}
     </section>
