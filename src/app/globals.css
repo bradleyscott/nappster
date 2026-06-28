@@ -463,6 +463,133 @@
     0% { transform: scale(0.5) rotate(-12deg); opacity: 0; }
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
   }
+
+  /* ---- PageHeader logo breathe ---- */
+  .page-header-logo {
+    animation: logoBreathe 4s ease-in-out infinite;
+  }
+
+  @keyframes logoBreathe {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(180, 139, 255, 0); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(180, 139, 255, 0.08); }
+  }
+
+  /* ---- Card rise entrance ---- */
+  .card-rise {
+    animation: cardRise 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .card-rise:nth-of-type(1) { animation-delay: 0s; }
+  .card-rise:nth-of-type(2) { animation-delay: 0.08s; }
+  .card-rise:nth-of-type(3) { animation-delay: 0.16s; }
+  .card-rise:nth-of-type(4) { animation-delay: 0.24s; }
+
+  @keyframes cardRise {
+    0% { transform: translateY(18px) scale(0.98); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  /* ---- Animated gradient top bar ---- */
+  .gradient-flow {
+    background: linear-gradient(90deg, var(--lavender), var(--mint), var(--peach));
+    background-size: 200% 100%;
+    animation: gradientFlow 4s linear infinite;
+  }
+
+  @keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  /* ---- Bar grow (timeline / mini bars) ---- */
+  .bar-grow {
+    animation: barGrow 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    transform-origin: left;
+  }
+
+  @keyframes barGrow {
+    0% { transform: scaleX(0); opacity: 0; }
+    100% { transform: scaleX(1); opacity: 0.85; }
+  }
+
+  /* ---- Stat pill pop ---- */
+  .stat-pill-pop {
+    opacity: 0;
+    animation: statPillPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .stat-pill-pop:nth-child(1) { animation-delay: 0.3s; }
+  .stat-pill-pop:nth-child(2) { animation-delay: 0.38s; }
+  .stat-pill-pop:nth-child(3) { animation-delay: 0.46s; }
+
+  @keyframes statPillPop {
+    0% { transform: translateY(10px) scale(0.95); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  /* ---- Trend card entrance ---- */
+  .trend-card-up {
+    opacity: 0;
+    animation: trendUp 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .trend-card-up:nth-child(1) { animation-delay: 0.2s; }
+  .trend-card-up:nth-child(2) { animation-delay: 0.28s; }
+  .trend-card-up:nth-child(3) { animation-delay: 0.36s; }
+
+  @keyframes trendUp {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ---- Settings form field entrance ---- */
+  .form-field-in {
+    opacity: 0;
+    animation: fieldIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .form-field-in:nth-child(1) { animation-delay: 0.1s; }
+  .form-field-in:nth-child(2) { animation-delay: 0.18s; }
+  .form-field-in:nth-child(3) { animation-delay: 0.26s; }
+
+  @keyframes fieldIn {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Family member row entrance ---- */
+  .member-row-in {
+    opacity: 0;
+    animation: memberIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .member-row-in:nth-child(1) { animation-delay: 0.1s; }
+  .member-row-in:nth-child(2) { animation-delay: 0.18s; }
+  .member-row-in:nth-child(3) { animation-delay: 0.26s; }
+
+  @keyframes memberIn {
+    0% { opacity: 0; transform: translateX(-16px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ---- Invite code reveal ---- */
+  .invite-reveal {
+    animation: inviteFlip 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes inviteFlip {
+    0% { transform: perspective(600px) rotateX(-15deg) scale(0.96); opacity: 0; }
+    100% { transform: perspective(600px) rotateX(0) scale(1); opacity: 1; }
+  }
+
+  .code-pop {
+    animation: codePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both;
+  }
+
+  @keyframes codePop {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 }
 
 /* Reduced motion fallbacks: keep static styles that do not animate */
@@ -474,13 +601,30 @@
   .fab-badge-pop,
   .subtitle-pill-animated,
   .timeline-row-animated,
-  .hero-icon-pop {
+  .hero-icon-pop,
+  .page-header-logo,
+  .card-rise,
+  .gradient-flow,
+  .bar-grow,
+  .stat-pill-pop,
+  .trend-card-up,
+  .form-field-in,
+  .member-row-in,
+  .invite-reveal,
+  .code-pop {
     animation: none !important;
   }
 
   .timeline-row-animated,
   .subtitle-pill-animated,
-  .hero-icon-pop {
+  .hero-icon-pop,
+  .card-rise,
+  .stat-pill-pop,
+  .trend-card-up,
+  .form-field-in,
+  .member-row-in,
+  .invite-reveal,
+  .code-pop {
     opacity: 1;
     transform: none;
   }

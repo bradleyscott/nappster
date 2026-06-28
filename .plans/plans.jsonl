@@ -1,3 +1,4 @@
 {"_type":"plan","name":"nappster-quality-improvement","status":"done","title":"Nappster Architecture, Code Quality & Testing Overhaul","created_at":"2026-06-26T10:47:15.268Z","completed_at":"2026-06-26T22:45:44.792Z"}
 {"_type":"plan","name":"ui-redesign","status":"done","title":"UI Redesign — Dashboard, Trends & Profile Page","created_at":"2026-06-27T06:16:15.095Z","completed_at":"2026-06-27T06:33:35.335Z"}
 {"_type":"plan","name":"dashboard-motion-polish","status":"done","title":"Add subtle motion polish to the sleep dashboard","created_at":"2026-06-28T08:37:35.226Z","completed_at":"2026-06-28T08:41:07.983Z"}
+{"_type":"plan","name":"trends-settings-motion","status":"done","title":"Extend motion polish to Trends and Settings pages","created_at":"2026-06-28T08:46:02.114Z","completed_at":"2026-06-28T08:49:24.804Z"}
