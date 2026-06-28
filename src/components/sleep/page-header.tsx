@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { NappsterLogo } from '@/components/nappster-logo'
+import { ArrowLeft } from 'lucide-react'
 
 interface PageHeaderProps {
   title: string
@@ -32,13 +33,13 @@ export function PageHeader({
           <button
             onClick={onBack}
             disabled={isNavigatingBack}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform disabled:opacity-60"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform disabled:opacity-60"
             aria-label="Go back"
           >
             {isNavigatingBack ? (
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />
+              <span className="inline-block h-5 w-5 animate-spin rounded-full border-[3px] border-[var(--lavender)] border-t-transparent" />
             ) : (
-              <span>←</span>
+              <ArrowLeft className="size-6" strokeWidth={2.5} />
             )}
           </button>
         </div>

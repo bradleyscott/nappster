@@ -17,12 +17,18 @@ export function BackButton() {
   }
 
   return (
-    <Button variant="ghost" size="icon" asChild disabled={isNavigating}>
+    <Button
+      variant="ghost"
+      size="icon-lg"
+      asChild
+      disabled={isNavigating}
+      className="rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] hover:bg-white/80 hover:text-[var(--text)]"
+    >
       <Link href="/" onClick={handleClick}>
         {isNavigating ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="size-6 animate-spin" />
         ) : (
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="size-6" strokeWidth={2.5} />
         )}
       </Link>
     </Button>

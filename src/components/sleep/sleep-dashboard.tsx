@@ -376,7 +376,7 @@ function getStateConfig(
         title: 'Awake & Playing',
         elevated: false,
         pills: [
-          { icon: '🌅', label: pillLabel, color: 'peach', eventId: pillAnchor?.id },
+          { icon: '☀️', label: pillLabel, color: 'peach', eventId: pillAnchor?.id },
           { dot: true, label: `Awake for ${awakeFor}`, color: 'peach' },
         ],
         countdown,

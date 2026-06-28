@@ -613,7 +613,7 @@ export function getCountdownContext(
         return {
           ...EMPTY,
           mode: 'overnight',
-          expectedIcon: '🌅',
+          expectedIcon: '☀️',
           expectedText: 'Expected wake',
           expectedTime: '—',
           timeLabel: 'until wake',
@@ -646,7 +646,7 @@ export function getCountdownContext(
         progress,
         timeRemaining: formatCountdown(remaining),
         timeLabel: 'until wake',
-        expectedIcon: '🌅',
+        expectedIcon: '☀️',
         expectedText,
         expectedTime,
         mode: 'overnight',
