@@ -22,6 +22,12 @@ interface TimelineItemDisplay {
   time: string
   detail?: string
   isActive?: boolean
+  /** Local date key (YYYY-MM-DD) in the user's timezone for grouping. */
+  dateKey: string
+  /** Human-readable day label, e.g. "Today", "Yesterday", "Mon, Jan 23". */
+  dateLabel: string
+  /** Short weekday abbreviation shown inside the rail pill, e.g. "SUN". */
+  dateShort: string
 }
 
 interface SleepDashboardProps {
@@ -158,6 +164,7 @@ export function SleepDashboard({
     timezone,
     trendsNextNapHours,
     trendsBedtimeHour,
+    trendsWakeHour,
   })
 
   return (
