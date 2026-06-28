@@ -101,7 +101,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
         {/* ===== AVERAGE DAY CARD ===== */}
       {activeExpected && expectedStats && (
         <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
-          <div className="gradient-flow h-1" />
+          <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
           <div className="px-5 pb-5 pt-4">
             {/* Header with pill nav */}
             <div className="mb-3 flex items-center justify-between">

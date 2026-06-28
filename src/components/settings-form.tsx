@@ -118,7 +118,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
       <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
         {/* ===== PROFILE CARD ===== */}
         <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
-          <div className="gradient-flow h-1" />
+          <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
           <div className="px-5 pb-5 pt-6">
           {error && (
             <div className="mb-4 rounded-xl bg-[var(--rose-bg)] px-4 py-3 text-sm font-bold text-[var(--rose)]">
