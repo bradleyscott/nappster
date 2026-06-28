@@ -35,6 +35,20 @@ export function createReadOnlyTools(context: ToolContext) {
   }
 }
 
+/**
+ * Creates the minimal tool set for background sleep plan generation.
+ * The AI can read baby profile/history/today's events and call updateSleepPlan,
+ * but cannot create events or modify pattern notes.
+ */
+export function createPlanGenerationTools(context: ToolContext) {
+  return {
+    getBabyProfile: createGetBabyProfileTool(context),
+    getTodayEvents: createGetTodayEventsTool(context),
+    getSleepHistory: createGetSleepHistoryTool(context),
+    updateSleepPlan: createUpdateSleepPlanTool(context),
+  }
+}
+
 // Re-export individual tool factories for custom combinations
 export { createGetBabyProfileTool } from './get-baby-profile'
 export { createGetTodayEventsTool } from './get-today-events'

@@ -49,7 +49,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
   const { rows, expected } = useMemo(() => {
     const r = buildDayRows(allEvents, timezone, timeRange)
     const e = computeExpectedDays(r)
-    return { rows: r, expected: e }
+    return { rows: r.slice().reverse(), expected: e }
   }, [allEvents, timezone, timeRange])
 
   const activeExpected = contextFilter === 'daycare' && expected.daycare
@@ -450,6 +450,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
   const nightMin = Math.round(overnight.reduce((sum, b) => sum + (b.endHour - b.startHour) * 60, 0))
   const napMin = Math.round(naps.reduce((sum, b) => sum + (b.endHour - b.startHour) * 60, 0))
   const totalMin = nightMin + napMin
+  const awakeMin = Math.max(0, 24 * 60 - totalMin)
 
   return (
     <>
@@ -529,8 +530,8 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
             <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Naps</div>
           </div>
           <div className="flex-1 text-center">
-            <div className="text-sm font-extrabold text-[var(--text)]">{fmtMin(totalMin)}</div>
-            <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Total</div>
+            <div className="text-sm font-extrabold text-[var(--text)]">{fmtMin(awakeMin)}</div>
+            <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Awake</div>
           </div>
         </div>
 
