@@ -59,7 +59,9 @@ export function PageHeader({
           (!onBack && !rightActions) && 'px-5'
         )}
       >
-        <NappsterLogo size={60} />
+        <div className="page-header-logo rounded-full bg-[var(--lavender-bg)]">
+          <NappsterLogo size={60} />
+        </div>
         <div className="flex flex-col items-start">
           <span className="text-lg font-black leading-tight text-[var(--text)]">{title}</span>
           {subtitle && (

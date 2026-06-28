@@ -100,7 +100,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
       <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
         {/* ===== AVERAGE DAY CARD ===== */}
       {activeExpected && expectedStats && (
-        <div className="mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
+        <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
           <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
           <div className="px-5 pb-5 pt-4">
             {/* Header with pill nav */}
@@ -153,7 +153,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
                 <div
                   key={i}
                   className={cn(
-                    'absolute rounded-[6px]',
+                    'bar-grow absolute rounded-[6px]',
                     block.type === 'nap'
                       ? block.isDaycare ? 'bg-[var(--peach)]' : 'bg-[var(--mint)]'
                       : 'bg-[var(--lavender)]'
@@ -164,6 +164,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
                     top: block.type === 'nap' ? '8px' : '0px',
                     bottom: block.type === 'nap' ? '8px' : '0px',
                     opacity: 0.85,
+                    animationDelay: `${0.2 + i * 0.1}s`,
                   }}
                 />
               ))}
@@ -171,15 +172,15 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
 
             {/* Stats pills */}
             <div className="flex gap-2">
-              <div className="flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
+              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
                 <div className="text-sm font-extrabold text-[var(--lavender)]">{expectedStats.nightDuration}</div>
                 <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Night</div>
               </div>
-              <div className="flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
+              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
                 <div className="text-sm font-extrabold text-[var(--mint)]">{expectedStats.napDuration}</div>
                 <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Naps</div>
               </div>
-              <div className="flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
+              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
                 <div className="text-sm font-extrabold text-[var(--peach)]">{expectedStats.awakeDuration}</div>
                 <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Awake</div>
               </div>
@@ -254,6 +255,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
           <DayHistoryRow
             key={row.dateKey ?? i}
             row={row}
+            index={i}
             onClick={() => setDetailRow(row)}
           />
         ))}
@@ -304,7 +306,7 @@ function TrendCard({
     steady: 'bg-[var(--lavender-bg)] text-[var(--lavender)]',
   }
   return (
-    <div className="flex-1 rounded-2xl bg-white px-3 py-3.5 text-center shadow-[var(--shadow-sm)]">
+    <div className="trend-card-up flex-1 rounded-2xl bg-white px-3 py-3.5 text-center shadow-[var(--shadow-sm)]">
       <div className="mb-0.5 text-lg">{emoji}</div>
       <div className={cn('text-lg font-black leading-tight', colorMap[color])}>{value}</div>
       <div className="mt-0.5 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">{label}</div>
@@ -315,7 +317,7 @@ function TrendCard({
   )
 }
 
-function DayHistoryRow({ row, onClick }: { row: DayRow; onClick: () => void }) {
+function DayHistoryRow({ row, index, onClick }: { row: DayRow; index: number; onClick: () => void }) {
   const label = row.label
   const hasDaycare = row.isDaycareDay
   const overnight = row.blocks.filter(b => b.type === 'bedtime' || b.type === 'wake')
@@ -324,7 +326,8 @@ function DayHistoryRow({ row, onClick }: { row: DayRow; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-[var(--shadow-sm)] active:scale-[0.98] transition-transform"
+      className="timeline-row-animated flex items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-[var(--shadow-sm)] active:scale-[0.98] transition-transform"
+      style={{ animationDelay: `${0.1 + index * 0.07}s` }}
     >
       {/* Day label */}
       <div className="w-[68px] shrink-0 text-left">
@@ -339,10 +342,11 @@ function DayHistoryRow({ row, onClick }: { row: DayRow; onClick: () => void }) {
         {overnight.map((block, i) => (
           <div
             key={i}
-            className="absolute top-1 bottom-1 rounded-[7px] bg-[var(--lavender)] opacity-80"
+            className="bar-grow absolute top-1 bottom-1 rounded-[7px] bg-[var(--lavender)] opacity-80"
             style={{
               left: `${(block.startHour / 24) * 100}%`,
               width: `${Math.max(((block.endHour - block.startHour) / 24) * 100, 0.5)}%`,
+              animationDelay: `${0.25 + i * 0.1}s`,
             }}
           />
         ))}
@@ -350,21 +354,23 @@ function DayHistoryRow({ row, onClick }: { row: DayRow; onClick: () => void }) {
           <div
             key={i}
             className={cn(
-              'absolute top-2 bottom-2 rounded-[6px] opacity-80',
+              'bar-grow absolute top-2 bottom-2 rounded-[6px] opacity-80',
               block.isDaycare ? 'bg-[var(--peach)]' : 'bg-[var(--mint)]'
             )}
             style={{
               left: `${(block.startHour / 24) * 100}%`,
               width: `${Math.max(((block.endHour - block.startHour) / 24) * 100, 0.5)}%`,
+              animationDelay: `${0.35 + i * 0.1}s`,
             }}
           />
         ))}
         {row.nightWakes.map((wake, i) => (
           <div
             key={i}
-            className="absolute top-2 bottom-2 w-[2px] rounded-full bg-[var(--rose)] opacity-30"
+            className="bar-grow absolute top-2 bottom-2 w-[2px] rounded-full bg-[var(--rose)] opacity-30"
             style={{
               left: `${(wake.hour / 24) * 100}%`,
+              animationDelay: `${0.55 + i * 0.1}s`,
             }}
           />
         ))}

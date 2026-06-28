@@ -87,14 +87,14 @@ export function ChatDrawer({
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          'fixed bottom-6 right-5 z-15 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] shadow-[0_4px_20px_rgba(124,77,255,0.35)] transition-all duration-200 active:scale-90',
+          'chat-fab-float fixed bottom-6 right-5 z-15 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] transition-all duration-200 active:scale-90',
           isOpen && 'pointer-events-none scale-0 opacity-0'
         )}
         aria-label="Open chat"
       >
         <span className="text-2xl font-bold">💬</span>
         {badge && badge > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--rose)] px-1 text-[10px] font-extrabold text-white shadow-md">
+          <span className="fab-badge-pop absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--rose)] px-1 text-[10px] font-extrabold text-white shadow-md">
             {badge > 9 ? '9+' : badge}
           </span>
         )}

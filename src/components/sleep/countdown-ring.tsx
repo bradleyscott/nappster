@@ -1,6 +1,6 @@
 'use client'
 
-import { useId } from 'react'
+import { useId, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 interface CountdownRingProps {
@@ -33,9 +33,17 @@ export function CountdownRing({
   const radius = (size - stroke) / 2 - 4
   const circumference = 2 * Math.PI * radius
   const clamped = Math.min(1, Math.max(0, progress))
-  const dashOffset = circumference * (1 - clamped)
+  const targetDashOffset = circumference * (1 - clamped)
   const center = size / 2
   const gradientId = `ring-grad-${id.replace(/:/g, '')}`
+  const [mounted, setMounted] = useState(false)
+
+  // Animate the ring from empty to target progress on mount.
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
   // At the very end of the countdown (progress === 1) the arc spans the full circle.
   // `strokeLinecap: round` extends each end of the stroke by half the stroke width,
   // which leaves a visible notch/gap at the seam. Switch to a flat butt cap at full
@@ -47,6 +55,11 @@ export function CountdownRing({
       className={cn('relative inline-flex items-center justify-center', className)}
       style={{ width: size, height: size }}
     >
+      {/* Breathing glow behind the ring */}
+      <div
+        className="ring-glow"
+        style={{ '--glow-color': gradient.to } as React.CSSProperties}
+      />
       <svg width={size} height={size} className="-rotate-90">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -65,6 +78,7 @@ export function CountdownRing({
         />
         {/* Progress arc */}
         <circle
+          className="ring-progress"
           cx={center}
           cy={center}
           r={radius}
@@ -73,8 +87,7 @@ export function CountdownRing({
           strokeWidth={stroke}
           strokeLinecap={lineCap}
           strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+          strokeDashoffset={mounted ? targetDashOffset : circumference}
         />
       </svg>
       {/* Center text */}

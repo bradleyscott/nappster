@@ -39,7 +39,7 @@ export function SubtitlePills({ pills, className, onPillTap }: SubtitlePillsProp
             key={i}
             onClick={isTappable ? () => onPillTap(pill.eventId!) : undefined}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-bold leading-tight',
+              'subtitle-pill-animated inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-bold leading-tight',
               c.bg, c.text, c.border,
               isTappable && 'cursor-pointer active:scale-95 active:opacity-70 transition-all duration-100'
             )}
