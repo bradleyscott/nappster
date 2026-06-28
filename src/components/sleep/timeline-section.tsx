@@ -36,11 +36,19 @@ const dotColorMap: Record<EventType, string> = {
 }
 
 const glowMap: Record<EventType, string> = {
-  bedtime: 'shadow-[0_0_0_4px_var(--lavender-light)]',
-  nap_start: 'shadow-[0_0_0_4px_var(--mint-light)]',
-  nap_end: 'shadow-[0_0_0_4px_var(--mint-light)]',
-  wake: 'shadow-[0_0_0_4px_var(--peach-light)]',
-  night_wake: 'shadow-[0_0_0_4px_var(--rose-light)]',
+  bedtime: 'timeline-dot-active',
+  nap_start: 'timeline-dot-active',
+  nap_end: 'timeline-dot-active',
+  wake: 'timeline-dot-active',
+  night_wake: 'timeline-dot-active',
+}
+
+const glowColorMap: Record<EventType, string> = {
+  bedtime: 'var(--lavender-light)',
+  nap_start: 'var(--mint-light)',
+  nap_end: 'var(--mint-light)',
+  wake: 'var(--peach-light)',
+  night_wake: 'var(--rose-light)',
 }
 
 export function TimelineSection({ items, onAddEvent, onEditEvent, className }: TimelineSectionProps) {
@@ -110,7 +118,8 @@ export function TimelineSection({ items, onAddEvent, onEditEvent, className }: T
                   <button
                     key={item.id}
                     onClick={() => onEditEvent({ id: item.id, eventType: item.eventType })}
-                    className="group relative flex w-full items-stretch gap-3 rounded-xl px-2 py-2 text-left active:bg-[var(--lavender-bg)] transition-colors duration-100"
+                    className="timeline-row-animated group relative flex w-full items-stretch gap-3 rounded-xl px-2 py-2 text-left active:bg-[var(--lavender-bg)] transition-colors duration-100"
+                    style={{ '--glow-soft': glowColorMap[item.eventType] } as React.CSSProperties}
                   >
                     {/* Vertical line + dot */}
                     <div className="flex w-6 shrink-0 flex-col items-center">

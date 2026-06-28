@@ -90,6 +90,16 @@ export function StateHero({
           : undefined,
       }}
     >
+      {/* Ambient gradient mesh */}
+      <div
+        className="hero-mesh"
+        style={{
+          '--mesh-1': a.gradient.from,
+          '--mesh-2': a.gradient.to,
+          '--mesh-3': elevated ? a.gradient.from : a.gradient.to,
+        } as React.CSSProperties}
+      />
+
       {/* Top accent border */}
       <div
         className="absolute left-0 right-0 top-0 h-1"
@@ -98,7 +108,7 @@ export function StateHero({
 
       {/* Icon + Title row */}
       <div className="mb-3 flex items-center gap-3">
-        <span className="text-2xl">{icon}</span>
+        <span className="hero-icon-pop text-2xl">{icon}</span>
         <h2 className="text-[22px] font-black leading-tight text-[var(--text)]">
           {title}
         </h2>

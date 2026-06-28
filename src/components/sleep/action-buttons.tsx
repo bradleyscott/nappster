@@ -37,7 +37,7 @@ export const PrimaryActionButton = forwardRef<HTMLButtonElement, PrimaryActionBu
       <button
         ref={ref}
         className={cn(
-          'group relative flex w-full items-center gap-4 rounded-[22px] px-5 py-5 text-left text-white active:scale-[0.97] active:shadow-lg transition-all duration-150',
+          'action-entrance action-shimmer group relative flex w-full items-center gap-4 rounded-[22px] px-5 py-5 text-left text-white active:scale-[0.97] active:shadow-lg transition-all duration-150',
           className
         )}
         style={{ background: v.gradient, boxShadow: v.shadow }}
@@ -78,7 +78,7 @@ export const SecondaryActionButton = forwardRef<HTMLButtonElement, SecondaryActi
       <button
         ref={ref}
         className={cn(
-          'flex w-full items-center gap-4 rounded-[20px] border-2 border-[var(--lavender-light)] bg-white px-5 py-4 text-left text-[var(--text)] active:bg-[var(--lavender-bg)] active:scale-[0.97] transition-all duration-150',
+          'action-entrance flex w-full items-center gap-4 rounded-[20px] border-2 border-[var(--lavender-light)] bg-white px-5 py-4 text-left text-[var(--text)] active:bg-[var(--lavender-bg)] active:scale-[0.97] transition-all duration-150',
           className
         )}
         {...props}
