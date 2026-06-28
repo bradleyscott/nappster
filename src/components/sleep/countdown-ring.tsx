@@ -36,6 +36,11 @@ export function CountdownRing({
   const dashOffset = circumference * (1 - clamped)
   const center = size / 2
   const gradientId = `ring-grad-${id.replace(/:/g, '')}`
+  // At the very end of the countdown (progress === 1) the arc spans the full circle.
+  // `strokeLinecap: round` extends each end of the stroke by half the stroke width,
+  // which leaves a visible notch/gap at the seam. Switch to a flat butt cap at full
+  // so the ring reads as a complete, closed circle exactly when due.
+  const lineCap: 'round' | 'butt' = clamped >= 1 ? 'butt' : 'round'
 
   return (
     <div
@@ -66,7 +71,7 @@ export function CountdownRing({
           fill="none"
           stroke={`url(#${gradientId})`}
           strokeWidth={stroke}
-          strokeLinecap="round"
+          strokeLinecap={lineCap}
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
           style={{ transition: 'stroke-dashoffset 0.6s ease' }}

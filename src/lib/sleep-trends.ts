@@ -300,3 +300,36 @@ function median(values: number[]): number {
     ? sorted[mid]
     : (sorted[mid - 1] + sorted[mid]) / 2
 }
+
+/**
+ * Trends-derived projection of the baby's typical nap slots and bedtime,
+ * computed from recent history the same way the trends page does
+ * (`computeExpectedDays(buildDayRows(...)).home`).
+ *
+ * Used by the dashboard hero as a FALLBACK for the live countdown when the
+ * AI-generated sleep plan is stale or absent — this keeps the dashboard's
+ * "next nap" / "bedtime" projection consistent with the `/sleep-trends`
+ * "Typical Day" card.
+ *
+ * @returns `napStartHours` = ascending 24h-decimal start hours of each median
+ *   nap slot (0–24). `bedtimeHour` = median bedtime start hour, or null.
+ *   Returns `{ napStartHours: [], bedtimeHour: null }` when there is not
+ *   enough history (the median-day computation requires ≥ 2 qualifying days).
+ */
+export function projectExpectedSchedule(
+  events: SleepEvent[],
+  timezone: string,
+  days = 14
+): { napStartHours: number[]; bedtimeHour: number | null } {
+  const rows = buildDayRows(events, timezone, days)
+  const expected = computeExpectedDays(rows).home
+  if (!expected) return { napStartHours: [], bedtimeHour: null }
+
+  const napStartHours = expected.blocks
+    .filter(b => b.type === 'nap')
+    .map(b => b.startHour)
+    .sort((a, b) => a - b)
+  const bedtimeBlock = expected.blocks.find(b => b.type === 'bedtime')
+  const bedtimeHour = bedtimeBlock ? bedtimeBlock.startHour : null
+  return { napStartHours, bedtimeHour }
+}

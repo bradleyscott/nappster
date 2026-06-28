@@ -17,13 +17,14 @@ describe('ChatInput', () => {
     disabled: false,
   }
 
-  it('renders input and morning wake quick action from awaiting_morning_wake', async () => {
+  it('renders input and bedtime quick action from awaiting_morning_wake', async () => {
+    // The empty-events startup state prompts the user to log the baby's current
+    // overnight sleep ("Log Bedtime"), not a "Good Morning" morning-wake action.
     render(<ChatInput {...defaultProps} />)
-    // Flush any PromptInput async effects to avoid act() warnings
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Ask about sleep...')).toBeInTheDocument()
     })
-    expect(screen.getByRole('button', { name: /Morning Wake/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Log Bedtime/i })).toBeInTheDocument()
   })
 
   it('calls onSendMessage when typing and submitting', async () => {
@@ -41,16 +42,16 @@ describe('ChatInput', () => {
     })
   })
 
-  it('calls onCreateEvent for morning wake quick action', async () => {
+  it('calls onCreateEvent for the bedtime quick action', async () => {
     render(<ChatInput {...defaultProps} />)
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Morning Wake/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Log Bedtime/i })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /Morning Wake/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Log Bedtime/i }))
 
     await waitFor(() => {
       expect(defaultProps.onCreateEvent).toHaveBeenCalledWith(
-        expect.objectContaining({ event_type: 'wake' })
+        expect.objectContaining({ event_type: 'bedtime' })
       )
     })
   })

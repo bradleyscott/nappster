@@ -21,9 +21,7 @@ const contextOptions: { value: Context; icon: string; label: string }[] = [
 export interface EventSheetData {
   eventType: EventType
   date: string
-  hour: string
-  minute: string
-  ampm: 'AM' | 'PM'
+  time: string
   context: Context | null
   notes: string
 }
@@ -37,20 +35,38 @@ interface EventSheetProps {
   onClose: () => void
 }
 
-function nowDate(): string {
-  return new Date().toISOString().slice(0, 10)
+function localDateString(d: Date): string {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-function nowTime(): { hour: string; minute: string; ampm: 'AM' | 'PM' } {
+function localToday(): string {
+  return localDateString(new Date())
+}
+
+function localYesterday(): string {
   const d = new Date()
-  let h = d.getHours()
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  h = h % 12 || 12
-  return {
-    hour: String(h).padStart(2, '0'),
-    minute: String(d.getMinutes()).padStart(2, '0'),
-    ampm,
-  }
+  d.setDate(d.getDate() - 1)
+  return localDateString(d)
+}
+
+function nowDate(): string {
+  return localToday()
+}
+
+function nowTime(): string {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+type DateMode = 'today' | 'yesterday' | 'custom'
+
+function dateModeFromDate(date: string): DateMode {
+  if (date === localToday()) return 'today'
+  if (date === localYesterday()) return 'yesterday'
+  return 'custom'
 }
 
 function initFromEvent(
@@ -59,26 +75,18 @@ function initFromEvent(
 ) {
   if (event && mode === 'edit') {
     const d = new Date(event.event_time)
-    let h = d.getHours()
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    h = h % 12 || 12
     return {
       eventType: event.event_type as EventType,
-      date: d.toISOString().slice(0, 10),
-      hour: String(h).padStart(2, '0'),
-      minute: String(d.getMinutes()).padStart(2, '0'),
-      ampm: ampm as 'AM' | 'PM',
+      date: localDateString(d),
+      time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
       context: event.context as Context | null,
       notes: event.notes || '',
     }
   }
-  const t = nowTime()
   return {
     eventType: 'wake' as EventType,
     date: nowDate(),
-    hour: t.hour,
-    minute: t.minute,
-    ampm: t.ampm,
+    time: nowTime(),
     context: null as Context | null,
     notes: '',
   }
@@ -94,14 +102,30 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
   const init = initFromEvent(event, mode)
   const [eventType, setEventType] = useState<EventType>(init.eventType)
   const [date, setDate] = useState(init.date)
-  const [hour, setHour] = useState(init.hour)
-  const [minute, setMinute] = useState(init.minute)
-  const [ampm, setAmpm] = useState<'AM' | 'PM'>(init.ampm)
+  const [dateMode, setDateMode] = useState<DateMode>(() => dateModeFromDate(init.date))
+  const [customDate, setCustomDate] = useState(init.date)
+  const [time, setTime] = useState(init.time)
   const [context, setContext] = useState<Context | null>(init.context)
   const [notes, setNotes] = useState(init.notes)
 
+  const handleDateModeChange = (mode: DateMode) => {
+    setDateMode(mode)
+    if (mode === 'today') {
+      setDate(localToday())
+    } else if (mode === 'yesterday') {
+      setDate(localYesterday())
+    } else {
+      setDate(customDate)
+    }
+  }
+
+  const handleCustomDateChange = (value: string) => {
+    setCustomDate(value)
+    setDate(value)
+  }
+
   const handleSave = () => {
-    onSave({ eventType, date, hour, minute, ampm, context, notes })
+    onSave({ eventType, date, time, context, notes })
   }
 
   return (
@@ -144,63 +168,50 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
         </div>
 
         {/* Date */}
-        <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+        <label htmlFor="event-date" className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
           Date
         </label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="mb-4 w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
-        />
+        <div className="mb-4">
+          <div className="mb-2 flex gap-2">
+            {(['today', 'yesterday', 'custom'] as DateMode[]).map((modeOption) => (
+              <button
+                key={modeOption}
+                onClick={() => handleDateModeChange(modeOption)}
+                className={cn(
+                  'rounded-full border-2 px-4 py-2 text-sm font-bold transition-all duration-100 active:scale-95',
+                  dateMode === modeOption
+                    ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
+                    : 'border-[#EEE] bg-white text-[var(--text-muted)]'
+                )}
+              >
+                {modeOption === 'today' && 'Today'}
+                {modeOption === 'yesterday' && 'Yesterday'}
+                {modeOption === 'custom' && 'Custom'}
+              </button>
+            ))}
+          </div>
+          {dateMode === 'custom' && (
+            <input
+              id="event-date"
+              type="date"
+              value={customDate}
+              onChange={(e) => handleCustomDateChange(e.target.value)}
+              className="date-input w-full rounded-xl border-2 border-[#EEE] bg-white px-4 py-3 text-lg font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
+            />
+          )}
+        </div>
 
         {/* Time */}
-        <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
+        <label htmlFor="event-time" className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
           Time
         </label>
-        <div className="mb-4 flex items-center gap-2">
-          <input
-            type="number"
-            min={1}
-            max={12}
-            value={hour}
-            onChange={(e) => setHour(e.target.value.padStart(2, '0').slice(0, 2))}
-            className="w-16 rounded-xl border-2 border-[#EEE] px-3 py-3 text-center text-sm font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
-          />
-          <span className="text-lg font-bold text-[var(--text-secondary)]">:</span>
-          <input
-            type="number"
-            min={0}
-            max={59}
-            value={minute}
-            onChange={(e) => setMinute(e.target.value.padStart(2, '0').slice(0, 2))}
-            className="w-16 rounded-xl border-2 border-[#EEE] px-3 py-3 text-center text-sm font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
-          />
-          <div className="flex gap-1">
-            <button
-              onClick={() => setAmpm('AM')}
-              className={cn(
-                'rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition-all duration-100',
-                ampm === 'AM'
-                  ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
-                  : 'border-[#EEE] bg-white text-[var(--text-muted)]'
-              )}
-            >
-              AM
-            </button>
-            <button
-              onClick={() => setAmpm('PM')}
-              className={cn(
-                'rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition-all duration-100',
-                ampm === 'PM'
-                  ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
-                  : 'border-[#EEE] bg-white text-[var(--text-muted)]'
-              )}
-            >
-              PM
-            </button>
-          </div>
-        </div>
+        <input
+          id="event-time"
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          className="time-input mb-4 w-full rounded-xl border-2 border-[#EEE] bg-white px-4 py-3 text-lg font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
+        />
 
         {/* Context */}
         <label className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
