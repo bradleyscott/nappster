@@ -21,6 +21,8 @@ describe('API routes', () => {
         id: TEST_BABY_ID,
         name: 'Test Baby',
         birth_date: '2023-06-15',
+        plan_generation_locked_until: null,
+        last_plan_generated_at: null,
       })
       insertRecord('family_members', {
         user_id: MOCK_USER_ID,
