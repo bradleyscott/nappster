@@ -50,6 +50,12 @@ interface SleepDashboardProps {
   /** Called when a chat message is sent */
   onSendMessage: (text: string) => void
   className?: string
+  /** IANA timezone (server-passed); used to scope "today" for staleness checks. */
+  timezone?: string
+  /** Trends-derived typical-day nap start hours (24h decimal), ascending. */
+  trendsNextNapHours?: number[]
+  /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
+  trendsBedtimeHour?: number | null
 }
 
 export function SleepDashboard({
@@ -65,6 +71,9 @@ export function SleepDashboard({
   onDeleteEvent,
   onSendMessage,
   className,
+  timezone,
+  trendsNextNapHours = [],
+  trendsBedtimeHour = null,
 }: SleepDashboardProps) {
   // Event sheet state
   const [showEventSheet, setShowEventSheet] = useState(false)
@@ -136,8 +145,14 @@ export function SleepDashboard({
   // Live `now` so the countdown ring ticks (every 30s).
   const now = useNow(30_000)
 
-  // Derive UI from state
-  const stateConfig = getStateConfig(currentState, baby, sleepPlan, allEvents, now)
+  // Derive UI from state. Pass the timezone + trends projection so the
+  // countdown can detect a stale AI plan and fall back to the trends-derived
+  // "typical day" schedule (keeping the dashboard consistent with /sleep-trends).
+  const stateConfig = getStateConfig(currentState, baby, sleepPlan, allEvents, now, {
+    timezone,
+    trendsNextNapHours,
+    trendsBedtimeHour,
+  })
 
   return (
     <div className={cn('mx-auto flex w-full max-w-md flex-col gap-4 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2 md:max-w-xl lg:max-w-2xl', className)}>
@@ -256,10 +271,15 @@ function getStateConfig(
   baby: Baby,
   sleepPlan: SleepPlan | null,
   events: SleepEvent[],
-  now: Date
+  now: Date,
+  opts: {
+    timezone?: string
+    trendsNextNapHours?: number[]
+    trendsBedtimeHour?: number | null
+  } = {}
 ): StateConfig {
   // Single source of truth for the live countdown arc + expected label block.
-  const ctx = getCountdownContext(state, events, sleepPlan, baby.birth_date, now)
+  const ctx = getCountdownContext(state, events, sleepPlan, baby.birth_date, now, opts)
   const countdown = {
     progress: ctx.progress,
     timeRemaining: ctx.timeRemaining,

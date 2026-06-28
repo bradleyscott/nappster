@@ -7,6 +7,7 @@
 
 import type { SleepEvent, EventType, ScheduleItem } from '@/types/database'
 import { calculateAgeInMonths } from '@/lib/sleep-utils'
+import { getTodayBoundsForTimezone } from '@/lib/timezone'
 
 /**
  * All possible baby sleep states.
@@ -280,6 +281,16 @@ export interface CountdownPlanInput {
   targetBedtime?: string | undefined
 }
 
+/** Options for live countdown projection (passed from the dashboard). */
+export interface CountdownOptions {
+  /** IANA timezone, used to scope "today" for plan-staleness checks. */
+  timezone?: string
+  /** Trends-derived typical-day nap start hours (24h decimal), ascending. */
+  trendsNextNapHours?: number[]
+  /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
+  trendsBedtimeHour?: number | null
+}
+
 export type CountdownMode =
   | 'overnight'
   | 'nap'
@@ -488,6 +499,94 @@ function allNapsDone(plan: CountdownPlanInput | null): boolean {
 }
 
 /**
+ * Count actual `nap_end` events that occurred today (in the given timezone).
+ * Used to detect a stale plan whose schedule claims more completed naps than
+ * actually happened today. When `timezone` is omitted, falls back to all events.
+ */
+function countNapEndsToday(
+  events: SleepEvent[],
+  timezone: string | undefined
+): number {
+  let scoped = events
+  if (timezone) {
+    try {
+      const { start, end } = getTodayBoundsForTimezone(timezone)
+      scoped = events.filter((e) => e.event_time >= start && e.event_time < end)
+    } catch {
+      // getTodayBoundsForTimezone validates the tz; if it somehow fails, keep all events.
+    }
+  }
+  return scoped.filter((e) => e.event_type === 'nap_end').length
+}
+
+/**
+ * Detect whether a sleep plan is stale for the purposes of projecting today's
+ * next nap. A plan is stale when EITHER:
+ *   1. Its schedule claims more `completed`/`in_progress` naps than the number of
+ *      `nap_end` events actually logged today (the schedule was written for an
+ *      earlier state and never regenerated), OR
+ *   2. Its first `upcoming` nap's projected target time is already in the past
+ *      (the window for that nap has come and gone).
+ *
+ * Returns `true` for an absent plan so callers treat "no plan" as "fall back to
+ * trends" rather than trusting nothing.
+ */
+export function isPlanStaleForNaps(
+  plan: CountdownPlanInput | null,
+  events: SleepEvent[],
+  timezone: string | undefined,
+  now: Date
+): boolean {
+  if (!plan?.schedule) return true
+
+  const claimedDone = plan.schedule.filter(
+    (i) => i.type === 'nap' && (i.status === 'completed' || i.status === 'in_progress')
+  ).length
+  const actualDone = countNapEndsToday(events, timezone)
+  if (claimedDone > actualDone) return true
+
+  const nextNap = nextUpcomingNap(plan)
+  if (nextNap) {
+    const napHour = parseTimeWindowDual(nextNap.timeWindow).start
+    if (napHour != null) {
+      const target = dateAtHour(napHour, now)
+      if (target.getTime() <= now.getTime()) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Pick the first trends-derived nap slot (24h decimal hour) that projects to a
+ * time strictly ahead of `now`; returns the projected Date or null.
+ */
+function firstTrendsNapAhead(
+  trendsNextNapHours: number[] | undefined,
+  now: Date
+): Date | null {
+  if (!trendsNextNapHours || trendsNextNapHours.length === 0) return null
+  for (const hour of trendsNextNapHours) {
+    const target = dateAtHour(hour, now)
+    if (target.getTime() > now.getTime()) return target
+  }
+  return null
+}
+
+/**
+ * Project the trends-derived bedtime hour (24h decimal) onto the current day,
+ * rolling forward 24h if it has already passed. Returns null when no trends
+ * bedtime hour is available.
+ */
+function trendsBedtimeTarget(
+  opts: CountdownOptions,
+  now: Date
+): Date | null {
+  if (opts.trendsBedtimeHour == null) return null
+  const target = dateAtHour(opts.trendsBedtimeHour, now)
+  return target.getTime() > now.getTime() ? target : new Date(target.getTime() + 24 * 60 * 60 * 1000)
+}
+
+/**
  * Compute the live countdown context for the dashboard hero ring.
  */
 export function getCountdownContext(
@@ -495,12 +594,14 @@ export function getCountdownContext(
   events: SleepEvent[],
   plan: CountdownPlanInput | null,
   birthDate: string | undefined,
-  now: Date = new Date()
+  now: Date = new Date(),
+  opts: CountdownOptions = {}
 ): CountdownContext {
   const age = ageMonths(birthDate)
   const sorted = [...events].sort(
     (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
   )
+  const planStale = isPlanStaleForNaps(plan, sorted, opts.timezone, now)
 
   switch (state) {
     case 'overnight_sleep': {
@@ -590,31 +691,46 @@ export function getCountdownContext(
       const startedAt = new Date(starter.event_time)
       const ageDefaultWindowMin = defaultWakeWindowMin(age)
 
-      // Decide branch: bedtime is next only when ALL naps on the schedule are
-      // completed/skipped. Otherwise we count down to the next upcoming nap.
-      // When there's no plan, assume a nap is expected after a morning wake.
-      const bedtimeNext = allNapsDone(plan)
+      // ---------------------------------------------------------------------
+      // Branch decision: bedtime-next vs nap-next.
+      //
+      // The AI sleep plan is the PRIMARY source, but it is only trustworthy when
+      // fresh. The plan is regenerated solely through the chat flow (the
+      // `updateSleepPlan` tool); logging a morning wake via the dashboard button
+      // does NOT refresh it. So a plan can carry a schedule written in an earlier
+      // state — e.g. it may mark earlier naps "completed" while listing a late
+      // "Nap 3" as upcoming even though no nap has actually happened yet today.
+      // Trusting that stale schedule is what made the dashboard show "Next nap
+      // 5:30pm" while the trends page (median-of-history) showed ~12:49pm.
+      //
+      // When the plan is stale (or absent) we fall back to the trends-derived
+      // "typical day" projection (opts.trendsNextNapHours / trendsBedtimeHour),
+      // which is computed server-side from the same `computeExpectedDays` the
+      // /sleep-trends page uses — so the dashboard can never disagree with it.
+      // ---------------------------------------------------------------------
+      // Stale/absent plan: bedtime-next when no trends nap slot remains ahead of
+      // now AND a trends bedtime hour projects ahead of now. Otherwise a nap is
+      // still expected later today.
+      const trendsBedtime = trendsBedtimeTarget(opts, now)
+      const bedtimeNext = !planStale
+        ? allNapsDone(plan)
+        : !firstTrendsNapAhead(opts.trendsNextNapHours, now) && !!trendsBedtime
 
       if (bedtimeNext) {
         // ---- Bedtime Next mode ----
+        // Fresh plan → use its targetBedtime window. Stale/absent → use the
+        // trends-derived bedtime. Otherwise default to 7:00pm today.
         let target: Date
-        let expectedTime: string
-        const expectedText = 'Target bedtime'
-        const bedtimeHour = plan?.targetBedtime
+        const bedtimeHour = !planStale && plan?.targetBedtime
           ? parseTimeWindowDual(plan.targetBedtime).start
           : null
-        if (bedtimeHour != null) {
-          target = dateAtHour(bedtimeHour, now)
-          expectedTime = formatTime12h(target)
-        } else {
-          // No plan: default bedtime = 7:00pm on the current day.
-          target = dateAtHour(19, now)
-          expectedTime = formatTime12h(target)
-        }
+        if (bedtimeHour != null) target = dateAtHour(bedtimeHour, now)
+        else if (trendsBedtime) target = trendsBedtime
+        else target = dateAtHour(19, now)
+        const expectedTime = formatTime12h(target)
         const totalMs = target.getTime() - startedAt.getTime()
         const remaining = target.getTime() - now.getTime()
         const elapsed = now.getTime() - startedAt.getTime()
-        // Fall back to the age-based last wake window if total is implausible.
         const denom = totalMs > 0 ? totalMs : ageDefaultWindowMin * 60000
         const progress = Math.min(1, Math.max(0, elapsed / denom))
         return {
@@ -622,7 +738,7 @@ export function getCountdownContext(
           timeRemaining: formatCountdown(remaining),
           timeLabel: 'until bedtime',
           expectedIcon: '🌙',
-          expectedText,
+          expectedText: 'Target bedtime',
           expectedTime,
           mode: 'bedtime',
           targetTime: target,
@@ -631,22 +747,32 @@ export function getCountdownContext(
       }
 
       // ---- Nap Next mode ----
-      const nextNap = nextUpcomingNap(plan)
+      // Resolve the target nap hour from, in priority order:
+      //   1. fresh plan's next upcoming nap timeWindow (must be ahead of now)
+      //   2. trends typical-day first nap slot ahead of now
+      //   3. age-based wake window added to startedAt
       let target: Date
       let expectedTime: string
-      const expectedText = 'Next nap'
-      const napHour = nextNap ? parseTimeWindowDual(nextNap.timeWindow).start : null
-      if (napHour != null) {
-        target = dateAtHour(napHour, now)
+      let expectedText = 'Next nap'
+
+      const nextNap = !planStale ? nextUpcomingNap(plan) : undefined
+      const planNapHour = nextNap ? parseTimeWindowDual(nextNap.timeWindow).start : null
+      const planNapTarget = planNapHour != null ? dateAtHour(planNapHour, now) : null
+      const trendsNapTarget = firstTrendsNapAhead(opts.trendsNextNapHours, now)
+
+      if (planNapTarget && planNapTarget.getTime() > now.getTime()) {
+        target = planNapTarget
         expectedTime = formatTime12h(target)
+      } else if (trendsNapTarget) {
+        target = trendsNapTarget
+        expectedTime = formatTime12h(target)
+        expectedText = 'Next nap (typical)'
       } else {
-        // No plan: assume one nap after a morning wake — target = start of the next wake window.
         target = new Date(startedAt.getTime() + ageDefaultWindowMin * 60000)
         expectedTime = formatTime12h(target)
       }
       const remaining = target.getTime() - now.getTime()
       const elapsed = now.getTime() - startedAt.getTime()
-      // Window total = plan target − startedAt (cap to default if pathologically large).
       const totalMs = target.getTime() - startedAt.getTime()
       const denom = totalMs > 0 ? totalMs : ageDefaultWindowMin * 60000
       const progress = Math.min(1, Math.max(0, elapsed / denom))
