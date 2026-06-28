@@ -381,12 +381,7 @@ function DayHistoryRow({ row, onClick }: { row: DayRow; onClick: () => void }) {
 function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; events: SleepEvent[]; onClose: () => void; onEditEvent: (event: SleepEvent) => void }) {
   const overnight = row.blocks.filter(b => b.type === 'bedtime' || b.type === 'wake')
   const naps = row.blocks.filter(b => b.type === 'nap')
-  const allBlocks = row.blocks
   const hasDaycare = row.isDaycareDay
-
-  const nightMin = Math.round(overnight.reduce((sum, b) => sum + (b.endHour - b.startHour) * 60, 0))
-  const napMin = Math.round(naps.reduce((sum, b) => sum + (b.endHour - b.startHour) * 60, 0))
-  const totalMin = nightMin + napMin
 
   const fmtMin = (m: number) => {
     const h = Math.floor(m / 60)
@@ -401,6 +396,60 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
     const h12 = hour % 12 || 12
     return `${h12}:${String(min).padStart(2, '0')}${ampm}`
   }
+
+  // Build a chronological day narrative: morning wake → naps (by start time) → bedtime.
+  // The overnight sleep is stored as two midnight-split blocks (bedtime→24 and 0→wake);
+  // here we collapse them into anchor entries showing the wake time and bedtime time,
+  // rather than listing two "Night sleep" ranges that meet at 12:00am.
+  const wakeBlock = row.blocks.find(b => b.type === 'wake')
+  const bedtimeBlock = row.blocks.find(b => b.type === 'bedtime')
+  const napBlocks = row.blocks
+    .filter(b => b.type === 'nap')
+    .sort((a, b) => a.startHour - b.startHour)
+
+  type TimelineItem = {
+    emoji: string
+    label: string
+    timeLabel: string
+    durationLabel: string | null
+    eventId?: string
+    dotClass: string
+  }
+  const timelineItems: TimelineItem[] = []
+  if (wakeBlock) {
+    timelineItems.push({
+      emoji: '🌅',
+      label: 'Wake',
+      timeLabel: fmtHour(wakeBlock.endHour),
+      durationLabel: null,
+      eventId: wakeBlock.eventId,
+      dotClass: 'bg-[var(--lavender)]',
+    })
+  }
+  for (const nap of napBlocks) {
+    timelineItems.push({
+      emoji: '😴',
+      label: 'Nap',
+      timeLabel: `${fmtHour(nap.startHour)} – ${fmtHour(nap.endHour)}`,
+      durationLabel: fmtMin(Math.round((nap.endHour - nap.startHour) * 60)),
+      eventId: nap.eventId,
+      dotClass: 'bg-[var(--mint)]',
+    })
+  }
+  if (bedtimeBlock) {
+    timelineItems.push({
+      emoji: '🌙',
+      label: 'Bedtime',
+      timeLabel: fmtHour(bedtimeBlock.startHour),
+      durationLabel: null,
+      eventId: bedtimeBlock.eventId,
+      dotClass: 'bg-[var(--lavender)]',
+    })
+  }
+
+  const nightMin = Math.round(overnight.reduce((sum, b) => sum + (b.endHour - b.startHour) * 60, 0))
+  const napMin = Math.round(naps.reduce((sum, b) => sum + (b.endHour - b.startHour) * 60, 0))
+  const totalMin = nightMin + napMin
 
   return (
     <>
@@ -420,38 +469,31 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
 
         {/* Timeline of blocks */}
         <div className="mb-4 flex flex-col gap-0">
-          {allBlocks.map((block, i) => (
+          {timelineItems.map((item, i) => (
             <div key={i} className="flex items-stretch gap-3 px-1">
               <div className="flex w-6 shrink-0 flex-col items-center">
-                <div className={cn(
-                  'z-10 mt-1.5 h-3 w-3 rounded-full',
-                  block.type === 'nap' ? 'bg-[var(--mint)]' : 'bg-[var(--lavender)]'
-                )} />
-                {i < allBlocks.length - 1 && (
+                <div className={cn('z-10 mt-1.5 h-3 w-3 rounded-full', item.dotClass)} />
+                {i < timelineItems.length - 1 && (
                   <div className="w-0.5 flex-1 rounded-full bg-[#E8E5F0]" />
                 )}
               </div>
               <button
                 onClick={() => {
-                  const event = block.eventId ? events.find(e => e.id === block.eventId) : null
+                  const event = item.eventId ? events.find(e => e.id === item.eventId) : null
                   if (event) onEditEvent(event)
                 }}
-                disabled={!block.eventId}
+                disabled={!item.eventId}
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-xl pb-3 text-left active:scale-[0.98] transition-transform disabled:active:scale-100"
               >
-                <span className="text-sm">{block.type === 'nap' ? '😴' : '🌙'}</span>
+                <span className="text-sm">{item.emoji}</span>
                 <div className="flex-1">
-                  <span className="text-sm font-bold text-[var(--text)]">
-                    {block.type === 'nap' ? 'Nap' : 'Night sleep'}
-                  </span>
-                  <span className="ml-2 text-xs font-bold text-[var(--text-muted)]">
-                    {fmtHour(block.startHour)} – {fmtHour(block.endHour)}
-                  </span>
+                  <span className="text-sm font-bold text-[var(--text)]">{item.label}</span>
+                  <span className="ml-2 text-xs font-bold text-[var(--text-muted)]">{item.timeLabel}</span>
                 </div>
-                <span className="text-xs font-bold text-[var(--text-secondary)]">
-                  {fmtMin(Math.round((block.endHour - block.startHour) * 60))}
-                </span>
-                {block.eventId && <span className="text-xs text-[var(--text-muted)]">›</span>}
+                {item.durationLabel && (
+                  <span className="text-xs font-bold text-[var(--text-secondary)]">{item.durationLabel}</span>
+                )}
+                {item.eventId && <span className="text-xs text-[var(--text-muted)]">›</span>}
               </button>
             </div>
           ))}
