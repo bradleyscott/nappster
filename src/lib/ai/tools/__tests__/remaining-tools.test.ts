@@ -42,6 +42,8 @@ describe('AI tools', () => {
           birth_date: '2023-06-15',
           pattern_notes: 'Short naps',
           created_at: '2023-06-15T00:00:00Z',
+          plan_generation_locked_until: null,
+          last_plan_generated_at: null,
         },
         error: null,
       })

@@ -22,6 +22,12 @@ interface TimelineItemDisplay {
   time: string
   detail?: string
   isActive?: boolean
+  /** Local date key (YYYY-MM-DD) in the user's timezone for grouping. */
+  dateKey: string
+  /** Human-readable day label, e.g. "Today", "Yesterday", "Mon, Jan 23". */
+  dateLabel: string
+  /** Short weekday abbreviation shown inside the rail pill, e.g. "SUN". */
+  dateShort: string
 }
 
 interface SleepDashboardProps {
@@ -56,6 +62,10 @@ interface SleepDashboardProps {
   trendsNextNapHours?: number[]
   /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
   trendsBedtimeHour?: number | null
+  /** Trends-derived typical morning wake hour (24h decimal), or null. */
+  trendsWakeHour?: number | null
+  /** True while a fresh AI sleep plan is being generated in the background. */
+  isPlanGenerating?: boolean
 }
 
 export function SleepDashboard({
@@ -74,6 +84,8 @@ export function SleepDashboard({
   timezone,
   trendsNextNapHours = [],
   trendsBedtimeHour = null,
+  trendsWakeHour = null,
+  isPlanGenerating = false,
 }: SleepDashboardProps) {
   // Event sheet state
   const [showEventSheet, setShowEventSheet] = useState(false)
@@ -149,6 +161,7 @@ export function SleepDashboard({
     timezone,
     trendsNextNapHours,
     trendsBedtimeHour,
+    trendsWakeHour,
   })
 
   return (
@@ -163,6 +176,7 @@ export function SleepDashboard({
         expectedLabel={stateConfig.expectedLabel}
         elevated={stateConfig.elevated}
         onPillTap={(eventId) => openEditSheet({ id: eventId })}
+        isPlanGenerating={isPlanGenerating}
       />
 
       {/* Action Buttons */}
@@ -273,6 +287,7 @@ function getStateConfig(
     timezone?: string
     trendsNextNapHours?: number[]
     trendsBedtimeHour?: number | null
+    trendsWakeHour?: number | null
   } = {}
 ): StateConfig {
   // Single source of truth for the live countdown arc + expected label block.

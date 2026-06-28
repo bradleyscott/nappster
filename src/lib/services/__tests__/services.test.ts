@@ -44,7 +44,7 @@ describe('services', () => {
   describe('babies', () => {
     it('getBabyById queries the babies table', async () => {
       mockSupabase._setSelectResponse({
-        data: { id: 'baby-1', name: 'Luna', birth_date: '2023-06-15', pattern_notes: null, created_at: '2023-06-15' },
+        data: { id: 'baby-1', name: 'Luna', birth_date: '2023-06-15', pattern_notes: null, created_at: '2023-06-15', plan_generation_locked_until: null, last_plan_generated_at: null },
         error: null,
       })
 
@@ -57,7 +57,7 @@ describe('services', () => {
 
     it('createBaby inserts into the babies table', async () => {
       mockSupabase._setInsertResponse({
-        data: { id: 'baby-1', name: 'Luna', birth_date: '2023-06-15', pattern_notes: 'notes' },
+        data: { id: 'baby-1', name: 'Luna', birth_date: '2023-06-15', pattern_notes: 'notes', plan_generation_locked_until: null, last_plan_generated_at: null },
         error: null,
       })
 

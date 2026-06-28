@@ -10,6 +10,8 @@ const makeBaby = (): Baby => ({
   birth_date: '2023-06-15',
   pattern_notes: null,
   created_at: '2023-06-15T00:00:00Z',
+  plan_generation_locked_until: null,
+  last_plan_generated_at: null,
 })
 
 describe('useChatTransport', () => {
