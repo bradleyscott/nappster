@@ -56,6 +56,8 @@ interface SleepDashboardProps {
   trendsNextNapHours?: number[]
   /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
   trendsBedtimeHour?: number | null
+  /** True while a fresh AI sleep plan is being generated in the background. */
+  isPlanGenerating?: boolean
 }
 
 export function SleepDashboard({
@@ -74,6 +76,7 @@ export function SleepDashboard({
   timezone,
   trendsNextNapHours = [],
   trendsBedtimeHour = null,
+  isPlanGenerating = false,
 }: SleepDashboardProps) {
   // Event sheet state
   const [showEventSheet, setShowEventSheet] = useState(false)
@@ -166,6 +169,7 @@ export function SleepDashboard({
         expectedLabel={stateConfig.expectedLabel}
         elevated={stateConfig.elevated}
         onPillTap={(eventId) => openEditSheet({ id: eventId })}
+        isPlanGenerating={isPlanGenerating}
       />
 
       {/* Action Buttons */}

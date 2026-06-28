@@ -16,6 +16,7 @@ import { useChatTransport } from '@/lib/hooks/use-chat-transport'
 import { useToolOutputs } from '@/lib/hooks/use-tool-outputs'
 import { useTodaySleepState } from '@/lib/hooks/use-today-sleep-state'
 import { useEventDialogHandlers } from '@/lib/hooks/use-event-dialog-handlers'
+import { useBackgroundPlanGeneration } from '@/lib/hooks/use-background-plan-generation'
 import { AppHeader } from '@/components/app-header'
 import { UnifiedEditDialog } from '@/components/unified-edit-dialog'
 import { SleepDashboard } from '@/components/sleep/sleep-dashboard'
@@ -183,6 +184,16 @@ export function ChatContent({
 
   // Current sleep state for quick action buttons
   const currentState = useTodaySleepState(allSleepEvents)
+
+  // Kick off a background plan regeneration when the active plan is stale or
+  // missing. The dashboard still shows the trends fallback synchronously.
+  const { isGenerating: isPlanGenerating } = useBackgroundPlanGeneration({
+    babyId: baby.id,
+    events: allSleepEvents,
+    sleepPlan,
+    timezone,
+    isChatStreaming: isLoading,
+  })
 
   // Event dialog handlers
   const closeDialog = useCallback(() => {
@@ -446,6 +457,7 @@ export function ChatContent({
         timezone={timezone}
         trendsNextNapHours={trendsNextNapHours}
         trendsBedtimeHour={trendsBedtimeHour}
+        isPlanGenerating={isPlanGenerating}
       />
 
       <UnifiedEditDialog
