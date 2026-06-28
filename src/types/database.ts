@@ -16,6 +16,8 @@ export type Database = {
           birth_date: string
           pattern_notes: string | null
           created_at: string
+          plan_generation_locked_until: string | null
+          last_plan_generated_at: string | null
         }
         Insert: {
           id?: string
@@ -23,6 +25,8 @@ export type Database = {
           birth_date: string
           pattern_notes?: string | null
           created_at?: string
+          plan_generation_locked_until?: string | null
+          last_plan_generated_at?: string | null
         }
         Update: {
           id?: string
@@ -30,6 +34,8 @@ export type Database = {
           birth_date?: string
           pattern_notes?: string | null
           created_at?: string
+          plan_generation_locked_until?: string | null
+          last_plan_generated_at?: string | null
         }
         Relationships: []
       }

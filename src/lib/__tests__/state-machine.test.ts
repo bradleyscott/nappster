@@ -390,6 +390,24 @@ describe('getCountdownContext', () => {
     expect(ctx.progress).toBe(1)
     expect(ctx.timeRemaining).toBe('0m')
   })
+
+  it('uses trends-derived wake hour for overnight sleep when plan has no wake item', () => {
+    // Bedtime at 22:00; trends say the baby usually wakes at 7:15am.
+    const events = [makeEvent({ event_type: 'bedtime', event_time: '2024-01-14T22:00:00Z' })]
+    const ctx = getCountdownContext(
+      'overnight_sleep',
+      events,
+      null,
+      '2023-06-01',
+      new Date('2024-01-15T01:00:00Z'),
+      { trendsWakeHour: 7.25 }
+    )
+    expect(ctx.mode).toBe('overnight')
+    expect(ctx.expectedText).toBe('Expected wake')
+    expect(ctx.targetTime).not.toBeNull()
+    expect(ctx.targetTime!.getHours()).toBe(7)
+    expect(ctx.targetTime!.getMinutes()).toBe(15)
+  })
 })
 
 describe('isPlanStaleForNaps', () => {

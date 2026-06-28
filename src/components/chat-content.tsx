@@ -16,6 +16,7 @@ import { useChatTransport } from '@/lib/hooks/use-chat-transport'
 import { useToolOutputs } from '@/lib/hooks/use-tool-outputs'
 import { useTodaySleepState } from '@/lib/hooks/use-today-sleep-state'
 import { useEventDialogHandlers } from '@/lib/hooks/use-event-dialog-handlers'
+import { useBackgroundPlanGeneration } from '@/lib/hooks/use-background-plan-generation'
 import { AppHeader } from '@/components/app-header'
 import { UnifiedEditDialog } from '@/components/unified-edit-dialog'
 import { SleepDashboard } from '@/components/sleep/sleep-dashboard'
@@ -25,7 +26,8 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message'
 import ReactMarkdown from 'react-markdown'
-import { format, isSameDay, isToday, isYesterday } from 'date-fns'
+import { format, isSameDay, isToday, isYesterday, subDays } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
 import type { SleepPlanRow } from '@/types/database'
 
 interface ChatContentProps {
@@ -41,6 +43,8 @@ interface ChatContentProps {
   trendsNextNapHours?: number[]
   /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
   trendsBedtimeHour?: number | null
+  /** Trends-derived typical morning wake hour (24h decimal), or null. */
+  trendsWakeHour?: number | null
 }
 
 export function ChatContent({
@@ -53,6 +57,7 @@ export function ChatContent({
   timezone: timezoneProp,
   trendsNextNapHours = [],
   trendsBedtimeHour = null,
+  trendsWakeHour = null,
 }: ChatContentProps) {
   // Prefer the timezone passed from the server (cookie) so client + server agree;
   // fall back to the browser-detected zone when the prop is absent (e.g. tests).
@@ -184,6 +189,16 @@ export function ChatContent({
   // Current sleep state for quick action buttons
   const currentState = useTodaySleepState(allSleepEvents)
 
+  // Kick off a background plan regeneration when the active plan is stale or
+  // missing. The dashboard still shows the trends fallback synchronously.
+  const { isGenerating: isPlanGenerating } = useBackgroundPlanGeneration({
+    babyId: baby.id,
+    events: allSleepEvents,
+    sleepPlan,
+    timezone,
+    isChatStreaming: isLoading,
+  })
+
   // Event dialog handlers
   const closeDialog = useCallback(() => {
     setEditDialogOpen(false)
@@ -282,6 +297,18 @@ export function ChatContent({
         }
         const cfg = config[e.event_type] ?? { icon: '•', label: e.event_type }
         const d = new Date(e.event_time)
+        const zonedEvent = toZonedTime(d, timezone)
+        const zonedNow = toZonedTime(new Date(), timezone)
+        const dateKey = format(zonedEvent, 'yyyy-MM-dd')
+        let dateLabel: string
+        if (isSameDay(zonedEvent, zonedNow)) {
+          dateLabel = 'Today'
+        } else if (isSameDay(zonedEvent, subDays(zonedNow, 1))) {
+          dateLabel = 'Yesterday'
+        } else {
+          dateLabel = format(zonedEvent, 'EEE, MMM d')
+        }
+        const dateShort = format(zonedEvent, 'EEE').toUpperCase()
         return {
           id: e.id,
           eventType: e.event_type as EventType,
@@ -290,6 +317,9 @@ export function ChatContent({
           time: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
           detail: e.notes ?? undefined,
           isActive: false,
+          dateKey,
+          dateLabel,
+          dateShort,
         }
       })
       .filter(Boolean) as Array<{
@@ -300,8 +330,11 @@ export function ChatContent({
         time: string
         detail?: string
         isActive?: boolean
+        dateKey: string
+        dateLabel: string
+        dateShort: string
       }>
-  }, [timelineItems])
+  }, [timelineItems, timezone])
 
   const formatDayLabel = useCallback((date: Date) => {
     if (isToday(date)) return 'Today'
@@ -446,6 +479,8 @@ export function ChatContent({
         timezone={timezone}
         trendsNextNapHours={trendsNextNapHours}
         trendsBedtimeHour={trendsBedtimeHour}
+        trendsWakeHour={trendsWakeHour}
+        isPlanGenerating={isPlanGenerating}
       />
 
       <UnifiedEditDialog

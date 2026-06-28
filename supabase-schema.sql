@@ -7,7 +7,9 @@ create table if not exists public.babies (
   name text not null,
   birth_date date not null,
   pattern_notes text,
-  created_at timestamp with time zone default now()
+  created_at timestamp with time zone default now(),
+  plan_generation_locked_until timestamp with time zone,
+  last_plan_generated_at timestamp with time zone
 );
 
 -- Family members table (links users to babies)
