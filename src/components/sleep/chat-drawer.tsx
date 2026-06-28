@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { NappsterLogo } from '@/components/nappster-logo'
 
 interface ChatDrawerProps {
   /** Chat messages from useChat */
@@ -123,8 +124,8 @@ export function ChatDrawer({
           <div className="flex items-start justify-between pb-4">
             {/* AI identity */}
             <div className="flex items-center gap-3.5">
-              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] text-2xl shadow-[0_6px_20px_rgba(124,77,255,0.25)]">
-                🌙
+              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_6px_20px_rgba(124,77,255,0.25)]">
+                <NappsterLogo size={44} />
               </div>
               <div>
                 <div className="text-[1.15rem] font-black leading-tight text-[var(--text)]">

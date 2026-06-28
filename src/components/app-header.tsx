@@ -47,25 +47,25 @@ export function AppHeader({ baby }: AppHeaderProps) {
         <Link
           href="/sleep-trends"
           onClick={handleTrendsClick}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
           aria-label="Sleep trends"
         >
           {isNavigatingToTrends ? (
-            <Loader2 className="h-4 w-4 animate-spin text-[var(--lavender)]" />
+            <Loader2 className="size-5 animate-spin text-[var(--lavender)]" />
           ) : (
-            <BarChart3 className="h-4 w-4" />
+            <BarChart3 className="size-6" strokeWidth={2.5} />
           )}
         </Link>
         <Link
           href="/settings"
           onClick={handleSettingsClick}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
           aria-label="Profile and family"
         >
           {isNavigatingToSettings ? (
-            <Loader2 className="h-4 w-4 animate-spin text-[var(--lavender)]" />
+            <Loader2 className="size-5 animate-spin text-[var(--lavender)]" />
           ) : (
-            <BabyIcon className="h-4 w-4" />
+            <BabyIcon className="size-6" strokeWidth={2.5} />
           )}
         </Link>
       </div>
