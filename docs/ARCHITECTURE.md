@@ -220,7 +220,7 @@ useChat.sendMessage() ───────────────────�
          │                                               │
          ▼                                               │
 POST /api/chat                                          │
-  ├── Model: gpt-5.2 (reasoning: medium)                │
+  ├── Model: gpt-5.4 (reasoning: high)                  │
   ├── System prompt with tool instructions              │
   ├── stopWhen: stepCountIs(MAX_TOOL_STEPS)             │
   └── Tools: createChatTools(context)                   │
@@ -361,7 +361,7 @@ interface ToolContext {
 ```typescript
 // src/app/api/chat/route.ts
 streamText({
-  model: openai("gpt-5.2"),
+  model: openai("gpt-5.4"),
   system: buildToolBasedSystemPrompt(timezone),
   messages: await convertToModelMessages(messages),
   tools: createChatTools(toolContext),
