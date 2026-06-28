@@ -35,6 +35,12 @@ interface ChatContentProps {
   initialSleepPlans?: SleepPlanRow[]
   initialCursor?: string | null
   hasMoreHistory?: boolean
+  /** IANA timezone, passed server-side from the cookie so client + server agree. */
+  timezone?: string
+  /** Trends-derived typical-day nap start hours (24h decimal), ascending. */
+  trendsNextNapHours?: number[]
+  /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
+  trendsBedtimeHour?: number | null
 }
 
 export function ChatContent({
@@ -43,9 +49,17 @@ export function ChatContent({
   initialSleepEvents = [],
   initialSleepPlans = [],
   initialCursor = null,
-  hasMoreHistory: initialHasMore = false
+  hasMoreHistory: initialHasMore = false,
+  timezone: timezoneProp,
+  trendsNextNapHours = [],
+  trendsBedtimeHour = null,
 }: ChatContentProps) {
-  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
+  // Prefer the timezone passed from the server (cookie) so client + server agree;
+  // fall back to the browser-detected zone when the prop is absent (e.g. tests).
+  const timezone = useMemo(
+    () => timezoneProp || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    [timezoneProp]
+  )
 
   // Dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -168,7 +182,7 @@ export function ChatContent({
   })
 
   // Current sleep state for quick action buttons
-  const currentState = useTodaySleepState(allSleepEvents, timezone)
+  const currentState = useTodaySleepState(allSleepEvents)
 
   // Event dialog handlers
   const closeDialog = useCallback(() => {
@@ -429,6 +443,9 @@ export function ChatContent({
         onUpdateEvent={handleUpdateEvent}
         onDeleteEvent={handleDeleteEventById}
         onSendMessage={handleSendMessage}
+        timezone={timezone}
+        trendsNextNapHours={trendsNextNapHours}
+        trendsBedtimeHour={trendsBedtimeHour}
       />
 
       <UnifiedEditDialog
