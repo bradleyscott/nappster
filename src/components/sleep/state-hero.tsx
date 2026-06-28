@@ -56,6 +56,8 @@ interface StateHeroProps {
   className?: string
   /** Called when a tappable pill is tapped */
   onPillTap?: (eventId: string) => void
+  /** Show a subtle "Updating schedule…" indicator (background plan generation). */
+  isPlanGenerating?: boolean
 }
 
 export function StateHero({
@@ -68,6 +70,7 @@ export function StateHero({
   elevated,
   className,
   onPillTap,
+  isPlanGenerating,
 }: StateHeroProps) {
   const a = accentMap[accentColor]
   const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -122,6 +125,14 @@ export function StateHero({
         <span>{expectedLabel.text}</span>
         <span className="font-extrabold text-[var(--text)]">{expectedLabel.time}</span>
       </div>
+
+      {/* Background plan generation indicator */}
+      {isPlanGenerating && (
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+          <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--text-muted)] border-t-transparent" />
+          Updating schedule…
+        </div>
+      )}
     </div>
   )
 }
