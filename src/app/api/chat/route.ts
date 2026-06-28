@@ -212,7 +212,7 @@ export async function POST(req: Request) {
     const assistantMessageId = crypto.randomUUID();
 
     const result = streamText({
-      model: openai("gpt-5.2"),
+      model: openai("gpt-5.4"),
       system: systemPrompt,
       messages: await convertToModelMessages(windowedMessages),
       tools: createChatTools(toolContext),
@@ -221,7 +221,7 @@ export async function POST(req: Request) {
       // whether reasoning tokens are streamed to the client via sendReasoning
       providerOptions: {
         openai: {
-          reasoningEffort: "medium",
+          reasoningEffort: "high",
         },
       },
     });
