@@ -56,6 +56,8 @@ interface SleepDashboardProps {
   trendsNextNapHours?: number[]
   /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
   trendsBedtimeHour?: number | null
+  /** Trends-derived typical morning wake hour (24h decimal), or null. */
+  trendsWakeHour?: number | null
   /** True while a fresh AI sleep plan is being generated in the background. */
   isPlanGenerating?: boolean
 }
@@ -76,6 +78,7 @@ export function SleepDashboard({
   timezone,
   trendsNextNapHours = [],
   trendsBedtimeHour = null,
+  trendsWakeHour = null,
   isPlanGenerating = false,
 }: SleepDashboardProps) {
   // Event sheet state
@@ -280,6 +283,7 @@ function getStateConfig(
     timezone?: string
     trendsNextNapHours?: number[]
     trendsBedtimeHour?: number | null
+    trendsWakeHour?: number | null
   } = {}
 ): StateConfig {
   // Single source of truth for the live countdown arc + expected label block.

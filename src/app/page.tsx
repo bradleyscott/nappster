@@ -10,7 +10,11 @@ import { getBabyById } from '@/lib/services/babies'
 import { getChatMessages } from '@/lib/services/chat-messages'
 import { getSleepEvents } from '@/lib/services/sleep-events'
 import { getSleepPlansSinceCreatedAt } from '@/lib/services/sleep-plans'
-import { projectExpectedSchedule } from '@/lib/sleep-trends'
+import {
+  projectExpectedSchedule,
+  buildDayRows,
+  computeExpectedDays,
+} from '@/lib/sleep-trends'
 import type { SleepEvent } from '@/types/database'
 
 export default async function Home() {
@@ -142,6 +146,16 @@ export default async function Home() {
   const trendsNextNapHours = trendsProjection.napStartHours
   const trendsBedtimeHour = trendsProjection.bedtimeHour
 
+  // Derive a trends-based expected wake hour, choosing the daycare or home
+  // typical day based on whether today's logged events include a daycare context.
+  const trendsRows = buildDayRows((trendsEvents ?? []) as SleepEvent[], timezone, 30)
+  const expectedDays = computeExpectedDays(trendsRows)
+  const todayHasDaycare = (sleepEvents ?? []).some((e) => e.context === 'daycare')
+  const wakeBlock = (todayHasDaycare ? expectedDays.daycare : expectedDays.home)?.blocks.find(
+    (b) => b.type === 'wake'
+  )
+  const trendsWakeHour = wakeBlock ? wakeBlock.endHour : null
+
   return (
     <ChatContent
       baby={baby}
@@ -153,6 +167,7 @@ export default async function Home() {
       timezone={timezone}
       trendsNextNapHours={trendsNextNapHours}
       trendsBedtimeHour={trendsBedtimeHour}
+      trendsWakeHour={trendsWakeHour}
     />
   );
 }
