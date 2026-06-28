@@ -67,10 +67,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
   }, [])
 
   const handleSheetSave = useCallback(async (data: EventSheetData) => {
-    let hour = parseInt(data.hour, 10)
-    if (data.ampm === 'PM' && hour !== 12) hour += 12
-    if (data.ampm === 'AM' && hour === 12) hour = 0
-    const eventTime = new Date(`${data.date}T${String(hour).padStart(2, '0')}:${data.minute}:00`)
+    const eventTime = new Date(`${data.date}T${data.time}:00`)
 
     if (editingEvent) {
       await saveEvent({
