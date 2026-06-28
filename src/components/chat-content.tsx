@@ -289,7 +289,7 @@ export function ChatContent({
         if (item.kind !== 'sleep_event') return null
         const e = item.event
         const config: Record<string, { icon: string; label: string }> = {
-          wake: { icon: '🌅', label: 'Woke up' },
+          wake: { icon: '☀️', label: 'Woke up' },
           nap_start: { icon: '😴', label: 'Nap started' },
           nap_end: { icon: '🌤️', label: 'Nap ended' },
           bedtime: { icon: '🌙', label: 'Bedtime' },

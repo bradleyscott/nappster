@@ -208,7 +208,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
             color="mint"
           />
           <TrendCard
-            emoji="🌅"
+            emoji="☀️"
             value={expectedStats.avgWakeTime || '--'}
             label="Avg Wake"
             trend="up"
@@ -415,7 +415,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
   const timelineItems: TimelineItem[] = []
   if (wakeBlock) {
     timelineItems.push({
-      emoji: '🌅',
+      emoji: '☀️',
       label: 'Wake',
       timeLabel: fmtHour(wakeBlock.endHour),
       durationLabel: null,

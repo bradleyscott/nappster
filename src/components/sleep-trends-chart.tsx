@@ -362,7 +362,7 @@ function formatExpectedDayForSharing(data: DetailData, babyName: string): string
   lines.push('')
 
   if (wakeBlocks.length > 0) {
-    lines.push(`🌅 Wake: ${axisHourToTime(wakeBlocks[wakeBlocks.length - 1].endHour)}`)
+    lines.push(`☀️ Wake: ${axisHourToTime(wakeBlocks[wakeBlocks.length - 1].endHour)}`)
     lines.push('')
   }
 

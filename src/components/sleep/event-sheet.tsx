@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import type { SleepEvent, EventType, Context } from '@/types/database'
 
 const eventTypeOptions: { type: EventType; icon: string; label: string }[] = [
-  { type: 'wake', icon: '🌅', label: 'Wake Up' },
+  { type: 'wake', icon: '☀️', label: 'Wake Up' },
   { type: 'nap_start', icon: '😴', label: 'Nap Start' },
   { type: 'nap_end', icon: '🌤️', label: 'Nap End' },
   { type: 'bedtime', icon: '🌙', label: 'Bedtime' },
