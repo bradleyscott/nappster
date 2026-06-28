@@ -42,6 +42,8 @@ interface ChatContentProps {
   trendsNextNapHours?: number[]
   /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
   trendsBedtimeHour?: number | null
+  /** Trends-derived typical morning wake hour (24h decimal), or null. */
+  trendsWakeHour?: number | null
 }
 
 export function ChatContent({
@@ -54,6 +56,7 @@ export function ChatContent({
   timezone: timezoneProp,
   trendsNextNapHours = [],
   trendsBedtimeHour = null,
+  trendsWakeHour = null,
 }: ChatContentProps) {
   // Prefer the timezone passed from the server (cookie) so client + server agree;
   // fall back to the browser-detected zone when the prop is absent (e.g. tests).
@@ -457,6 +460,7 @@ export function ChatContent({
         timezone={timezone}
         trendsNextNapHours={trendsNextNapHours}
         trendsBedtimeHour={trendsBedtimeHour}
+        trendsWakeHour={trendsWakeHour}
         isPlanGenerating={isPlanGenerating}
       />
 

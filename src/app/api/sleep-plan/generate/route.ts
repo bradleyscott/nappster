@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const result = streamText({
-      model: openai('gpt-5.2'),
+      model: openai('gpt-5.4'),
       system: `${systemPrompt}\n\n## Task\nGenerate today's sleep plan and call the updateSleepPlan tool. Do not ask clarifying questions — use the provided context to produce the best schedule.`,
       messages: [
         {
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       stopWhen: stepCountIs(MAX_TOOL_STEPS),
       providerOptions: {
         openai: {
-          reasoningEffort: 'medium',
+          reasoningEffort: 'high',
         },
       },
     })

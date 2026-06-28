@@ -289,6 +289,8 @@ export interface CountdownOptions {
   trendsNextNapHours?: number[]
   /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
   trendsBedtimeHour?: number | null
+  /** Trends-derived typical morning wake hour (24h decimal), or null. */
+  trendsWakeHour?: number | null
 }
 
 export type CountdownMode =
@@ -618,19 +620,24 @@ export function getCountdownContext(
         }
       }
       const startedAt = new Date(bedtime.event_time)
-      // Resolve target wake: plan-derived wake hour, else default overnight duration.
+      // Resolve target wake: plan-derived wake hour, else trends-derived wake hour,
+      // else default overnight duration. The target must be after bedtime, so roll it
+      // forward a day if the projected time falls on or before bedtime.
       let target: Date
-      let expectedTime: string
       const expectedText = 'Expected wake'
       const planWakeHour = wakeHourFromPlan(plan)
-      if (planWakeHour != null) {
-        target = dateAtHour(planWakeHour, now)
-        expectedTime = formatTime12h(target)
+      const trendsWakeHour = opts.trendsWakeHour
+      const wakeHour = planWakeHour ?? trendsWakeHour
+      if (wakeHour != null) {
+        target = dateAtHour(wakeHour, startedAt)
+        if (target.getTime() <= startedAt.getTime()) {
+          target = new Date(target.getTime() + 24 * 60 * 60 * 1000)
+        }
       } else {
         const totalMin = defaultOvernightMin(age)
         target = new Date(startedAt.getTime() + totalMin * 60000)
-        expectedTime = formatTime12h(target)
       }
+      const expectedTime = formatTime12h(target)
       const totalMs = target.getTime() - startedAt.getTime()
       const elapsed = now.getTime() - startedAt.getTime()
       const remaining = target.getTime() - now.getTime()
