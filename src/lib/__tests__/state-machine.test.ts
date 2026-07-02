@@ -547,3 +547,80 @@ describe('getCountdownContext awake nap fallback chain', () => {
     expect(ctx.targetTime!.getMinutes()).toBe(30)
   })
 })
+
+describe('getCountdownContext explanations', () => {
+  const morningWake = makeEvent({ event_type: 'wake', event_time: '2026-06-28T06:45:00Z' })
+
+  it('returns schedule item notes as explanation when a fresh plan is used', () => {
+    const now = new Date(2026, 5, 28, 10, 30)
+    const p: CountdownPlanInput = {
+      targetBedtime: '7:00 - 7:30pm',
+      summary: 'A great day ahead.',
+      schedule: [
+        { type: 'nap', label: 'Nap 1', timeWindow: '12:30 - 1:30pm', status: 'upcoming', notes: 'First nap pushed later to protect the wake window.' },
+      ],
+    }
+    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {})
+    expect(ctx.source).toBe('plan')
+    expect(ctx.explanation).toBe('First nap pushed later to protect the wake window.')
+  })
+
+  it('falls back to plan summary when the target item has no notes', () => {
+    const now = new Date(2026, 5, 28, 10, 30)
+    const p: CountdownPlanInput = {
+      targetBedtime: '7:00 - 7:30pm',
+      summary: 'Keep wake windows short after the early wake.',
+      schedule: [
+        { type: 'nap', label: 'Nap 1', timeWindow: '12:30 - 1:30pm', status: 'upcoming', notes: '' },
+      ],
+    }
+    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {})
+    expect(ctx.source).toBe('plan')
+    expect(ctx.explanation).toBe('Keep wake windows short after the early wake.')
+  })
+
+  it('returns no explanation when falling back to trends', () => {
+    const now = new Date(2026, 5, 28, 10, 30)
+    const p: CountdownPlanInput = {
+      targetBedtime: '7:00 - 7:30pm',
+      summary: 'Should not appear.',
+      schedule: [
+        { type: 'nap', label: 'Nap 1', timeWindow: '8:30 - 9:00am', status: 'completed', notes: 'Stale notes.' },
+        { type: 'nap', label: 'Nap 2', timeWindow: '5:30 - 6:00pm', status: 'upcoming', notes: '' },
+      ],
+    }
+    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {
+      trendsNextNapHours: [12 + 49 / 60],
+    })
+    expect(ctx.source).toBe('trends')
+    expect(ctx.explanation).toBeNull()
+  })
+
+  it('returns no explanation when using age-based defaults', () => {
+    const now = new Date(2026, 5, 28, 7, 30)
+    const ctx = getCountdownContext('daytime_awake', [morningWake], null, '2025-12-01', now, {})
+    expect(ctx.source).toBe('default')
+    expect(ctx.explanation).toBeNull()
+  })
+
+  it('uses bedtime schedule item notes when in bedtime mode', () => {
+    const now = new Date(2026, 5, 28, 18, 0)
+    const events = [
+      morningWake,
+      makeEvent({ event_type: 'nap_start', event_time: '2026-06-28T12:00:00Z' }),
+      makeEvent({ event_type: 'nap_end', event_time: '2026-06-28T13:00:00Z' }),
+    ]
+    const p: CountdownPlanInput = {
+      targetBedtime: '7:00 - 7:30pm',
+      summary: 'Overall summary.',
+      schedule: [
+        { type: 'nap', label: 'Nap 1', timeWindow: '12:00 - 1:00pm', status: 'completed', notes: '' },
+        { type: 'bedtime', label: 'Bedtime', timeWindow: '7:00 - 7:30pm', status: 'upcoming', notes: 'Early bedtime after a short final nap.' },
+      ],
+    }
+    const ctx = getCountdownContext('daytime_awake', events, p, '2025-12-01', now, {})
+    expect(ctx.mode).toBe('bedtime')
+    expect(ctx.source).toBe('plan')
+    expect(ctx.explanation).toBe('Early bedtime after a short final nap.')
+  })
+})
