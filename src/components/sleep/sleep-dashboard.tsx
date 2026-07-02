@@ -174,6 +174,8 @@ export function SleepDashboard({
         pills={stateConfig.pills}
         countdown={stateConfig.countdown}
         expectedLabel={stateConfig.expectedLabel}
+        explanation={stateConfig.explanation}
+        source={stateConfig.source}
         elevated={stateConfig.elevated}
         onPillTap={(eventId) => openEditSheet({ id: eventId })}
         isPlanGenerating={isPlanGenerating}
@@ -254,6 +256,8 @@ interface StateConfig {
   pills: Array<{ icon?: string; label: string; dot?: boolean; color?: 'lavender' | 'peach' | 'mint' | 'rose'; eventId?: string }>
   countdown: { progress: number; timeRemaining: string; timeLabel: string }
   expectedLabel: { icon: string; text: string; time: string }
+  explanation: string | null
+  source: 'plan' | 'trends' | 'default'
   buttons: ButtonConfig[]
 }
 
@@ -302,6 +306,8 @@ function getStateConfig(
     text: ctx.expectedText,
     time: ctx.expectedTime,
   }
+  const explanation = ctx.explanation
+  const source = ctx.source
 
   switch (state) {
     case 'overnight_sleep': {
@@ -326,6 +332,8 @@ function getStateConfig(
         ],
         countdown,
         expectedLabel,
+        explanation,
+        source,
         buttons: [
           { icon: '☀️', label: 'Log Wake Up', eventType: 'wake', accent: 'purple' as const },
           { icon: '👀', label: 'Night Wake', subtitle: nightWakeCount > 0 ? `${nightWakeCount} already` : undefined, eventType: 'night_wake', variant: 'secondary' as const },
@@ -354,6 +362,8 @@ function getStateConfig(
           ],
           countdown,
           expectedLabel,
+          explanation,
+          source,
           buttons: [
             { icon: '🌙', label: 'Start Bedtime', subtitle: 'Nighttime sleep', eventType: 'bedtime', accent: 'sunset' as const },
           ],
@@ -381,6 +391,8 @@ function getStateConfig(
         ],
         countdown,
         expectedLabel,
+        explanation,
+        source,
         buttons: [
           { icon: '😴', label: 'Log Nap', subtitle: 'Start a nap', eventType: 'nap_start', accent: 'green' as const },
         ],
@@ -402,6 +414,8 @@ function getStateConfig(
         ],
         countdown,
         expectedLabel,
+        explanation,
+        source,
         buttons: [
           { icon: '🌤️', label: 'End Nap', subtitle: 'Wake baby up', eventType: 'nap_end', accent: 'green' as const },
         ],
@@ -423,6 +437,8 @@ function getStateConfig(
         pills: [],
         countdown,
         expectedLabel,
+        explanation,
+        source,
         buttons: [
           { icon: '🌙', label: 'Log Bedtime', subtitle: 'Start overnight sleep', eventType: 'bedtime', accent: 'purple' as const },
         ],

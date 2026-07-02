@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/lib/hooks/use-media-query'
 import { CountdownRing } from './countdown-ring'
@@ -52,6 +53,10 @@ interface StateHeroProps {
   pills: Pill[]
   countdown: CountdownData
   expectedLabel: ExpectedLabel
+  /** AI-generated explanation for the expected time; when present, the label becomes tappable. */
+  explanation?: string | null
+  /** Source of the target / explanation. */
+  source?: 'plan' | 'trends' | 'default'
   elevated?: boolean
   className?: string
   /** Called when a tappable pill is tapped */
@@ -67,15 +72,19 @@ export function StateHero({
   pills,
   countdown,
   expectedLabel,
+  explanation,
+  source,
   elevated,
   className,
   onPillTap,
   isPlanGenerating,
 }: StateHeroProps) {
   const a = accentMap[accentColor]
+  const [isExplanationOpen, setIsExplanationOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const isTablet = useMediaQuery('(min-width: 768px)')
   const ringSize = isDesktop ? 220 : isTablet ? 190 : 150
+  const hasExplanation = explanation != null && explanation.length > 0
 
   return (
     <div
@@ -130,10 +139,54 @@ export function StateHero({
       </div>
 
       {/* Expected label */}
-      <div className="mt-4 flex items-center justify-center gap-2 rounded-full border border-[#F0EDF5] bg-[var(--bg)] px-4 py-2 text-center text-sm font-bold text-[var(--text-secondary)]">
-        <span>{expectedLabel.icon}</span>
-        <span>{expectedLabel.text}</span>
-        <span className="font-extrabold text-[var(--text)]">{expectedLabel.time}</span>
+      {hasExplanation ? (
+        <button
+          type="button"
+          onClick={() => setIsExplanationOpen((v) => !v)}
+          aria-expanded={isExplanationOpen}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[#F0EDF5] bg-[var(--bg)] px-4 py-2 text-center text-sm font-bold text-[var(--text-secondary)] transition-colors hover:bg-[var(--lavender-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lavender)]"
+        >
+          <span>{expectedLabel.icon}</span>
+          <span>{expectedLabel.text}</span>
+          <span className="font-extrabold text-[var(--text)]">{expectedLabel.time}</span>
+          <span
+            className={cn(
+              'ml-0.5 text-[10px] text-[var(--text-muted)] transition-transform duration-200',
+              isExplanationOpen && 'rotate-180'
+            )}
+            aria-hidden="true"
+          >
+            ▼
+          </span>
+        </button>
+      ) : (
+        <div className="mt-4 flex items-center justify-center gap-2 rounded-full border border-[#F0EDF5] bg-[var(--bg)] px-4 py-2 text-center text-sm font-bold text-[var(--text-secondary)]">
+          <span>{expectedLabel.icon}</span>
+          <span>{expectedLabel.text}</span>
+          <span className="font-extrabold text-[var(--text)]">{expectedLabel.time}</span>
+        </div>
+      )}
+
+      {/* Explanation panel */}
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows] duration-200 ease-out',
+          isExplanationOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="mt-3 rounded-[var(--radius-md)] border border-[#F0EDF5] bg-white p-4 shadow-[var(--shadow-sm)]">
+            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+              {explanation}
+            </p>
+            {source === 'plan' && (
+              <div className="mt-3 flex items-center gap-1.5 border-t border-[#F0EDF5] pt-3 text-[11px] font-bold text-[var(--text-muted)]">
+                <span>🤖</span>
+                <span>Based on today&apos;s AI sleep plan</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Background plan generation indicator */}

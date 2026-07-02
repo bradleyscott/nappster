@@ -279,6 +279,7 @@ export function getSuggestedQuestions(
 export interface CountdownPlanInput {
   schedule?: ScheduleItem[] | undefined
   targetBedtime?: string | undefined
+  summary?: string | undefined
 }
 
 /** Options for live countdown projection (passed from the dashboard). */
@@ -317,6 +318,10 @@ export interface CountdownContext {
   targetTime: Date | null
   /** Instant the current segment started. */
   startedAt: Date | null
+  /** AI-generated explanation for this target, when available. */
+  explanation: string | null
+  /** Source of the target (and any explanation). */
+  source: 'plan' | 'trends' | 'default'
 }
 
 const EMPTY: CountdownContext = {
@@ -329,6 +334,8 @@ const EMPTY: CountdownContext = {
   mode: 'welcome',
   targetTime: null,
   startedAt: null,
+  explanation: null,
+  source: 'default',
 }
 
 /**
@@ -492,6 +499,58 @@ function inProgressNap(
   )
 }
 
+/**
+ * Find the schedule item that best explains the current countdown target.
+ * This is used to surface the AI's "why" commentary for the dashboard hero.
+ */
+function findTargetScheduleItem(
+  plan: CountdownPlanInput | null,
+  mode: CountdownMode
+): ScheduleItem | undefined {
+  if (!plan?.schedule) return undefined
+  switch (mode) {
+    case 'overnight':
+      return plan.schedule.find(
+        (i) =>
+          i.type === 'nap' &&
+          /wake/i.test(i.label) &&
+          i.status !== 'completed' &&
+          i.status !== 'skipped'
+      )
+    case 'nap_end':
+      return plan.schedule.find((i) => i.type === 'nap' && i.status === 'in_progress')
+    case 'nap':
+      return plan.schedule.find(
+        (i) =>
+          i.type === 'nap' &&
+          (i.status === 'upcoming' || i.status === 'in_progress')
+      )
+    case 'bedtime':
+      return plan.schedule.find(
+        (i) =>
+          i.type === 'bedtime' &&
+          (i.status === 'upcoming' || i.status === 'in_progress')
+      )
+    default:
+      return undefined
+  }
+}
+
+/**
+ * Build the user-facing explanation string for a countdown target.
+ * Only returns non-null text when the source is the AI plan (fresh plan data).
+ */
+function buildExplanation(
+  plan: CountdownPlanInput | null,
+  mode: CountdownMode,
+  source: 'plan' | 'trends' | 'default'
+): string | null {
+  if (source !== 'plan') return null
+  const item = findTargetScheduleItem(plan, mode)
+  const text = item?.notes || plan?.summary
+  return text?.trim() || null
+}
+
 /** True if every nap on the schedule is completed or skipped (so bedtime is next). */
 function allNapsDone(plan: CountdownPlanInput | null): boolean {
   if (!plan?.schedule) return false
@@ -642,6 +701,7 @@ export function getCountdownContext(
       const elapsed = now.getTime() - startedAt.getTime()
       const remaining = target.getTime() - now.getTime()
       const progress = totalMs > 0 ? Math.min(1, Math.max(0, elapsed / totalMs)) : 0
+      const source: CountdownContext['source'] = planWakeHour != null ? 'plan' : trendsWakeHour != null ? 'trends' : 'default'
       return {
         progress,
         timeRemaining: formatCountdown(remaining),
@@ -652,6 +712,8 @@ export function getCountdownContext(
         mode: 'overnight',
         targetTime: target,
         startedAt,
+        explanation: buildExplanation(plan, 'overnight', source),
+        source,
       }
     }
 
@@ -676,6 +738,7 @@ export function getCountdownContext(
       const elapsed = now.getTime() - startedAt.getTime()
       const remaining = target.getTime() - now.getTime()
       const progress = totalMs > 0 ? Math.min(1, Math.max(0, elapsed / totalMs)) : 0
+      const source: CountdownContext['source'] = inProgress ? 'plan' : 'default'
       return {
         progress,
         timeRemaining: formatCountdown(remaining),
@@ -686,6 +749,8 @@ export function getCountdownContext(
         mode: 'nap_end',
         targetTime: target,
         startedAt,
+        explanation: buildExplanation(plan, 'nap_end', source),
+        source,
       }
     }
 
@@ -740,6 +805,7 @@ export function getCountdownContext(
         const elapsed = now.getTime() - startedAt.getTime()
         const denom = totalMs > 0 ? totalMs : ageDefaultWindowMin * 60000
         const progress = Math.min(1, Math.max(0, elapsed / denom))
+        const source: CountdownContext['source'] = bedtimeHour != null ? 'plan' : trendsBedtime ? 'trends' : 'default'
         return {
           progress,
           timeRemaining: formatCountdown(remaining),
@@ -750,6 +816,8 @@ export function getCountdownContext(
           mode: 'bedtime',
           targetTime: target,
           startedAt,
+          explanation: buildExplanation(plan, 'bedtime', source),
+          source,
         }
       }
 
@@ -783,6 +851,7 @@ export function getCountdownContext(
       const totalMs = target.getTime() - startedAt.getTime()
       const denom = totalMs > 0 ? totalMs : ageDefaultWindowMin * 60000
       const progress = Math.min(1, Math.max(0, elapsed / denom))
+      const source: CountdownContext['source'] = planNapTarget && planNapTarget.getTime() > now.getTime() ? 'plan' : trendsNapTarget ? 'trends' : 'default'
       return {
         progress,
         timeRemaining: formatCountdown(remaining),
@@ -793,6 +862,8 @@ export function getCountdownContext(
         mode: 'nap',
         targetTime: target,
         startedAt,
+        explanation: buildExplanation(plan, 'nap', source),
+        source,
       }
     }
 
