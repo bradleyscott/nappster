@@ -1,10 +1,8 @@
 # Nappster
 
-![CI](https://github.com/bradley/nappster/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/bradleyscott/nappster/actions/workflows/ci.yml/badge.svg)
 
 A Progressive Web App for tracking baby sleep with AI-powered schedule recommendations. Built to replace ad-hoc ChatGPT conversations with a purpose-built experience that multiple caregivers can share.
-
-> Replace `bradley/nappster` in the badge URL with your actual GitHub owner/repo name.
 
 ## Screenshots
 
