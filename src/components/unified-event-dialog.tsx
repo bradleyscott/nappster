@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -37,8 +37,8 @@ export function UnifiedEventDialog({
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | null>(null)
   const [completingSession, setCompletingSession] = useState<Omit<InProgressSession, 'durationMinutes'> | null>(null)
 
-  // Detect in-progress session
-  const inProgressSession = useMemo(() => {
+  // Detect in-progress session (recomputed each render because duration uses the current time)
+  const inProgressSession = (() => {
     // Sort events by time
     const sortedEvents = [...allEvents].sort(
       (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
@@ -89,7 +89,7 @@ export function UnifiedEventDialog({
       }
     }
     return null
-  }, [allEvents])
+  })()
 
   const handleCompleteSession = useCallback((session: InProgressSession) => {
     setCompletingSession({
