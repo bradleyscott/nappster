@@ -48,6 +48,7 @@ interface SleepDashboardProps {
     end_time?: string | null
     context: Context
     notes: string | null
+    force?: boolean
   }) => Promise<void> | void
   /** Called when an event is updated */
   onUpdateEvent: (id: string, data: Partial<SleepEvent>) => Promise<void> | void
@@ -122,6 +123,7 @@ export function SleepDashboard({
         event_time: eventTime.toISOString(),
         context: data.context ?? 'home',
         notes: data.notes || null,
+        force: true, // EventSheet is for backfilling past events — skip state validation
       })
     } else if (editingEvent) {
       await onUpdateEvent(editingEvent.id, {

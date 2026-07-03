@@ -229,9 +229,12 @@ export function ChatContent({
     end_time?: string | null
     context: Context
     notes: string | null
+    /** If true, skip state validation — use for backfilling past events (e.g. from EventSheet). */
+    force?: boolean
   }) => {
-    // Validate the event against the current state to avoid inconsistent sequences
-    if (!isValidEvent(currentState, eventData.event_type)) {
+    // Validate the event against the current state to avoid inconsistent sequences.
+    // Skip validation when force is true (EventSheet path — user is logging a past event).
+    if (!eventData.force && !isValidEvent(currentState, eventData.event_type)) {
       console.warn(`Invalid event ${eventData.event_type} for state ${currentState}`)
       return
     }
@@ -244,8 +247,8 @@ export function ChatContent({
       notes: eventData.notes,
     })
 
-    // Create paired end event when applicable
-    if (eventData.end_time && eventData.event_type !== 'night_wake') {
+    // Create paired end event when applicable (only for quick-action events, not sheet)
+    if (eventData.end_time && eventData.event_type !== 'night_wake' && !eventData.force) {
       const endEventType = eventData.event_type === 'nap_start' ? 'nap_end' :
                            eventData.event_type === 'bedtime' ? 'wake' : null
       if (endEventType) {
