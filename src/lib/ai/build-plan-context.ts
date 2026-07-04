@@ -11,11 +11,12 @@ import {
   getTodayBoundsForTimezone,
   validateTimezone,
 } from '@/lib/timezone'
-import { computeSleepTrends, formatSleepTrends } from '@/lib/sleep-trend-stats'
+import { computeSleepTrends, formatSleepTrends } from '@/lib/sleep-stats'
 import { computeEventsHash, formatAge } from '@/lib/sleep-utils'
 import { getSleepEventsSince } from '@/lib/services/sleep-events'
 import { getBabyById } from '@/lib/services/babies'
 import type { ToolContext } from '@/lib/ai/tools'
+import { logError } from '@/lib/error-reporting'
 
 export interface SleepHistoryContext {
   historyEvents: SleepEvent[]
@@ -52,7 +53,7 @@ export async function buildSleepHistoryContext(
   )
 
   if (historyError) {
-    console.error('Error fetching sleep history:', historyError)
+    logError('build-plan-context', 'Error fetching sleep history:', historyError)
   }
 
   const { start: todayStart, end: todayEnd } = getTodayBoundsForTimezone(timezone)

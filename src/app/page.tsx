@@ -14,7 +14,7 @@ import {
   projectExpectedSchedule,
   buildDayRows,
   computeExpectedDays,
-} from '@/lib/sleep-trends'
+} from '@/lib/sleep-chart-blocks'
 import type { SleepEvent } from '@/types/database'
 
 export default async function Home() {

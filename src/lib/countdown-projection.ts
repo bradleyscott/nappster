@@ -316,12 +316,13 @@ function allNapsDone(plan: CountdownPlanInput | null): boolean {
  */
 function countNapEndsToday(
   events: SleepEvent[],
-  timezone: string | undefined
+  timezone: string | undefined,
+  now: Date = new Date()
 ): number {
   let scoped = events
   if (timezone) {
     try {
-      const { start, end } = getTodayBoundsForTimezone(timezone)
+      const { start, end } = getTodayBoundsForTimezone(timezone, now)
       scoped = events.filter((e) => e.event_time >= start && e.event_time < end)
     } catch {
       // getTodayBoundsForTimezone validates the tz; if it somehow fails, keep all events.
@@ -357,7 +358,7 @@ export function isPlanStaleForNaps(
   const claimedDone = plan.schedule.filter(
     (i) => i.type === 'nap' && (i.status === 'completed' || i.status === 'in_progress')
   ).length
-  const actualDone = countNapEndsToday(events, timezone)
+  const actualDone = countNapEndsToday(events, timezone, now)
   if (claimedDone > actualDone) return true
 
   const nextNap = nextUpcomingNap(plan)

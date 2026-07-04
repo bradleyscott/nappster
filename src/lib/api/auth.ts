@@ -1,5 +1,6 @@
 import { SupabaseClient, User } from '@supabase/supabase-js'
 import { checkBabyAccess } from '@/lib/services/family-members'
+import { logError } from '@/lib/error-reporting'
 
 export type AuthResult =
   | { success: true; user: User }
@@ -26,7 +27,7 @@ export async function requireBabyAccess(
       return { success: false, error: 'FORBIDDEN' }
     }
     // Other errors (network, multiple rows, etc.) should be logged
-    console.error('Error checking membership:', error)
+    logError('auth', 'Error checking membership:', error)
     return { success: false, error: 'INTERNAL_ERROR' }
   }
 

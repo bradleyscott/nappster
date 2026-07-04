@@ -8,6 +8,7 @@ import type { ChatMessageData } from './use-chat-history'
 import { getRecentSleepEvents } from '@/lib/services/sleep-events'
 import { getChatMessages } from '@/lib/services/chat-messages'
 import { getRecentSleepPlans } from '@/lib/services/sleep-plans'
+import { logError } from '@/lib/error-reporting'
 
 interface UseBackgroundRefreshOptions {
   babyId: string
@@ -61,7 +62,7 @@ export function useBackgroundRefresh({
         onPlansRefreshed(recentPlans)
       }
     } catch (error) {
-      console.error('Error refreshing data:', error)
+      logError('background-refresh', 'Error refreshing data:', error)
     }
   }, [babyId, supabase, timezone, mergeRefreshedEvents, mergeRefreshedMessages, onPlansRefreshed])
 

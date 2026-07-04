@@ -8,6 +8,7 @@ import {
   updateSleepEvent,
   deleteSleepEvent,
 } from '@/lib/services/sleep-events'
+import { logError } from '@/lib/error-reporting'
 
 // ---------------------------------------------------------------------------
 // Types (exported for callers)
@@ -103,7 +104,7 @@ export function useEventMutations({
       })
 
       if (error || !newEvent) {
-        console.error('Error creating event:', error)
+        logError('event-mutations', 'Error creating event:', error)
         return null
       }
 
@@ -133,7 +134,7 @@ export function useEventMutations({
         )
 
         if (error || !updatedEvent) {
-          console.error('Error updating event:', error)
+          logError('event-mutations', 'Error updating event:', error)
           return false
         }
 
@@ -162,7 +163,7 @@ export function useEventMutations({
       const { error } = await deleteSleepEvent(supabase, event.id)
 
       if (error) {
-        console.error('Error deleting event:', error)
+        logError('event-mutations', 'Error deleting event:', error)
         return false
       }
 
@@ -204,7 +205,7 @@ export function useEventMutations({
       )
 
       if (startError || !startData) {
-        console.error('Error updating start event:', startError)
+        logError('event-mutations', 'Error updating start event:', startError)
         return false
       }
 
@@ -219,7 +220,7 @@ export function useEventMutations({
             })
 
           if (endError) {
-            console.error('Error updating end event:', endError)
+            logError('event-mutations', 'Error updating end event:', endError)
             // Revert the start event using the caller-supplied events (or fall
             // back to localEvents) to avoid a stale-closure read of hook state.
             const revertFrom = allEvents ?? localEvents
@@ -244,7 +245,7 @@ export function useEventMutations({
             })
 
           if (endError) {
-            console.error('Error creating end event:', endError)
+            logError('event-mutations', 'Error creating end event:', endError)
             const revertFrom = allEvents ?? localEvents
             const originalStart = revertFrom.find(
               (e) => e.id === data.startEvent.id,
@@ -296,7 +297,7 @@ export function useEventMutations({
       const { error: startError } = await deleteSleepEvent(supabase, startId)
 
       if (startError) {
-        console.error('Error deleting start event:', startError)
+        logError('event-mutations', 'Error deleting start event:', startError)
         return false
       }
 
@@ -308,7 +309,7 @@ export function useEventMutations({
         const { error: endError } = await deleteSleepEvent(supabase, endId)
 
         if (endError) {
-          console.error('Error deleting end event:', endError)
+          logError('event-mutations', 'Error deleting end event:', endError)
           // Start is already gone — mark it and continue
           setDeletedEventIds((prev) => new Set(prev).add(startId))
           setLocalEvents((prev) => prev.filter((e) => e.id !== startId))

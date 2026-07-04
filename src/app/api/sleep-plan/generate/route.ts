@@ -20,13 +20,13 @@ import {
   authErrorResponse,
 } from '@/lib/api'
 import { validateEnv } from '@/lib/env'
+import { PLAN_GEN_MAX_TOOL_STEPS } from '@/lib/config'
+import { logError } from '@/lib/error-reporting'
 
 const requestSchema = z.object({
   babyId: z.string().uuid(),
   timezone: z.string().optional(),
 })
-
-const MAX_TOOL_STEPS = 4
 
 /**
  * POST /api/sleep-plan/generate
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (activePlanError) {
-      console.error('Error fetching active plan for generation:', activePlanError)
+      logError('sleep-plan/generate', 'Error fetching active plan for generation:', activePlanError)
     }
 
     // No events today and no active plan: there's nothing meaningful to schedule.
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     const { active: cooldownActive, error: cooldownError } =
       await isPlanGenerationCooldownActive(supabase, babyId, 60)
     if (cooldownError) {
-      console.error('Error checking plan generation cooldown:', cooldownError)
+      logError('sleep-plan/generate', 'Error checking plan generation cooldown:', cooldownError)
     }
     if (cooldownActive) {
       return NextResponse.json({
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     // Acquire a short-lived lock so concurrent requests don't both call OpenAI.
     const { acquired, error: lockError } = await acquirePlanGenerationLock(supabase, babyId, 120)
     if (lockError) {
-      console.error('Error acquiring plan generation lock:', lockError)
+      logError('sleep-plan/generate', 'Error acquiring plan generation lock:', lockError)
     }
     if (!acquired) {
       return NextResponse.json({
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       tools: createPlanGenerationTools(toolContext),
-      stopWhen: stepCountIs(MAX_TOOL_STEPS),
+      stopWhen: stepCountIs(PLAN_GEN_MAX_TOOL_STEPS),
       providerOptions: {
         openai: {
           reasoningEffort: 'high',
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     )
 
     if (generatedPlanError || !generatedPlan) {
-      console.error('Error fetching generated plan:', generatedPlanError)
+      logError('sleep-plan/generate', 'Error fetching generated plan:', generatedPlanError)
       return apiError('Plan generation completed but the saved plan could not be retrieved', 500)
     }
 
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
         : undefined
 
       if (resultOutput && !resultOutput.persisted && !resultOutput.success) {
-        console.error('updateSleepPlan tool failed during background generation:', resultOutput.error)
+        logError('sleep-plan/generate', 'updateSleepPlan tool failed during background generation:', resultOutput.error)
         return apiError(
           `Plan generation failed: ${resultOutput.error ?? 'updateSleepPlan did not persist'}`,
           500
@@ -196,11 +196,11 @@ export async function POST(req: NextRequest) {
       // Always release the lock and record the generation timestamp.
       const { error: releaseError } = await releasePlanGenerationLock(supabase, babyId)
       if (releaseError) {
-        console.error('Error releasing plan generation lock:', releaseError)
+        logError('sleep-plan/generate', 'Error releasing plan generation lock:', releaseError)
       }
     }
   } catch (error) {
-    console.error('Error in sleep-plan generate API:', error)
+    logError('sleep-plan/generate', 'Error in sleep-plan generate API:', error)
     return apiError('Error generating sleep plan', 500)
   }
 }

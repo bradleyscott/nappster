@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   buildDayRows,
   computeExpectedDays,
-} from '../sleep-trends'
+} from '../sleep-chart-blocks'
 import {
   computeSleepTrends,
   formatSleepTrends,
   median,
   type SleepTrends,
-} from '../sleep-trend-stats'
+} from '../sleep-stats'
 import type { SleepEvent, EventType } from '@/types/database'
 
 const makeEvent = (overrides: Partial<SleepEvent> & { event_type: EventType; event_time: string }): SleepEvent => ({

@@ -27,9 +27,11 @@ export function getWeekAgoDate(): Date {
  * Get the start and end of "today" in the user's timezone, returned as UTC ISO strings
  * for database queries.
  */
-export function getTodayBoundsForTimezone(timezone: string): { start: string; end: string } {
-  const now = new Date()
-  const zonedNow = toZonedTime(now, timezone)
+export function getTodayBoundsForTimezone(
+  timezone: string,
+  referenceDate: Date = new Date()
+): { start: string; end: string } {
+  const zonedNow = toZonedTime(referenceDate, timezone)
 
   const zonedStart = startOfDay(zonedNow)
   const zonedEnd = endOfDay(zonedNow)
@@ -47,9 +49,11 @@ export function getTodayBoundsForTimezone(timezone: string): { start: string; en
  * Get the start and end of "yesterday" in the user's timezone, returned as UTC ISO strings
  * for database queries.
  */
-export function getYesterdayBoundsForTimezone(timezone: string): { start: string; end: string } {
-  const now = new Date()
-  const zonedNow = toZonedTime(now, timezone)
+export function getYesterdayBoundsForTimezone(
+  timezone: string,
+  referenceDate: Date = new Date()
+): { start: string; end: string } {
+  const zonedNow = toZonedTime(referenceDate, timezone)
   const zonedYesterday = subDays(zonedNow, 1)
 
   const zonedStart = startOfDay(zonedYesterday)
@@ -68,9 +72,12 @@ export function getYesterdayBoundsForTimezone(timezone: string): { start: string
  * Get the start of a day N days ago in the user's timezone, returned as UTC ISO string
  * for database queries.
  */
-export function getStartOfDaysAgoForTimezone(timezone: string, days: number): string {
-  const now = new Date()
-  const zonedNow = toZonedTime(now, timezone)
+export function getStartOfDaysAgoForTimezone(
+  timezone: string,
+  days: number,
+  referenceDate: Date = new Date()
+): string {
+  const zonedNow = toZonedTime(referenceDate, timezone)
   const zonedPast = subDays(zonedNow, days)
   const zonedStart = startOfDay(zonedPast)
   const utcStart = fromZonedTime(zonedStart, timezone)

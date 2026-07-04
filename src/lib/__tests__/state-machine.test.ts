@@ -405,8 +405,8 @@ describe('getCountdownContext', () => {
     expect(ctx.mode).toBe('overnight')
     expect(ctx.expectedText).toBe('Expected wake')
     expect(ctx.targetTime).not.toBeNull()
-    expect(ctx.targetTime!.getHours()).toBe(7)
-    expect(ctx.targetTime!.getMinutes()).toBe(15)
+    expect(ctx.targetTime!.getUTCHours()).toBe(7)
+    expect(ctx.targetTime!.getUTCMinutes()).toBe(15)
   })
 })
 
@@ -473,8 +473,8 @@ describe('getCountdownContext awake nap fallback chain', () => {
     const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {})
     expect(ctx.mode).toBe('nap')
     expect(ctx.timeLabel).toBe('until next nap')
-    expect(ctx.targetTime!.getHours()).toBe(12)
-    expect(ctx.targetTime!.getMinutes()).toBe(30)
+    expect(ctx.targetTime!.getUTCHours()).toBe(12)
+    expect(ctx.targetTime!.getUTCMinutes()).toBe(30)
     expect(ctx.targetTime!.getTime()).toBeGreaterThan(now.getTime())
   })
 
@@ -493,8 +493,8 @@ describe('getCountdownContext awake nap fallback chain', () => {
     expect(ctx.mode).toBe('nap')
     expect(ctx.expectedText).toBe('Next nap (typical)')
     // The trends nap (~12:49) must be used, NOT the stale 5:30pm nap.
-    expect(ctx.targetTime!.getHours()).toBe(12)
-    expect(ctx.targetTime!.getMinutes()).toBe(49)
+    expect(ctx.targetTime!.getUTCHours()).toBe(12)
+    expect(ctx.targetTime!.getUTCMinutes()).toBe(49)
     expect(ctx.targetTime!.getTime()).toBeGreaterThan(now.getTime())
   })
 
@@ -520,7 +520,7 @@ describe('getCountdownContext awake nap fallback chain', () => {
     expect(ctx.mode).toBe('bedtime')
     expect(ctx.timeLabel).toBe('until bedtime')
     expect(ctx.expectedText).toBe('Target bedtime')
-    expect(ctx.targetTime!.getHours()).toBe(19)
+    expect(ctx.targetTime!.getUTCHours()).toBe(19)
   })
 
   it('uses the trends bedtime hour when a fresh plan lacks a targetBedtime string', () => {
@@ -543,8 +543,8 @@ describe('getCountdownContext awake nap fallback chain', () => {
       trendsBedtimeHour: 19.5, // 7:30pm
     })
     expect(ctx.mode).toBe('bedtime')
-    expect(ctx.targetTime!.getHours()).toBe(19)
-    expect(ctx.targetTime!.getMinutes()).toBe(30)
+    expect(ctx.targetTime!.getUTCHours()).toBe(19)
+    expect(ctx.targetTime!.getUTCMinutes()).toBe(30)
   })
 })
 

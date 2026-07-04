@@ -8,6 +8,7 @@ import { toZonedTime } from 'date-fns-tz'
 import type { SleepEvent } from '@/types/database'
 import { getTodaySleepEvents } from '@/lib/services/sleep-events'
 import { deactivatePreviousSleepPlans, createSleepPlan } from '@/lib/services/sleep-plans'
+import { logError } from '@/lib/error-reporting'
 
 /**
  * Creates a tool that updates the displayed sleep plan and persists it to the database.
@@ -39,7 +40,7 @@ Mark completed naps/events with status "completed", current activity as "in_prog
         const { data: events, error: eventsError } = await getTodaySleepEvents(supabase, babyId, timezone)
 
         if (eventsError) {
-          console.error('Error fetching events for sleep plan:', eventsError)
+          logError('update-sleep-plan', 'Error fetching events for sleep plan:', eventsError)
           return {
             success: false,
             plan,
@@ -74,7 +75,7 @@ Mark completed naps/events with status "completed", current activity as "in_prog
         })
 
         if (error || !savedPlan) {
-          console.error('Error persisting sleep plan from chat:', error)
+          logError('update-sleep-plan', 'Error persisting sleep plan from chat:', error)
           return {
             success: false,
             plan,
@@ -90,7 +91,7 @@ Mark completed naps/events with status "completed", current activity as "in_prog
           message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
         }
       } catch (err) {
-        console.error('Error in updateSleepPlan tool:', err)
+        logError('update-sleep-plan', 'Error in updateSleepPlan tool:', err)
         return {
           success: false,
           plan,

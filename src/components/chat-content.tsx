@@ -3,6 +3,7 @@
 import { useChat } from '@ai-sdk/react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { logWarn } from '@/lib/error-reporting'
 import { Baby, SleepEvent, SleepSession, ChatMessage, EventType, Context } from '@/types/database'
 import { isValidEvent } from '@/lib/state-machine'
 import { mergeEvents } from '@/lib/merge-data'
@@ -243,7 +244,7 @@ export function ChatContent({
     // Validate the event against the current state to avoid inconsistent sequences.
     // Skip validation when force is true (EventSheet path — user is logging a past event).
     if (!eventData.force && !isValidEvent(currentState, eventData.event_type)) {
-      console.warn(`Invalid event ${eventData.event_type} for state ${currentState}`)
+      logWarn('chat-content', `Invalid event ${eventData.event_type} for state ${currentState}`)
       return
     }
 

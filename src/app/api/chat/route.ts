@@ -25,6 +25,11 @@ import { buildSleepHistoryContext } from "@/lib/ai/build-plan-context";
 import { getBabyById } from "@/lib/services/babies";
 import { formatAge } from "@/lib/sleep-utils";
 import { persistChatTurn } from "@/lib/ai/chat-persistence";
+import { logError } from "@/lib/error-reporting";
+import {
+  CHAT_MAX_TOOL_STEPS,
+  MAX_CONVERSATION_MESSAGES,
+} from "@/lib/config";
 
 // Schema for validating critical request fields.
 // Messages are validated by the SDK itself.
@@ -47,16 +52,8 @@ const requestFieldsSchema = z.object({
     .optional(),
 });
 
-// Maximum tool invocation steps before stopping the AI response.
-// Allows for data-fetching tools (2-3 calls) plus action tools (1-2 calls)
-// with headroom for multi-step reasoning.
-const MAX_TOOL_STEPS = 6;
-
-// Maximum number of recent messages to include in the model context.
-// Older messages are available via the getChatHistory tool.
-// Each "message" from the SDK may expand to multiple model messages (tool
-// calls/results), so this keeps the context window bounded.
-const MAX_CONVERSATION_MESSAGES = 20;
+// Constants centralized in lib/config.ts
+// CHAT_MAX_TOOL_STEPS = 6, MAX_CONVERSATION_MESSAGES = 20
 
 export async function POST(req: Request) {
   try {
@@ -174,7 +171,7 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: await convertToModelMessages(windowedMessages),
       tools: createChatTools(toolContext),
-      stopWhen: stepCountIs(MAX_TOOL_STEPS),
+      stopWhen: stepCountIs(CHAT_MAX_TOOL_STEPS),
       // Always enable reasoning for quality — showThinking only controls
       // whether reasoning tokens are streamed to the client via sendReasoning
       providerOptions: {
@@ -207,7 +204,7 @@ export async function POST(req: Request) {
       generateMessageId: () => assistantMessageId,
     });
   } catch (error) {
-    console.error("Error in chat API:", error);
+    logError("chat", "Error in chat API:", error);
     return apiError("Error processing chat", 500);
   }
 }

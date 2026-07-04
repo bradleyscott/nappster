@@ -7,6 +7,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Json } from '@/types/database'
 import { saveChatMessage } from '@/lib/services/chat-messages'
+import { logError } from '@/lib/error-reporting'
 
 // ---------------------------------------------------------------------------
 // Tool output condensing
@@ -102,7 +103,8 @@ export async function saveWithRetry(
       await new Promise((r) => setTimeout(r, 100 * n))
       return attempt(n + 1)
     }
-    console.error(
+    logError(
+      'chat-persistence',
       `Failed to save chat message after ${maxRetries} attempts:`,
       { messageId: data.message_id, role: data.role, error },
     )
@@ -217,7 +219,7 @@ export async function persistChatTurn(input: PersistChatTurnInput): Promise<void
       })
     }
   } catch (saveError) {
-    console.error('Error saving chat messages:', saveError)
+    logError('chat-persistence', 'Error saving chat messages:', saveError)
     // Don't throw — persistence is best-effort
   }
 }

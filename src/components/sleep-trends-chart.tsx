@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Building2, X, Sun, AlertCircle, BedDouble, Share2, Check } from 'lucide-react'
 import { SleepEvent } from '@/types/database'
-import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock, type NightWakeMarker } from '@/lib/sleep-trends'
+import { buildDayRows, computeExpectedDays, type DayRow, type ExpectedDay, type SleepBlock, type NightWakeMarker } from '@/lib/sleep-chart-blocks'
 
 // Chart layout constants
 const LABEL_WIDTH = 108

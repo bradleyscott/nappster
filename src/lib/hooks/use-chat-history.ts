@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { SleepEvent, SleepPlanRow, Json } from '@/types/database'
+import { logError } from '@/lib/error-reporting'
 
 // Message type for chat history (compatible with useChat messages)
 export interface ChatMessageData {
@@ -77,7 +78,7 @@ export function useChatHistory({
 
       // Check response status before parsing JSON
       if (!res.ok) {
-        console.error(`Failed to load history: ${res.status}`)
+        logError('chat-history', `Failed to load history: ${res.status}`)
         setHasMoreHistory(false)
         return
       }
@@ -102,7 +103,7 @@ export function useChatHistory({
     } catch (error) {
       // Don't log abort errors — they're expected on cleanup
       if (error instanceof DOMException && error.name === 'AbortError') return
-      console.error('Error loading history:', error)
+      logError('chat-history', 'Error loading history:', error)
       setHasMoreHistory(false)
     } finally {
       isLoadingRef.current = false

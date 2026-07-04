@@ -8,6 +8,7 @@ import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
 import { requireBabyAccess, authErrorResponse, apiError } from '@/lib/api'
 import { getActiveSleepPlan } from '@/lib/services/sleep-plans'
 import { getTodaySleepEvents } from '@/lib/services/sleep-events'
+import { logError } from '@/lib/error-reporting'
 
 // Schemas for validating JSON fields from database
 const nextActionSchema = sleepPlanSchema.shape.nextAction
@@ -63,7 +64,7 @@ export async function GET(
 
     if (planError && (planError as { code?: string }).code !== 'PGRST116') {
       // PGRST116 = no rows returned, which is fine
-      console.error('Error fetching sleep plan:', planError)
+      logError('sleep-plan/[babyId]', 'Error fetching sleep plan:', planError)
       return NextResponse.json(
         { error: 'Failed to fetch sleep plan' },
         { status: 500 }
@@ -74,7 +75,7 @@ export async function GET(
     const { data: events, error: eventsError } = await getTodaySleepEvents(supabase, babyId, 'UTC')
 
     if (eventsError) {
-      console.error('Error fetching events for hash:', eventsError)
+      logError('sleep-plan/[babyId]', 'Error fetching events for hash:', eventsError)
       return apiError('Failed to compute events hash', 500)
     }
 
@@ -97,7 +98,7 @@ export async function GET(
       eventsHash: currentEventsHash,
     })
   } catch (error) {
-    console.error('Error in GET /api/sleep-plan/[babyId]:', error)
+    logError('sleep-plan/[babyId]', 'Error in GET /api/sleep-plan/[babyId]:', error)
     return apiError('Internal server error', 500)
   }
 }
