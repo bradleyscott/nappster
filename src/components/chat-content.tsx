@@ -20,11 +20,7 @@ import { useBackgroundPlanGeneration } from '@/lib/hooks/use-background-plan-gen
 import { AppHeader } from '@/components/app-header'
 import { UnifiedEditDialog } from '@/components/unified-edit-dialog'
 import { SleepDashboard } from '@/components/sleep/sleep-dashboard'
-import {
-  Conversation,
-  ConversationContent,
-} from '@/components/ai-elements/conversation'
-import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message'
+import { Message, MessageContent } from '@/components/ai-elements/message'
 import ReactMarkdown from 'react-markdown'
 import { format, isSameDay, isToday, isYesterday, subDays } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
@@ -89,9 +85,6 @@ export function ChatContent({
     historyMessages,
     historySleepEvents,
     historySleepPlans,
-    isLoadingHistory,
-    hasMoreHistory,
-    loadMoreHistory,
     addRealtimeMessage,
     mergeRefreshedMessages,
   } = useChatHistory({
@@ -124,7 +117,7 @@ export function ChatContent({
   const { messages: liveMessages, sendMessage, status } = useChat({ transport })
 
   // Timeline data
-  const { allMessages, allSleepEvents, allSleepPlans, timelineItems } = useTimelineBuilder({
+  const { allMessages, allSleepEvents, timelineItems } = useTimelineBuilder({
     historyMessages,
     initialMessages,
     liveMessages,

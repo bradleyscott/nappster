@@ -8,13 +8,11 @@ import {
   computeExpectedDays,
   type DayRow,
   type ExpectedDay,
-  type SleepBlock,
-  type NightWakeMarker,
 } from '@/lib/sleep-trends'
 import { useSleepEventCRUD } from '@/lib/hooks/use-sleep-event-crud'
 import { EventSheet, type EventSheetData } from './event-sheet'
 import { PageHeader } from './page-header'
-import type { SleepEvent, EventType, Context } from '@/types/database'
+import type { SleepEvent } from '@/types/database'
 
 interface TrendsViewProps {
   events: SleepEvent[]
