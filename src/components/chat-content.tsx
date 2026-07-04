@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useChat } from '@ai-sdk/react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
@@ -18,14 +19,22 @@ import { useToolOutputs } from '@/lib/hooks/use-tool-outputs'
 import { useTodaySleepState } from '@/lib/hooks/use-today-sleep-state'
 import { useEventDialogHandlers } from '@/lib/hooks/use-event-dialog-handlers'
 import { useBackgroundPlanGeneration } from '@/lib/hooks/use-background-plan-generation'
+import { useTrendsProjection } from '@/lib/hooks/use-trends-projection'
 import { AppHeader } from '@/components/app-header'
-import { UnifiedEditDialog } from '@/components/unified-edit-dialog'
 import { SleepDashboard } from '@/components/sleep/sleep-dashboard'
 import { Message, MessageContent } from '@/components/ai-elements/message'
 import ReactMarkdown from 'react-markdown'
 import { format, isSameDay, isToday, isYesterday, subDays } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
 import type { SleepPlanRow } from '@/types/database'
+
+const UnifiedEditDialog = dynamic(
+  () =>
+    import('@/components/unified-edit-dialog').then((mod) => ({
+      default: mod.UnifiedEditDialog,
+    })),
+  { ssr: false }
+)
 
 interface ChatContentProps {
   baby: Baby
@@ -36,12 +45,6 @@ interface ChatContentProps {
   hasMoreHistory?: boolean
   /** IANA timezone, passed server-side from the cookie so client + server agree. */
   timezone?: string
-  /** Trends-derived typical-day nap start hours (24h decimal), ascending. */
-  trendsNextNapHours?: number[]
-  /** Trends-derived typical-day bedtime start hour (24h decimal), or null. */
-  trendsBedtimeHour?: number | null
-  /** Trends-derived typical morning wake hour (24h decimal), or null. */
-  trendsWakeHour?: number | null
 }
 
 export function ChatContent({
@@ -52,9 +55,6 @@ export function ChatContent({
   initialCursor = null,
   hasMoreHistory: initialHasMore = false,
   timezone: timezoneProp,
-  trendsNextNapHours = [],
-  trendsBedtimeHour = null,
-  trendsWakeHour = null,
 }: ChatContentProps) {
   // Prefer the timezone passed from the server (cookie) so client + server agree;
   // fall back to the browser-detected zone when the prop is absent (e.g. tests).
@@ -131,6 +131,13 @@ export function ChatContent({
     localSleepPlans,
   })
   const isLoading = status === 'streaming' || status === 'submitted'
+
+  // Lazy trends projection (fallback for countdown ring when AI plan is stale)
+  const {
+    trendsNextNapHours,
+    trendsBedtimeHour,
+    trendsWakeHour,
+  } = useTrendsProjection({ babyId: baby.id, timezone })
 
   // Background refresh
   const refreshData = useBackgroundRefresh({

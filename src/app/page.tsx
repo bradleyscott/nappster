@@ -4,18 +4,12 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { NappsterLogo } from '@/components/nappster-logo'
 import { ChatContent } from '@/components/chat-content'
-import { getYesterdayBoundsForTimezone, getStartOfDaysAgoForTimezone } from '@/lib/timezone'
+import { getYesterdayBoundsForTimezone } from '@/lib/timezone'
 import { getFamilyMembersForUser } from '@/lib/services/family-members'
 import { getBabyById } from '@/lib/services/babies'
 import { getChatMessages } from '@/lib/services/chat-messages'
 import { getSleepEvents } from '@/lib/services/sleep-events'
 import { getSleepPlansSinceCreatedAt } from '@/lib/services/sleep-plans'
-import {
-  projectExpectedSchedule,
-  buildDayRows,
-  computeExpectedDays,
-} from '@/lib/sleep-chart-blocks'
-import type { SleepEvent } from '@/types/database'
 
 export default async function Home() {
   const supabase = await createClient();
@@ -126,36 +120,6 @@ export default async function Home() {
 
   const initialSleepPlans = sleepPlans || []
 
-  // Fetch up to 30 days of sleep history (the same window the chat route uses
-  // for trend computation) and derive the trends-based "typical day" projection.
-  // This is the FALLBACK source the dashboard uses for its live "next nap" /
-  // "bedtime" countdown when the AI-generated sleep plan is stale or absent,
-  // so the dashboard never disagrees with the /sleep-trends "Typical Day" card.
-  const trendsSince = getStartOfDaysAgoForTimezone(timezone, 30)
-  const { data: trendsEvents } = await getSleepEvents(supabase, {
-    babyId,
-    from: trendsSince,
-    order: { column: 'event_time', ascending: true },
-    limit: 500,
-  })
-  const trendsProjection = projectExpectedSchedule(
-    (trendsEvents ?? []) as SleepEvent[],
-    timezone,
-    14
-  )
-  const trendsNextNapHours = trendsProjection.napStartHours
-  const trendsBedtimeHour = trendsProjection.bedtimeHour
-
-  // Derive a trends-based expected wake hour, choosing the daycare or home
-  // typical day based on whether today's logged events include a daycare context.
-  const trendsRows = buildDayRows((trendsEvents ?? []) as SleepEvent[], timezone, 30)
-  const expectedDays = computeExpectedDays(trendsRows)
-  const todayHasDaycare = (sleepEvents ?? []).some((e) => e.context === 'daycare')
-  const wakeBlock = (todayHasDaycare ? expectedDays.daycare : expectedDays.home)?.blocks.find(
-    (b) => b.type === 'wake'
-  )
-  const trendsWakeHour = wakeBlock ? wakeBlock.endHour : null
-
   return (
     <ChatContent
       baby={baby}
@@ -165,9 +129,6 @@ export default async function Home() {
       initialCursor={oldestTimestamp}
       hasMoreHistory={chatMessages?.length === 50}
       timezone={timezone}
-      trendsNextNapHours={trendsNextNapHours}
-      trendsBedtimeHour={trendsBedtimeHour}
-      trendsWakeHour={trendsWakeHour}
     />
   );
 }
