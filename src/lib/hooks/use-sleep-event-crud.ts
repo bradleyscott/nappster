@@ -1,46 +1,24 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import { SleepEvent, EventType, Context } from '@/types/database'
-import { createClient } from '@/lib/supabase/client'
-import {
-  createSleepEvent,
-  updateSleepEvent,
-  deleteSleepEvent,
-} from '@/lib/services/sleep-events'
+/**
+ * Thin facade composing useEventMutations + useEventSyncMerge.
+ *
+ * Preserves the exact same API as the original monolithic hook so callers
+ * (chat-content, trends-view, use-event-dialog-handlers, and all tests)
+ * keep working without changes.
+ */
+import { useCallback } from 'react'
+import type { SleepEvent } from '@/types/database'
+import { useEventMutations } from './use-event-mutations'
+import { useEventSyncMerge } from './use-event-sync-merge'
+import type {
+  CreateEventData,
+  SaveEventData,
+  SaveSessionData,
+} from './use-event-mutations'
 
-export interface CreateEventData {
-  event_type: EventType
-  event_time: string
-  end_time?: string | null
-  context: Context
-  notes: string | null
-}
-
-export interface SaveEventData {
-  id?: string
-  event_type: EventType
-  event_time: string
-  end_time?: string | null
-  context: Context
-  notes: string | null
-}
-
-export interface SaveSessionData {
-  startEvent: {
-    id: string
-    event_time: string
-    context: Context
-    notes: string | null
-  }
-  endEvent?: {
-    id?: string
-    event_type?: EventType
-    event_time: string
-    context: Context
-    notes: string | null
-  }
-}
+// Re-export types used by external callers
+export type { CreateEventData, SaveEventData, SaveSessionData }
 
 interface UseSleepEventCRUDOptions {
   babyId: string
@@ -59,7 +37,6 @@ interface UseSleepEventCRUDReturn {
   handleRealtimeEvent: (event: SleepEvent, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => void
   addToolCreatedEvent: (event: SleepEvent) => void
   isEventTracked: (eventId: string) => boolean
-  // Merge refreshed events (from visibility change refresh)
   mergeRefreshedEvents: (events: SleepEvent[]) => void
 }
 
@@ -68,327 +45,69 @@ export function useSleepEventCRUD({
   onEventChange,
   broadcastDelete,
 }: UseSleepEventCRUDOptions): UseSleepEventCRUDReturn {
-  const supabase = createClient()
+  const syncMerge = useEventSyncMerge()
 
-  // Local events state for realtime updates and optimistic UI
-  const [localEvents, setLocalEvents] = useState<SleepEvent[]>([])
+  const mutations = useEventMutations({
+    babyId,
+    onEventChange,
+    broadcastDelete,
+    markLocallyCreated: syncMerge.markLocallyCreated,
+  })
 
-  // Track deleted event IDs (needed for realtime deletes of events in initial/history arrays)
-  const [deletedEventIds, setDeletedEventIds] = useState<Set<string>>(new Set())
+  // Wire realtime events through the merge helper
+  const handleRealtimeEvent = useCallback(
+    (event: SleepEvent, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+      const { localEvents, deletedEventIds } =
+        syncMerge.handleRealtimeEvent(
+          event,
+          changeType,
+          mutations.localEvents,
+          mutations.deletedEventIds,
+          onEventChange,
+        )
 
-  // Track locally created events to avoid duplicates from realtime
-  const locallyCreatedEventIds = useRef(new Set<string>())
+      // Push merged state back into mutations
+      mutations.setLocalEvents(localEvents)
+      mutations.setDeletedEventIds(deletedEventIds)
+    },
+    [syncMerge, mutations, onEventChange],
+  )
 
-  // Track which tool-created events we've already added to avoid duplicates
-  const processedToolEventIds = useRef(new Set<string>())
+  const addToolCreatedEvent = useCallback(
+    (event: SleepEvent) => {
+      const updated = syncMerge.addToolCreatedEvent(
+        event,
+        mutations.localEvents,
+        onEventChange,
+      )
+      mutations.setLocalEvents(updated)
+    },
+    [syncMerge, mutations, onEventChange],
+  )
 
-  // Check if an event is already tracked (to prevent realtime duplicates)
-  const isEventTracked = useCallback((eventId: string): boolean => {
-    return locallyCreatedEventIds.current.has(eventId) || processedToolEventIds.current.has(eventId)
-  }, [])
-
-  // Handle realtime event changes from other family members
-  const handleRealtimeEvent = useCallback((event: SleepEvent, changeType: 'INSERT' | 'UPDATE' | 'DELETE') => {
-    // Skip events we created ourselves (already in state)
-    if (isEventTracked(event.id)) {
-      return
-    }
-
-    if (changeType === 'DELETE') {
-      setDeletedEventIds(prev => new Set(prev).add(event.id))
-      setLocalEvents(prev => prev.filter(e => e.id !== event.id))
-    } else {
-      setLocalEvents(prev => {
-        switch (changeType) {
-          case 'INSERT':
-            if (prev.some(e => e.id === event.id)) return prev
-            return [...prev, event]
-          case 'UPDATE':
-            return prev.map(e => e.id === event.id ? { ...e, ...event } : e)
-          default:
-            return prev
-        }
-      })
-    }
-
-    onEventChange?.()
-  }, [isEventTracked, onEventChange])
-
-  // Add an event created by AI tools
-  const addToolCreatedEvent = useCallback((event: SleepEvent) => {
-    if (!processedToolEventIds.current.has(event.id)) {
-      processedToolEventIds.current.add(event.id)
-      setLocalEvents(prev => {
-        if (prev.some(e => e.id === event.id)) return prev
-        return [...prev, event]
-      })
-      onEventChange?.()
-    }
-  }, [onEventChange])
-
-  // Merge refreshed events from background refresh (visibility change, reconnect)
-  // Updates existing events and adds new ones, respecting deleted events
-  const mergeRefreshedEvents = useCallback((events: SleepEvent[]) => {
-    setLocalEvents(prev => {
-      const existingIds = new Set(prev.map(e => e.id))
-      const updatedEvents = [...prev]
-
-      // Read current deletedEventIds inside the state updater to avoid stale closure
-      setDeletedEventIds(currentDeletedIds => {
-        for (const event of events) {
-          // Skip deleted events
-          if (currentDeletedIds.has(event.id)) continue
-
-          if (existingIds.has(event.id)) {
-            // Update existing event
-            const index = updatedEvents.findIndex(e => e.id === event.id)
-            if (index !== -1) {
-              updatedEvents[index] = event
-            }
-          } else {
-            // Add new event
-            updatedEvents.push(event)
-          }
-        }
-        // Return the same set (no mutation)
-        return currentDeletedIds
-      })
-
-      return updatedEvents
-    })
-  }, [])
-
-  // Create a new sleep event
-  const createEvent = useCallback(async (data: CreateEventData): Promise<SleepEvent | null> => {
-    const { data: newEvent, error } = await createSleepEvent(supabase, {
-      baby_id: babyId,
-      event_type: data.event_type,
-      event_time: data.event_time,
-      end_time: data.end_time ?? null,
-      context: data.context,
-      notes: data.notes,
-    })
-
-    if (error || !newEvent) {
-      console.error('Error creating event:', error)
-      return null
-    }
-
-    // Track locally created event to avoid duplicate from realtime
-    locallyCreatedEventIds.current.add(newEvent.id)
-    setLocalEvents(prev => [...prev, newEvent])
-    onEventChange?.()
-
-    return newEvent
-  }, [babyId, supabase, onEventChange])
-
-  // Save (create or update) an event
-  const saveEvent = useCallback(async (data: SaveEventData): Promise<boolean> => {
-    if (data.id) {
-      // Update existing event
-      const { data: updatedEvent, error } = await updateSleepEvent(supabase, data.id, {
-        event_type: data.event_type,
-        event_time: data.event_time,
-        end_time: data.end_time,
-        context: data.context,
-        notes: data.notes,
-      })
-
-      if (error || !updatedEvent) {
-        console.error('Error updating event:', error)
-        return false
-      }
-
-      setLocalEvents(prev => {
-        const existing = prev.find(e => e.id === updatedEvent.id)
-        if (existing) {
-          return prev.map(e => e.id === updatedEvent.id ? updatedEvent : e)
-        }
-        return [...prev, updatedEvent]
-      })
-    } else {
-      // Create new event
-      const created = await createEvent(data)
-      if (!created) return false
-    }
-
-    onEventChange?.()
-    return true
-  }, [supabase, createEvent, onEventChange])
-
-  // Delete an event
-  const deleteEvent = useCallback(async (event: SleepEvent): Promise<boolean> => {
-    const { error } = await deleteSleepEvent(supabase, event.id)
-
-    if (error) {
-      console.error('Error deleting event:', error)
-      return false
-    }
-
-    // Broadcast delete to other family members (RLS blocks postgres_changes for DELETE)
-    if (broadcastDelete) {
-      await broadcastDelete('sleep_events', event)
-    }
-
-    setDeletedEventIds(prev => new Set(prev).add(event.id))
-    setLocalEvents(prev => prev.filter(e => e.id !== event.id))
-    onEventChange?.()
-
-    return true
-  }, [supabase, broadcastDelete, onEventChange])
-
-  // Save a session (paired events like nap_start/nap_end)
-  const saveSession = useCallback(async (data: SaveSessionData): Promise<boolean> => {
-    // Update start event
-    const { data: startData, error: startError } = await updateSleepEvent(supabase, data.startEvent.id, {
-      event_time: data.startEvent.event_time,
-      context: data.startEvent.context,
-      notes: data.startEvent.notes,
-    })
-
-    if (startError || !startData) {
-      console.error('Error updating start event:', startError)
-      return false
-    }
-
-    // Update or create end event if present — do this before committing to state
-    let endData = null
-    if (data.endEvent) {
-      if (data.endEvent.id) {
-        // Update existing end event
-        const { data: endResult, error: endError } = await updateSleepEvent(supabase, data.endEvent.id, {
-          event_time: data.endEvent.event_time,
-          context: data.endEvent.context,
-          notes: data.endEvent.notes,
-        })
-
-        if (endError) {
-          console.error('Error updating end event:', endError)
-          // Revert start event to maintain consistency
-          const originalStart = localEvents.find(e => e.id === data.startEvent.id)
-          if (originalStart) {
-            await updateSleepEvent(supabase, data.startEvent.id, {
-              event_time: originalStart.event_time,
-              context: originalStart.context,
-              notes: originalStart.notes,
-            })
-          }
-          return false
-        }
-
-        endData = endResult
-      } else {
-        // Create new end event
-        const { data: endResult, error: endError } = await createSleepEvent(supabase, {
-          baby_id: babyId,
-          event_type: data.endEvent.event_type!,
-          event_time: data.endEvent.event_time,
-          context: data.endEvent.context,
-          notes: data.endEvent.notes,
-        })
-
-        if (endError) {
-          console.error('Error creating end event:', endError)
-          // Revert start event to maintain consistency
-          const originalStart = localEvents.find(e => e.id === data.startEvent.id)
-          if (originalStart) {
-            await updateSleepEvent(supabase, data.startEvent.id, {
-              event_time: originalStart.event_time,
-              context: originalStart.context,
-              notes: originalStart.notes,
-            })
-          }
-          return false
-        }
-
-        // Track locally created event to avoid duplicate from realtime
-        locallyCreatedEventIds.current.add(endResult!.id)
-        endData = endResult
-      }
-    }
-
-    // Both updates succeeded — commit to local state
-    setLocalEvents(prev => {
-      let updated = prev.map(e => e.id === startData.id ? startData : e)
-      if (endData) {
-        const exists = updated.some(e => e.id === endData.id)
-        if (exists) {
-          updated = updated.map(e => e.id === endData.id ? endData : e)
-        } else {
-          updated = [...updated, endData]
-        }
-      }
-      return updated
-    })
-
-    onEventChange?.()
-    return true
-  }, [supabase, onEventChange, localEvents, babyId])
-
-  // Delete a session (both start and end events)
-  const deleteSession = useCallback(async (
-    startId: string,
-    endId: string | null,
-    allEvents: SleepEvent[]
-  ): Promise<boolean> => {
-    // Find the events before deleting so we can broadcast them
-    const startEvent = allEvents.find(e => e.id === startId)
-    const endEvent = endId ? allEvents.find(e => e.id === endId) : null
-
-    const { error: startError } = await deleteSleepEvent(supabase, startId)
-
-    if (startError) {
-      console.error('Error deleting start event:', startError)
-      return false
-    }
-
-    // Broadcast delete to other family members
-    if (broadcastDelete && startEvent) {
-      await broadcastDelete('sleep_events', startEvent)
-    }
-
-    if (endId) {
-      const { error: endError } = await deleteSleepEvent(supabase, endId)
-
-      if (endError) {
-        console.error('Error deleting end event:', endError)
-        // End event delete failed but start is already gone.
-        // Still mark start as deleted and update state to stay consistent.
-        setDeletedEventIds(prev => new Set(prev).add(startId))
-        setLocalEvents(prev => prev.filter(e => e.id !== startId))
-        onEventChange?.()
-        return false
-      }
-
-      if (broadcastDelete && endEvent) {
-        await broadcastDelete('sleep_events', endEvent)
-      }
-    }
-
-    // Track deleted IDs
-    setDeletedEventIds(prev => {
-      const next = new Set(prev)
-      next.add(startId)
-      if (endId) next.add(endId)
-      return next
-    })
-    setLocalEvents(prev => prev.filter(e => e.id !== startId && e.id !== endId))
-    onEventChange?.()
-
-    return true
-  }, [supabase, broadcastDelete, onEventChange])
+  const mergeRefreshedEvents = useCallback(
+    (events: SleepEvent[]) => {
+      const updated = syncMerge.mergeRefreshedEvents(
+        events,
+        mutations.localEvents,
+        mutations.deletedEventIds,
+      )
+      mutations.setLocalEvents(updated)
+    },
+    [syncMerge, mutations],
+  )
 
   return {
-    localEvents,
-    deletedEventIds,
-    createEvent,
-    saveEvent,
-    deleteEvent,
-    saveSession,
-    deleteSession,
+    localEvents: mutations.localEvents,
+    deletedEventIds: mutations.deletedEventIds,
+    createEvent: mutations.createEvent,
+    saveEvent: mutations.saveEvent,
+    deleteEvent: mutations.deleteEvent,
+    saveSession: mutations.saveSession,
+    deleteSession: mutations.deleteSession,
     handleRealtimeEvent,
     addToolCreatedEvent,
-    isEventTracked,
+    isEventTracked: syncMerge.isEventTracked,
     mergeRefreshedEvents,
   }
 }
