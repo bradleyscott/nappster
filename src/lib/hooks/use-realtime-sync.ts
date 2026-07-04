@@ -5,6 +5,7 @@ import { RealtimeChannel, RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STA
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { SleepEvent, ChatMessage, SleepPlanRow } from '@/types/database'
+import { REALTIME_MAX_RECONNECT_ATTEMPTS } from '@/lib/config'
 
 type ChangeEvent = 'INSERT' | 'UPDATE' | 'DELETE'
 
@@ -89,7 +90,6 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
   const channelRef = useRef<RealtimeChannel | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttempts = useRef(0)
-  const maxReconnectAttempts = 10
 
   // Store callbacks in refs to avoid re-subscribing when they change
   const onSleepEventChangeRef = useRef(onSleepEventChange)
@@ -262,7 +262,7 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
         clearTimeout(reconnectTimeoutRef.current)
       }
 
-      if (reconnectAttempts.current >= maxReconnectAttempts) {
+      if (reconnectAttempts.current >= REALTIME_MAX_RECONNECT_ATTEMPTS) {
         return
       }
 

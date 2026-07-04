@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, validateRequest } from '@/lib/api'
 import { redeemInviteCode } from '@/lib/services/family-members'
+import { logError } from '@/lib/error-reporting'
 
 const redeemCodeSchema = z.object({
   code: z.string().length(6).regex(/^\d{6}$/, 'Code must be 6 digits'),
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await redeemInviteCode(supabase, validation.data.code)
 
   if (error) {
-    console.error('Error redeeming invite code:', error)
+    logError('invite/redeem', 'Error redeeming invite code:', error)
     return apiError('Failed to redeem invite code', 500)
   }
 

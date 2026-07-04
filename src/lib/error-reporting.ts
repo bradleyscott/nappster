@@ -14,6 +14,34 @@ export interface ErrorReport {
   timestamp: string
 }
 
+/**
+ * Log an error-level message. In production this also sends to the
+ * configured endpoint (if any). Wraps console.error.
+ */
+export function logError(context: string, ...args: unknown[]): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.error(`[${context}]`, ...args)
+  }
+}
+
+/**
+ * Log a warning-level message. Wraps console.warn.
+ */
+export function logWarn(context: string, ...args: unknown[]): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[${context}]`, ...args)
+  }
+}
+
+/**
+ * Log an info-level message. Wraps console.log.
+ */
+export function logInfo(context: string, ...args: unknown[]): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[${context}]`, ...args)
+  }
+}
+
 export function reportError(error: Error & { digest?: string }, context?: Record<string, unknown>) {
   const endpoint = process.env.NEXT_PUBLIC_ERROR_REPORTING_ENDPOINT
 

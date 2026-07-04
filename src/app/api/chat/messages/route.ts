@@ -9,6 +9,7 @@ import {
 import { getChatMessages } from '@/lib/services/chat-messages'
 import { getSleepEvents } from '@/lib/services/sleep-events'
 import { getSleepPlansByCreatedAtRange } from '@/lib/services/sleep-plans'
+import { logError } from '@/lib/error-reporting'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
     })
 
     if (error) {
-      console.error('Error fetching chat messages:', error)
+      logError('chat/messages', 'Error fetching chat messages:', error)
       return apiError('Failed to fetch messages', 500)
     }
 
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
       })
 
       if (eventsError) {
-        console.error('Error fetching sleep events for history:', eventsError)
+        logError('chat/messages', 'Error fetching sleep events for history:', eventsError)
       }
       sleepEvents = events || []
 
@@ -110,7 +111,7 @@ export async function GET(req: NextRequest) {
       )
 
       if (plansError) {
-        console.error('Error fetching sleep plans for history:', plansError)
+        logError('chat/messages', 'Error fetching sleep plans for history:', plansError)
       }
       sleepPlans = plans || []
     }
@@ -124,7 +125,7 @@ export async function GET(req: NextRequest) {
       hasMore: (messages?.length || 0) === limit,
     })
   } catch (error) {
-    console.error('Error in chat messages API:', error)
+    logError('chat/messages', 'Error in chat messages API:', error)
     return apiError('Error fetching messages', 500)
   }
 }

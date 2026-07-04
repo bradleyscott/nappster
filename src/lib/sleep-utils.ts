@@ -1,9 +1,6 @@
 import { differenceInMonths, differenceInMinutes, differenceInHours, parseISO } from 'date-fns'
 import { SleepEvent, SleepSession, TimelineItem } from '@/types/database'
-
-// Maximum hours between bedtime and wake to consider them a paired overnight session.
-// Prevents pairing a bedtime with a wake that happened much later (e.g., next evening).
-const MAX_OVERNIGHT_HOURS = 16
+import { MAX_OVERNIGHT_HOURS } from '@/lib/config'
 
 /**
  * Calculate baby's age in months from birthdate

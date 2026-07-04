@@ -18,39 +18,27 @@ import {
   apiValidationError,
   authErrorResponse,
 } from "@/lib/api";
-import { Json, SleepEvent } from "@/types/database";
+import type { SleepEvent } from "@/types/database";
 import { validateTimezone } from "@/lib/timezone";
-import { saveChatMessage } from "@/lib/services/chat-messages";
 import { validateEnv } from "@/lib/env";
 import { buildSleepHistoryContext } from "@/lib/ai/build-plan-context";
+import { getBabyById } from "@/lib/services/babies";
+import { formatAge } from "@/lib/sleep-utils";
+import { persistChatTurn } from "@/lib/ai/chat-persistence";
+import { logError } from "@/lib/error-reporting";
+import {
+  CHAT_MAX_TOOL_STEPS,
+  MAX_CONVERSATION_MESSAGES,
+} from "@/lib/config";
 
-// Schema for validating critical request fields
-// Messages are validated by the SDK itself
+// Schema for validating critical request fields.
+// Messages are validated by the SDK itself.
+// babyProfile and todayEvents are NOT accepted from the client — they are
+// fetched server-side to avoid trust-boundary issues.
 const requestFieldsSchema = z.object({
   babyId: z.string().uuid(),
   timezone: z.string().optional(),
   showThinking: z.boolean().optional(),
-  // Pre-injected context from client
-  babyProfile: z
-    .object({
-      name: z.string(),
-      age: z.string(),
-      birthDate: z.string(),
-      patternNotes: z.string().nullable(),
-    })
-    .optional(),
-  todayEvents: z
-    .array(
-      z.object({
-        id: z.string(),
-        event_type: z.string(),
-        event_time: z.string(),
-        end_time: z.string().nullable().optional(),
-        context: z.string().nullable().optional(),
-        notes: z.string().nullable().optional(),
-      })
-    )
-    .optional(),
   recentMessages: z
     .array(
       z.object({
@@ -64,16 +52,8 @@ const requestFieldsSchema = z.object({
     .optional(),
 });
 
-// Maximum tool invocation steps before stopping the AI response.
-// Allows for data-fetching tools (2-3 calls) plus action tools (1-2 calls)
-// with headroom for multi-step reasoning.
-const MAX_TOOL_STEPS = 6;
-
-// Maximum number of recent messages to include in the model context.
-// Older messages are available via the getChatHistory tool.
-// Each "message" from the SDK may expand to multiple model messages (tool
-// calls/results), so this keeps the context window bounded.
-const MAX_CONVERSATION_MESSAGES = 20;
+// Constants centralized in lib/config.ts
+// CHAT_MAX_TOOL_STEPS = 6, MAX_CONVERSATION_MESSAGES = 20
 
 export async function POST(req: Request) {
   try {
@@ -91,8 +71,6 @@ export async function POST(req: Request) {
     const babyId = fieldsResult.data.babyId;
     const timezone = validateTimezone(fieldsResult.data.timezone ?? "UTC");
     const showThinking = fieldsResult.data.showThinking ?? false;
-    const babyProfile = fieldsResult.data.babyProfile;
-    const todayEvents = fieldsResult.data.todayEvents;
     const recentMessages = fieldsResult.data.recentMessages;
 
     if (!Array.isArray(messages)) {
@@ -107,21 +85,34 @@ export async function POST(req: Request) {
       return authErrorResponse(auth);
     }
 
-    // Fetch 30 days of history, today's events, trends, and events hash from
-    // a shared helper so the chat route and the background plan-generation
-    // route stay consistent.
+    // Fetch baby profile server-side — never trust client-supplied profile data
+    const { data: baby, error: babyError } = await getBabyById(supabase, babyId);
+    if (babyError || !baby) {
+      return apiError(
+        babyError?.message ?? "Baby profile not found",
+        babyError ? 500 : 404,
+      );
+    }
+
+    const babyProfile: BabyProfileContext = {
+      name: baby.name,
+      age: formatAge(baby.birth_date),
+      birthDate: baby.birth_date,
+      sleepTrainingMethod: null,
+      patternNotes: baby.pattern_notes,
+    };
+
+    // Fetch today's events server-side — authoritative source
     const {
       todayEvents: serverTodayEvents,
       sleepTrendsFormatted,
     } = await buildSleepHistoryContext(supabase, babyId, timezone);
 
-    // Build chat context from pre-injected data
+    // Build chat context from server-fetched data
     let chatContext: ChatContext | undefined;
-    const effectiveTodayEvents =
-      serverTodayEvents.length > 0 ? serverTodayEvents : todayEvents;
-    if (babyProfile || effectiveTodayEvents || recentMessages || sleepTrendsFormatted) {
-      const eventsContext = effectiveTodayEvents
-        ? formatEventsContext(effectiveTodayEvents as SleepEvent[], timezone)
+    if (serverTodayEvents.length > 0 || recentMessages || sleepTrendsFormatted) {
+      const eventsContext = serverTodayEvents.length > 0
+        ? formatEventsContext(serverTodayEvents as SleepEvent[], timezone)
         : undefined;
 
       const formattedMessages = recentMessages
@@ -146,7 +137,7 @@ export async function POST(req: Request) {
           : undefined;
 
       chatContext = {
-        babyProfile: babyProfile as BabyProfileContext | undefined,
+        babyProfile,
         todayEvents: eventsContext?.formattedEvents,
         currentState: eventsContext?.currentState,
         eventSummary: eventsContext?.eventSummary,
@@ -156,7 +147,7 @@ export async function POST(req: Request) {
       };
     }
 
-    // Create tool context - AI can still use tools for additional data
+    // Create tool context — AI can still use tools for additional data
     const toolContext = { supabase, babyId, timezone };
 
     const systemPrompt = buildChatSystemPrompt(timezone, chatContext);
@@ -180,8 +171,8 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: await convertToModelMessages(windowedMessages),
       tools: createChatTools(toolContext),
-      stopWhen: stepCountIs(MAX_TOOL_STEPS),
-      // Always enable reasoning for quality - showThinking only controls
+      stopWhen: stepCountIs(CHAT_MAX_TOOL_STEPS),
+      // Always enable reasoning for quality — showThinking only controls
       // whether reasoning tokens are streamed to the client via sendReasoning
       providerOptions: {
         openai: {
@@ -190,164 +181,21 @@ export async function POST(req: Request) {
       },
     });
 
-    // Read-only tools whose full output is expensive to persist.
-    // We store a condensed summary instead to save DB storage and
-    // reduce tokens when these messages are loaded back as history.
-    const READ_TOOL_NAMES = new Set([
-      "getBabyProfile",
-      "getTodayEvents",
-      "getSleepHistory",
-      "getChatHistory",
-    ]);
-
-    function condenseToolOutput(
-      toolName: string,
-      output: unknown,
-    ): unknown {
-      if (!READ_TOOL_NAMES.has(toolName)) return output;
-      if (typeof output !== "object" || output === null) return output;
-
-      const o = output as Record<string, unknown>;
-      // Keep success/error status but replace bulky data with a summary
-      if (toolName === "getSleepHistory") {
-        return {
-          success: o.success,
-          days_retrieved: o.days_retrieved,
-          total_events: o.total_events,
-          _condensed: true,
-        };
-      }
-      if (toolName === "getChatHistory") {
-        return {
-          success: o.success,
-          days_retrieved: o.days_retrieved,
-          message_count: o.message_count,
-          _condensed: true,
-        };
-      }
-      if (toolName === "getTodayEvents") {
-        const summary = (o.summary as Record<string, unknown>) ?? {};
-        return {
-          success: o.success,
-          currentState: o.currentState,
-          eventCount: Array.isArray(o.events) ? o.events.length : 0,
-          summary,
-          _condensed: true,
-        };
-      }
-      if (toolName === "getBabyProfile") {
-        return { success: o.success, _condensed: true };
-      }
-      return output;
-    }
-
-    // Save messages to database after stream completes
-    // Using after() ensures this runs to completion even in serverless environments
+    // Save messages to database after stream completes.
+    // Using after() ensures this runs to completion even in serverless environments.
     after(async () => {
-      const maxRetries = 2;
-
-      // Helper to save with retry logic
-      async function saveWithRetry(
-        data: { baby_id: string; message_id: string; role: string; parts: Json },
-        attempt = 1
-      ): Promise<boolean> {
-        const { error } = await saveChatMessage(supabase, {
-          baby_id: data.baby_id,
-          role: data.role as "user" | "assistant",
-          parts: data.parts as Record<string, unknown>[],
-        });
-        if (error) {
-          if (attempt < maxRetries) {
-            // Exponential backoff: 100ms, 200ms
-            await new Promise((r) => setTimeout(r, 100 * attempt));
-            return saveWithRetry(data, attempt + 1);
-          }
-          console.error(
-            `Failed to save chat message after ${maxRetries} attempts:`,
-            { messageId: data.message_id, role: data.role, error }
-          );
-          return false;
-        }
-        return true;
-      }
-
-      try {
-        // Save the user message
-        const lastUserMessage = messages[messages.length - 1] as {
-          id?: string;
-          role?: string;
-          parts?: unknown[];
-        } | undefined;
-        if (lastUserMessage?.role === "user" && lastUserMessage.id) {
-          await saveWithRetry({
-            baby_id: babyId,
-            message_id: lastUserMessage.id,
-            role: "user",
-            parts: JSON.parse(JSON.stringify(lastUserMessage.parts ?? [])),
-          });
-        }
-
-        // Wait for streaming to complete, then save assistant message
-        const text = await result.text;
-        const toolCalls = await result.toolCalls;
-        const toolResults = await result.toolResults;
-        const reasoning = await result.reasoning;
-
-        // Build assistant message parts
-        const assistantParts: Array<{
-          type: string;
-          text?: string;
-          state?: string;
-          input?: unknown;
-          output?: unknown;
-        }> = [];
-
-        // Include reasoning parts if available
-        if (reasoning && reasoning.length > 0) {
-          for (const reasoningBlock of reasoning) {
-            assistantParts.push({
-              type: "reasoning",
-              text: reasoningBlock.text,
-            });
-          }
-        }
-
-        if (text) {
-          assistantParts.push({ type: "text", text });
-        }
-
-        for (const toolCall of toolCalls) {
-          const toolResult = toolResults.find(
-            (r) => r.toolCallId === toolCall.toolCallId,
-          );
-          // Access the input via type assertion since the SDK types vary
-          const input = "input" in toolCall ? toolCall.input : undefined;
-          const rawOutput =
-            toolResult && "output" in toolResult
-              ? toolResult.output
-              : undefined;
-          // Condense read-tool outputs before persisting to save storage
-          const output = condenseToolOutput(toolCall.toolName, rawOutput);
-          assistantParts.push({
-            type: `tool-${toolCall.toolName}`,
-            state: "output-available",
-            input,
-            output,
-          });
-        }
-
-        if (assistantParts.length > 0) {
-          await saveWithRetry({
-            baby_id: babyId,
-            message_id: assistantMessageId,
-            role: "assistant",
-            parts: JSON.parse(JSON.stringify(assistantParts)),
-          });
-        }
-      } catch (saveError) {
-        console.error("Error saving chat messages:", saveError);
-        // Don't throw - saving is best-effort, don't break the stream
-      }
+      await persistChatTurn({
+        supabase,
+        babyId,
+        assistantMessageId,
+        messages: messages as unknown[],
+        result: {
+          text: result.text,
+          toolCalls: result.toolCalls,
+          toolResults: result.toolResults,
+          reasoning: result.reasoning,
+        },
+      });
     });
 
     return result.toUIMessageStreamResponse({
@@ -356,7 +204,7 @@ export async function POST(req: Request) {
       generateMessageId: () => assistantMessageId,
     });
   } catch (error) {
-    console.error("Error in chat API:", error);
+    logError("chat", "Error in chat API:", error);
     return apiError("Error processing chat", 500);
   }
 }

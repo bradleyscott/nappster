@@ -8,7 +8,7 @@ import {
   computeExpectedDays,
   type DayRow,
   type ExpectedDay,
-} from '@/lib/sleep-trends'
+} from '@/lib/sleep-chart-blocks'
 import { useSleepEventCRUD } from '@/lib/hooks/use-sleep-event-crud'
 import { EventSheet, type EventSheetData } from './event-sheet'
 import { PageHeader } from './page-header'

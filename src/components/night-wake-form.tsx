@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { formatDuration, calculateDurationMinutes } from '@/lib/sleep-utils'
+import { calculateDurationMinutes } from '@/lib/sleep-utils'
+import { SleepEventFields, toLocalDateTimeString } from '@/components/sleep-event-fields'
 
 interface NightWakeFormProps {
   mode: 'create' | 'edit'
@@ -21,15 +20,6 @@ interface NightWakeFormProps {
   }) => void | Promise<void>
   onDelete?: () => void | Promise<void>
   onCancel: () => void
-}
-
-function toLocalDateTimeString(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
 export function NightWakeForm({
@@ -53,7 +43,6 @@ export function NightWakeForm({
   const [isDeleting, setIsDeleting] = useState(false)
   const isLoading = isSaving || isDeleting
 
-  // Calculate duration
   const durationMinutes = useMemo(() => {
     if (!endTime || !startTime) return null
     return calculateDurationMinutes(
@@ -62,16 +51,13 @@ export function NightWakeForm({
     )
   }, [startTime, endTime])
 
-  const validationError = useMemo(() => {
-    if (durationMinutes !== null && durationMinutes < 0) {
-      return 'End time must be after start time'
-    }
-    return null
-  }, [durationMinutes])
+  const validationError =
+    durationMinutes !== null && durationMinutes < 0
+      ? 'End time must be after start time'
+      : null
 
   const handleSave = async () => {
     if (validationError) return
-
     setIsSaving(true)
     try {
       await onSave({
@@ -97,80 +83,18 @@ export function NightWakeForm({
 
   return (
     <div className="space-y-6">
-      {/* Start Time */}
-      <div className="space-y-2">
-        <Label htmlFor="start-time" className="flex items-center gap-1">
-          Start Time
-          <span className="text-destructive text-sm">*</span>
-        </Label>
-        <Input
-          id="start-time"
-          type="datetime-local"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-          className="h-12"
-        />
-      </div>
-
-      {/* End Time */}
-      <div className="space-y-2">
-        <Label htmlFor="end-time" className="text-muted-foreground">
-          End Time
-        </Label>
-        <div className="relative">
-          <Input
-            id="end-time"
-            type="datetime-local"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            className="h-12 pr-10"
-            placeholder="When baby went back to sleep..."
-          />
-          {endTime && (
-            <button
-              type="button"
-              onClick={() => setEndTime('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent rounded-md transition-colors"
-              aria-label="Clear end time"
-            >
-              <X className="size-4 text-muted-foreground" />
-            </button>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          💡 When baby went back to sleep
-        </p>
-      </div>
-
-      {/* Duration Display */}
-      {durationMinutes !== null && durationMinutes >= 0 && (
-        <div className="text-sm">
-          <span className="text-muted-foreground">Duration: </span>
-          <span className="font-medium">{formatDuration(durationMinutes)}</span>
-        </div>
-      )}
-
-      {/* Validation Error */}
-      {validationError && (
-        <div className="text-sm text-destructive">
-          {validationError}
-        </div>
-      )}
-
-      {/* Notes */}
-      <div className="space-y-2">
-        <Label htmlFor="notes" className="text-muted-foreground">
-          Notes
-        </Label>
-        <textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Fed, diaper change, etc..."
-          rows={3}
-          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        />
-      </div>
+      <SleepEventFields
+        startTimeLabel="Start Time"
+        endTimeLabel="End Time"
+        endTimePlaceholder="When baby went back to sleep..."
+        endTimeHint="💡 When baby went back to sleep"
+        startTime={startTime}
+        onStartTimeChange={setStartTime}
+        endTime={endTime}
+        onEndTimeChange={setEndTime}
+        notes={notes}
+        onNotesChange={setNotes}
+      />
 
       {/* Actions */}
       <div className="space-y-2">
@@ -183,10 +107,7 @@ export function NightWakeForm({
             disabled={isLoading}
           >
             {isDeleting ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-2" />
-                Deleting...
-              </>
+              <><Loader2 className="size-4 animate-spin mr-2" />Deleting...</>
             ) : (
               '🗑️ Delete Event'
             )}
@@ -210,10 +131,7 @@ export function NightWakeForm({
             disabled={!!validationError || isLoading}
           >
             {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-2" />
-                Saving...
-              </>
+              <><Loader2 className="size-4 animate-spin mr-2" />Saving...</>
             ) : (
               mode === 'edit' ? 'Save Changes' : 'Save Event'
             )}
