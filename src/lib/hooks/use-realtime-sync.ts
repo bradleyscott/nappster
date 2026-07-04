@@ -83,7 +83,7 @@ export function useRealtimeSync(options: RealtimeSyncOptions): RealtimeSyncResul
   } = options
 
   const [state, setState] = useState<ConnectionState>({
-    connectionStatus: 'disconnected',
+    connectionStatus: 'connecting',
     lastError: null,
   })
 

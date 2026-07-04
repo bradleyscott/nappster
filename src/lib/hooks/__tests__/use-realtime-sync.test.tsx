@@ -6,13 +6,13 @@ import type { SleepEvent } from '@/types/database'
 const wrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>
 
 describe('useRealtimeSync', () => {
-  it('returns the initial disconnected state when disabled', () => {
+  it('returns the initial connecting state when disabled', () => {
     const { result } = renderHook(
       () => useRealtimeSync({ babyId: 'baby-1', enabled: false }),
       { wrapper }
     )
 
-    expect(result.current.connectionStatus).toBe('disconnected')
+    expect(result.current.connectionStatus).toBe('connecting')
     expect(result.current.lastError).toBeNull()
     expect(typeof result.current.broadcastDelete).toBe('function')
   })
@@ -53,6 +53,6 @@ describe('useRealtimeSync', () => {
       { wrapper }
     )
 
-    expect(result.current.connectionStatus).toBe('disconnected')
+    expect(result.current.connectionStatus).toBe('connecting')
   })
 })
