@@ -1,7 +1,7 @@
 'use client'
 
 import { useChat } from '@ai-sdk/react'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Baby, SleepEvent, SleepSession, ChatMessage, EventType, Context } from '@/types/database'
 import { isValidEvent } from '@/lib/state-machine'
@@ -185,6 +185,21 @@ export function ChatContent({
     onSleepEventCreated: addToolCreatedEvent,
     onSleepPlanUpdated: addToolCreatedPlan,
   })
+
+  // Fallback: after each chat stream completes, refresh events from the server
+  // to catch any tool-created events that useToolOutputs may have missed (e.g.
+  // due to AI SDK version-specific part format differences or streaming timing).
+  const prevStatusRef = useRef(status)
+  useEffect(() => {
+    const wasStreaming =
+      prevStatusRef.current === 'streaming' ||
+      prevStatusRef.current === 'submitted'
+    const isNowReady = status === 'ready'
+    if (wasStreaming && isNowReady) {
+      refreshData()
+    }
+    prevStatusRef.current = status
+  }, [status, refreshData])
 
   // Current sleep state for quick action buttons
   const currentState = useTodaySleepState(allSleepEvents)
