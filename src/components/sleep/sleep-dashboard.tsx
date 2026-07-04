@@ -274,7 +274,7 @@ function getLastEventTime(events: SleepEvent[], type: EventType): string {
   const match = [...events].reverse().find(e => e.event_type === type)
   if (!match) return ''
   const d = new Date(match.event_time)
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
 function getDurationSince(events: SleepEvent[], type: EventType, now: Date = new Date()): string {

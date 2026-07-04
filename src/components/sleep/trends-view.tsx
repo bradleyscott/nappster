@@ -87,7 +87,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
   }, [editingEvent, deleteEvent])
 
   return (
-    <div className="pb-6">
+    <div className="h-dvh flex flex-col bg-[var(--bg)]">
       <PageHeader
         title="Sleep Trends"
         subtitle={`Last ${timeRange} days · ${babyName}`}
@@ -95,7 +95,8 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
         isNavigatingBack={isNavigatingBack}
       />
 
-      <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
+      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="mx-auto max-w-md px-4 pt-2 pb-6 md:max-w-xl lg:max-w-2xl">
         {/* ===== AVERAGE DAY CARD ===== */}
       {activeExpected && expectedStats && (
         <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
@@ -259,6 +260,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
         ))}
       </div>
 
+      </div>
       </div>
 
       {/* ===== DETAIL SHEET ===== */}

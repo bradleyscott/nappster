@@ -41,7 +41,7 @@ export function AppHeader({ baby }: AppHeaderProps) {
   }
 
   return (
-    <header className="relative px-4 pt-3 pb-1">
+    <header className="relative shrink-0 px-4 pt-3 pb-1">
       {/* Floating action buttons — vertically centered against the pill */}
       <div className="absolute right-8 top-1/2 flex -translate-y-1/2 gap-2">
         <Link
@@ -72,7 +72,9 @@ export function AppHeader({ baby }: AppHeaderProps) {
 
       {/* Rounded card header */}
       <div className="flex w-full min-h-[84px] items-center justify-center gap-3.5 rounded-[22px] bg-white px-14 py-3 text-center shadow-[var(--shadow-sm)]">
-        <NappsterLogo size={60} />
+        <div className="page-header-logo rounded-full bg-[var(--lavender-bg)]">
+          <NappsterLogo size={60} />
+        </div>
         <div className="flex flex-col items-start">
           <span className="text-[10px] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
             {getGreeting()}
