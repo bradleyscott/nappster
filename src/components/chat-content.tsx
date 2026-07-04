@@ -325,7 +325,7 @@ export function ChatContent({
           eventType: e.event_type as EventType,
           label: cfg.label,
           icon: cfg.icon,
-          time: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
+          time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           detail: e.notes ?? undefined,
           isActive: false,
           dateKey,
@@ -472,9 +472,10 @@ export function ChatContent({
   }, [groupedMessages, status, formatMessageTime])
 
   return (
-    <div className="h-dvh flex flex-col overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[var(--bg)]">
       <AppHeader baby={baby} />
 
+      <div className="flex-1 overflow-y-auto min-h-0">
       <SleepDashboard
         baby={baby}
         currentState={currentState}
@@ -493,6 +494,7 @@ export function ChatContent({
         trendsWakeHour={trendsWakeHour}
         isPlanGenerating={isPlanGenerating}
       />
+      </div>
 
       <UnifiedEditDialog
         open={editDialogOpen}

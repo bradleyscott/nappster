@@ -52,3 +52,5 @@ seed-data.sql
 chat-history.md
 supabase/migrations/*
 requirements.md
+# Pi plan mode artifacts
+.plans/

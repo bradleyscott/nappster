@@ -26,7 +26,7 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <header className={cn('relative px-4 pt-3 pb-1', className)}>
+    <header className={cn('relative shrink-0 px-4 pt-3 pb-1', className)}>
       {/* Back button */}
       {onBack && (
         <div className="absolute left-8 top-1/2 z-10 -translate-y-1/2">

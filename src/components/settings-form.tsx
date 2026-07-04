@@ -108,14 +108,15 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
   }
 
   return (
-    <div className="min-h-dvh bg-[var(--bg)] pb-6">
+    <div className="h-dvh flex flex-col bg-[var(--bg)]">
       <PageHeader
         title="Settings"
         onBack={handleBackClick}
         isNavigatingBack={isNavigatingBack}
       />
 
-      <div className="mx-auto max-w-md px-4 pt-2 md:max-w-xl lg:max-w-2xl">
+      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="mx-auto max-w-md px-4 pt-2 pb-6 md:max-w-xl lg:max-w-2xl">
         {/* ===== PROFILE CARD ===== */}
         <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
           <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
@@ -331,6 +332,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
             Delete {baby.name}&apos;s Data
           </button>
         </div>
+      </div>
       </div>
     </div>
   )
