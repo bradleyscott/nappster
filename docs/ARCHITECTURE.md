@@ -51,7 +51,7 @@ Nappster is a Progressive Web App for tracking baby sleep patterns and generatin
               ▼                               ▼
 ┌─────────────────────────┐     ┌─────────────────────────────┐
 │      OpenAI API         │     │         Supabase            │
-│  GPT-5.2 with tools     │     │  PostgreSQL + Auth + RT     │
+│  gpt-5.4 with tools     │     │  PostgreSQL + Auth + RT     │
 │  Extended reasoning     │     │  Row Level Security         │
 └─────────────────────────┘     └─────────────────────────────┘
 ```
@@ -107,7 +107,6 @@ src/
 │   │   ├── trends-view.tsx          # Typical-day + history trends UI
 │   │   └── page-header.tsx         # Shared rounded-card header
 │   ├── chat-content.tsx             # Main page client component (wires dashboard + chat)
-│   ├── chat-input.tsx               # Quick-action input (legacy chat mode)
 │   ├── app-header.tsx               # Dashboard header (trends + settings nav)
 │   ├── nappster-logo.tsx            # Brand logo
 │   ├── settings-form.tsx            # Profile + caregiver + invite management
@@ -117,13 +116,14 @@ src/
 │   ├── back-button.tsx
 │   ├── event-type-selector.tsx
 │   ├── night-wake-form.tsx
-│   ├── sleep-event-button.tsx, sleep-event-dialog.tsx
-│   ├── sleep-session-dialog.tsx
+│   ├── sleep-event-button.tsx, sleep-event-fields.tsx
+│   ├── sleep-plan-card.tsx, sleep-trends-chart.tsx
 │   ├── unified-event-dialog.tsx, unified-edit-dialog.tsx
 │   ├── unified-nap-form.tsx, unified-sleep-form.tsx
 │   ├── delete-confirmation-dialog.tsx
 │   ├── timeline-renderer.tsx
 │   └── sleep-plan-card.tsx
+│
 │
 ├── lib/
 │   ├── ai/
@@ -135,7 +135,9 @@ src/
 │   │   │   └── create-event.ts, update-notes.ts, update-sleep-plan.ts
 │   │   ├── prompts.ts               # System prompt builder
 │   │   ├── schemas/sleep-plan.ts    # Zod schema for AI plan output
-│   │   └── format-context.ts
+│   │   ├── format-context.ts        # Event formatter + context types
+│   │   ├── build-plan-context.ts    # Context assembly for plan generation
+│   │   └── chat-persistence.ts      # Save messages after stream
 │   ├── services/                    # Typed data-access layer
 │   │   ├── sleep-events.ts, sleep-plans.ts, chat-messages.ts,
 │   │   │   babies.ts, family-members.ts, invite-codes.ts
@@ -145,15 +147,21 @@ src/
 │   ├── mock/                        # Development mock system
 │   │   ├── store.ts, client.ts, auth.ts, query-builder.ts
 │   ├── hooks/
+│   ├── hooks/
 │   │   ├── use-realtime-sync.ts     # Multi-user sync
-│   │   ├── use-sleep-event-crud.ts  # Optimistic event create/update/delete
+│   │   ├── use-sleep-event-crud.ts  # Facade over mutations + merge
+│   │   ├── use-event-mutations.ts   # Optimistic event create/update/delete
+│   │   ├── use-event-sync-merge.ts  # Event dedup across streams
 │   │   ├── use-sleep-plan-sync.ts   # Local plan state + active selection
 │   │   ├── use-background-refresh.ts # Reconnect/visibility recovery
+│   │   ├── use-background-plan-generation.ts # Auto-regenerate stale plans
 │   │   ├── use-chat-transport.ts     # Chat API transport setup
 │   │   ├── use-chat-history.ts       # Paginated history loading
 │   │   ├── use-timeline-builder.ts   # Merge streams into timeline props
 │   │   ├── use-tool-outputs.ts       # Extract AI tool results
 │   │   ├── use-today-sleep-state.ts  # Current sleep state
+│   │   ├── use-trends-projection.ts  # Lazy-load trends for hero fallback
+│   │   ├── use-now.ts               # Live re-rendering clock
 │   │   ├── use-event-dialog-handlers.ts
 │   │   └── use-media-query.ts
 │   ├── api/                         # API route helpers
@@ -161,12 +169,17 @@ src/
 │   │   ├── validation.ts (validateRequest + zod)
 │   │   ├── responses.ts (apiSuccess, apiError)
 │   │   └── index.ts
+│   ├── actions/get-trends-projection.ts  # Server action: trends for hero fallback
 │   ├── state-machine.ts             # Deterministic sleep-state computation
+│   ├── countdown-projection.ts      # Countdown ring target calculation
+│   ├── dashboard-state-config.ts    # State → UI config (pills, buttons, accent)
+│   ├── state-ui-config.ts           # Quick-entry buttons + suggested questions
 │   ├── sleep-utils.ts               # Event grouping, formatting, events hash
-│   ├── sleep-trends.ts              # Trends day-row + typical-day builder
-│   ├── sleep-trend-stats.ts         # Aggregate trend stats
+│   ├── sleep-chart-blocks.ts        # Day-row + typical-day builder
+│   ├── sleep-stats.ts               # Aggregate trend statistics
 │   ├── merge-data.ts                # Merge initial/local/realtime/refresh streams
 │   ├── timezone.ts                  # Timezone utilities (date-fns-tz)
+│   ├── config.ts                    # Centralized tunable constants
 │   ├── env.ts                       # Environment validation
 │   ├── error-reporting.ts           # Configurable error reporting
 │   └── utils.ts                     # General utilities (cn, etc.)
@@ -262,7 +275,8 @@ Events hash changes (djb2 in sleep-utils.computeEventsHash)
          │
          ▼
 Sleep plan is (re)generated by the AI during chat via the
-updateSleepPlan tool — there is NO separate generation endpoint:
+updateSleepPlan tool, or automatically via a background generation
+endpoint when the plan becomes stale after new events:
   ├── Deactivates existing active plans
   ├── Computes and stores events_hash (cache invalidation)
   └── Inserts new plan into sleep_plans table
@@ -339,7 +353,13 @@ interface ToolContext {
 // Each tool receives this context and returns typed data
 ```
 
-**Read Tools (used in chat and sleep-plan routes):**
+Three tool factories provide different capability levels:
+
+- `createReadOnlyTools()` — read-only tools for non-chat routes
+- `createChatTools()` — all read tools + write tools (events, notes, plans)
+- `createPlanGenerationTools()` — read tools + `updateSleepPlan` (background plan regen)
+
+**Read Tools (used in all factories):**
 
 | Tool              | Purpose                           | Returns                  |
 | ----------------- | --------------------------------- | ------------------------ |
@@ -368,7 +388,7 @@ streamText({
   stopWhen: stepCountIs(MAX_TOOL_STEPS),  // Max tool call rounds
   providerOptions: {
     openai: {
-      reasoningEffort: "medium",  // Extended thinking
+      reasoningEffort: "high",  // Extended thinking
     },
   },
 })
@@ -376,7 +396,7 @@ streamText({
 
 ### Sleep Plan Generation
 
-Sleep plans are generated via the `updateSleepPlan` AI tool during chat, not through a separate API endpoint. The `GET /api/sleep-plan/[babyId]` route fetches the active plan and checks staleness against current events using the stored `events_hash`.
+Sleep plans are generated via the `updateSleepPlan` AI tool during chat, or regenerated automatically via `POST /api/sleep-plan/generate` when the plan becomes stale after new events. The `GET /api/sleep-plan/[babyId]` route fetches the active plan and checks staleness against current events using the stored `events_hash`.
 
 ## Deterministic State Machine
 
@@ -407,10 +427,10 @@ daytime_napping       ──nap_end──▶ daytime_awake
 
 The `/sleep-trends` page (`src/app/sleep-trends/page.tsx`) fetches 16 days of events (14 days + buffer for overnight sessions crossing midnight) and renders via `TrendsView` (`src/components/sleep/trends-view.tsx`):
 
-1. **Typical Day card** — `computeExpectedDays()` in `src/lib/sleep-trends.ts` reduces the history into an aggregated "expected day" for both `home` and `daycare` contexts, rendered as a 24-hour bar with night/naps/awake split and stat pills.
-2. **Stat cards** — average naps, average bedtime, average wake time (`src/lib/sleep-trend-stats.ts`).
+1. **Typical Day card** — `computeExpectedDays()` in `src/lib/sleep-chart-blocks.ts` reduces the history into an aggregated "expected day" for both `home` and `daycare` contexts, rendered as a 24-hour bar with night/naps/awake split and stat pills.
+2. **Stat cards** — average naps, average bedtime, average wake time (`src/lib/sleep-stats.ts`).
 3. **History** — `buildDayRows()` produces per-day rows with overnight blocks, nap blocks (daycare naps colored peach, home naps mint), and night-wake markers. Tapping a row opens a `DayDetailSheet` timeline of the day's blocks.
-4. **Edit-in-place** — events can be edited from the detail sheet via `useSleepEventCRUD` + `EventSheet`.
+4. **Edit-in-place** — events can be edited from the detail sheet via `useEventMutations` + `EventSheet`.
 
 ## Data Access Layer
 
@@ -700,13 +720,18 @@ const allSleepPlans = mergeSleepPlans(initialPlans, localPlans, refreshedPlans)
 
 | Hook | Responsibility |
 | ---- | -------------- |
-| `useSleepEventCRUD` | Optimistic create/update/delete for events and sessions. |
+| `useSleepEventCRUD` | Facade composing `useEventMutations` + `useEventSyncMerge` for backwards compat. |
+| `useEventMutations` | Optimistic create/update/delete for events and sessions. |
+| `useEventSyncMerge` | Event deduplication across realtime, local, and AI-tool streams. |
 | `useSleepPlanSync` | Local plan state, active-plan selection, realtime plan handling. |
 | `useBackgroundRefresh` | Refetch missed data on reconnect/visibility change. |
+| `useBackgroundPlanGeneration` | Auto-trigger plan regen when active plan is stale. |
 | `useChatTransport` | Build `DefaultChatTransport` with pre-injected context. |
 | `useChatHistory` | Paginated loading of older chat messages. |
 | `useToolOutputs` | Extract `createSleepEvent`/`updateSleepPlan` results from message parts. |
 | `useTodaySleepState` | Compute current sleep state from today's events. |
+| `useTrendsProjection` | Lazy-fetch trends projection for hero fallback countdown. |
+| `useNow` | Live re-rendering clock for countdown ring. |
 | `useEventDialogHandlers` | Wrap save/delete handlers with dialog close logic. |
 | `useTimelineBuilder` | Merge all data streams into `TimelineRenderer` props. |
 

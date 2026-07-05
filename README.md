@@ -18,7 +18,7 @@ A Progressive Web App for tracking baby sleep with AI-powered schedule recommend
 
 - **State-Aware Dashboard** - The app computes a deterministic sleep state (`awaiting_morning_wake`, `overnight_sleep`, `daytime_awake`, `daytime_napping`) from logged events and shows a matching hero card with a live countdown ring and only the quick actions that make sense for the current state.
 - **Quick Entry UI** - Large tap targets for one-handed use while holding a baby. Tap once to log an event instantly, or open the EventSheet to backfill a time, context, or notes.
-- **AI Sleep Coach (drawer)** - A swipe-up chat drawer with tool-calling AI (GPT-5.2) that reads baby history, logs events, updates pattern notes, and generates structured sleep plans. The chat stays out of the way until you need it.
+- **AI Sleep Coach (drawer)** - A swipe-up chat drawer with tool-calling AI (gpt-5.4) that reads baby history, logs events, updates pattern notes, and generates structured sleep plans. The chat stays out of the way until you need it.
 - **Sleep Trends** - A dedicated `/sleep-trends` page visualizes a "Typical Day" (night/naps/awake split) for home and daycare contexts, average-day stat cards (avg naps, bedtime, wake), and 7/14-day history bars with a tappable day-detail sheet.
 - **Real-time Family Sync** - Multiple caregivers see updates instantly via Supabase Realtime, and new caregivers join with a 6-digit invite code generated from Settings.
 - **Mobile-First PWA** - Optimized for phones with a Serwist service worker for offline-capable architecture, web app manifest, and installable icons.
@@ -31,7 +31,7 @@ A Progressive Web App for tracking baby sleep with AI-powered schedule recommend
 | Language | TypeScript 5.9 (strict mode) |
 | UI | React 19 + Tailwind CSS 4 + shadcn/ui |
 | Animation | Motion |
-| AI | Vercel AI SDK 6 + OpenAI GPT-5.2 (tool calling, reasoning) |
+| AI | Vercel AI SDK 6 + OpenAI gpt-5.4 (tool calling, reasoning) |
 | Database | Supabase (PostgreSQL + Auth + Realtime + RLS) |
 | PWA | Serwist 9 (service worker, precaching, runtime caching) |
 | Testing | Vitest + Testing Library |
@@ -91,66 +91,36 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Project Structure
 
-```
-src/
-├── app/                          # Next.js App Router
-│   ├── page.tsx                  # Main dashboard (server component)
-│   ├── sleep-trends/page.tsx     # 14-day trends + typical-day view
-│   ├── auth/                     # Login, signup, OAuth callback
-│   ├── onboarding/               # Baby profile setup
-│   ├── settings/                 # User prefs, caregivers, invite codes
-│   ├── error.tsx                 # Error boundary
-│   ├── sw.ts                     # Serwist service worker entry
-│   └── api/
-│       ├── chat/                 # AI chat (streaming + tool calling)
-│       │   ├── route.ts          # Streaming chat endpoint
-│       │   └── messages/         # Chat history pagination
-│       ├── sleep-plan/[babyId]/  # Fetch active sleep plan (GET)
-│       └── invite/               # Caregiver invite codes + redemption
-│
-├── components/
-│   ├── ui/                       # shadcn/ui primitives
-│   ├── ai-elements/              # Chat UI components (conversation, message, reasoning, chain-of-thought)
-│   ├── sleep/                    # Dashboard composition
-│   │   ├── sleep-dashboard.tsx   # State-driven dashboard shell
-│   │   ├── state-hero.tsx        # Countdown-ring hero card
-│   │   ├── countdown-ring.tsx    # Circular progress ring
-│   │   ├── action-buttons.tsx    # Primary/secondary quick actions
-│   │   ├── timeline-section.tsx  # Grouped day timeline
-│   │   ├── event-sheet.tsx       # Bottom-sheet create/edit event
-│   │   ├── chat-drawer.tsx       # Swipe-up AI chat drawer + FAB
-│   │   ├── trends-view.tsx       # Typical-day + history trends UI
-│   │   └── page-header.tsx       # Shared rounded-card header
-│   ├── chat-content.tsx          # Main page client component (wires dashboard + chat)
-│   ├── app-header.tsx            # Dashboard header (trends + settings nav)
-│   ├── nappster-logo.tsx         # Brand logo
-│   ├── settings-form.tsx         # Profile + caregiver + invite management
-│   └── service-worker-register.tsx
-│
-├── lib/
-│   ├── ai/                       # Prompts, schemas, tools
-│   │   ├── tools/                # 7 tool factories (read + write)
-│   │   ├── prompts.ts            # System prompt builder
-│   │   └── schemas/sleep-plan.ts # Zod schema for AI plan output
-│   ├── services/                 # Typed data-access layer (no raw supabase.from outside this)
-│   ├── supabase/                 # Server + client client factories
-│   ├── mock/                     # In-memory mock for dev
-│   ├── hooks/                    # Realtime sync, CRUD, tool outputs, etc.
-│   ├── api/                      # API route helpers (auth, validation, responses)
-│   ├── state-machine.ts          # Deterministic sleep-state computation
-│   ├── sleep-utils.ts            # Event grouping / formatting
-│   ├── sleep-trends.ts           # Trends day-row + typical-day builder
-│   ├── sleep-trend-stats.ts      # Aggregate trend stats
-│   ├── merge-data.ts             # Merge initial/local/realtime/refresh streams
-│   ├── timezone.ts               # Timezone utilities (date-fns-tz)
-│   ├── env.ts                    # Environment validation
-│   └── error-reporting.ts        # Configurable error reporting
-│
-├── types/
-│   └── database.ts               # TypeScript types (incl. Context, SleepState invite_codes)
-│
-└── proxy.ts                      # Auth middleware (supabase-ssr)
-```
+The codebase is organized around these core concerns:
+
+### Pages & Routing (`src/app/`)
+Next.js App Router pages for the main dashboard (`/`), sleep trends (`/sleep-trends`), authentication (`/auth/*`), onboarding (`/onboarding`), and settings (`/settings`). A root layout provides providers and error boundaries. The service worker entry (`sw.ts`) is also here.
+
+### API Routes (`src/app/api/`)
+- **`POST /api/chat`** — Streaming AI chat with tool calling (read/write baby data during conversation)
+- **`GET /api/sleep-plan/[babyId]`** — Fetch the active sleep plan with staleness check
+- **`POST /api/sleep-plan/generate`** — Background sleep plan generation (triggered on stale plans)
+- **`POST /api/invite` / `POST /api/invite/redeem`** — 6-digit invite code generation and redemption
+
+### Components (`src/components/`)
+- **`sleep/`** — Dashboard composition: state-driven hero card with countdown ring, contextual action buttons, grouped day timeline, bottom-sheet event editor, swipe-up chat drawer, trends view, and a shared page header
+- **`ui/`** — shadcn/ui primitives (button, card, dialog, input, scroll-area, etc.)
+- **`ai-elements/`** — Chat UI building blocks: scrollable conversation, message bubbles, tool-invocation accordion, reasoning display, streaming indicators
+- **Top-level** — Wires everything together: `chat-content.tsx` (main page client component), dialog dispatchers for single/pair event editing, shared forms, settings, app header, timezone provider, and service worker registration
+
+### Data & AI Layer (`src/lib/`)
+- **`ai/`** — Tool definitions (3 tool factories for read-only, chat, and background plan generation), system prompt builder, Zod schemas for AI output, context formatters, and chat persistence
+- **`services/`** — Typed data-access layer per domain (sleep events, plans, chat messages, babies, family members, invite codes). All `supabase.from()` calls live here
+- **`supabase/`** — Server-side (cookie-based) and client-side Supabase client factories
+- **`mock/`** — In-memory mock store, client, auth, and query builder for offline development
+- **`hooks/`** — Realtime sync, optimistic CRUD, event merging, chat transport, tool output extraction, day-timeline building, background plan generation, trends projection, and live countdown clock
+- **Core modules** — Deterministic sleep state machine, event grouping/session logic, countdown projection, dashboard UI config, sleep-chart block builder, trend statistics, multi-stream data merging, timezone utilities, environment validation, and error reporting
+
+### Types (`src/types/`)
+Shared TypeScript types for `Baby`, `SleepEvent`, `ChatMessage`, `SleepPlan`, `InviteCode`, and the `SleepState` union.
+
+### Auth Middleware (`src/proxy.ts`)
+Supabase SSR middleware that refreshes sessions and handles cookie management on every request.
 
 ## App Tour
 
@@ -171,7 +141,7 @@ The AI assistant uses tool calling to fetch data on demand rather than receiving
 - **Update patterns** - `updatePatternNotes` saves notes about your baby's sleep patterns
 - **Generate schedules** - `updateSleepPlan` writes a structured daily plan (current state, next action, schedule, target bedtime, summary) with an `events_hash` used for cache invalidation
 
-Sleep plans are generated by the AI during chat (via `updateSleepPlan`), not through a separate generation endpoint. `GET /api/sleep-plan/[babyId]` fetches the active plan and checks staleness against current events.
+Sleep plans are generated by the AI during chat (via `updateSleepPlan`) or regenerated automatically in the background when the plan becomes stale after new events. `GET /api/sleep-plan/[babyId]` fetches the active plan and checks staleness against current events.
 
 ## Scripts
 
