@@ -4,7 +4,7 @@ import type { ChatMessage } from '@/types/database'
 export interface SaveChatMessageInput {
   baby_id: string | null
   role: 'user' | 'assistant' | 'system'
-  content?: string | null
+  message_id: string
   parts?: Record<string, unknown>[] | null
   created_at?: string
 }
@@ -68,7 +68,7 @@ export async function saveChatMessage(
     .insert({
       baby_id: input.baby_id,
       role: input.role,
-      content: input.content ?? null,
+      message_id: input.message_id,
       parts: input.parts ?? null,
       created_at: input.created_at,
     })

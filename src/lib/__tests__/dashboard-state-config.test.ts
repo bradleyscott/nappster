@@ -146,7 +146,7 @@ describe('getDashboardStateConfig', () => {
       NOW,
     )
     expect(config.accent).toBe('sunset')
-    expect(config.icon).toBe('🌆')
+    expect(config.icon).toBe('🌟')
     expect(config.title).toBe('Awake & Ready')
     expect(config.elevated).toBe(true)
     expect(config.buttons).toHaveLength(1)

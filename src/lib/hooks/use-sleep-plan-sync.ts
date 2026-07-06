@@ -16,9 +16,30 @@ interface UseSleepPlanSyncReturn {
   setSleepPlan: (plan: SleepPlan | null) => void
 }
 
+/**
+ * Extract the active plan (is_active === true) from a list of plan rows and
+ * convert it from the database snake_case shape to the SleepPlan camelCase shape.
+ */
+function activePlanFromRows(rows: SleepPlanRow[]): SleepPlan | null {
+  const active = rows.find((p) => p.is_active)
+  if (!active) return null
+  return {
+    currentState: active.current_state as SleepPlan['currentState'],
+    nextAction: active.next_action as SleepPlan['nextAction'],
+    schedule: active.schedule as SleepPlan['schedule'],
+    targetBedtime: active.target_bedtime,
+    summary: active.summary,
+  }
+}
+
 export function useSleepPlanSync({ initialPlans = [] }: UseSleepPlanSyncOptions = {}): UseSleepPlanSyncReturn {
-  // Active plan displayed in quick actions
-  const [sleepPlan, setSleepPlanState] = useState<SleepPlan | null>(null)
+  // Active plan displayed in quick actions.
+  // Initialize from the server-provided initial plans so the dashboard shows
+  // the AI-generated schedule immediately on page load, without waiting for a
+  // background refresh or realtime event.
+  const [sleepPlan, setSleepPlanState] = useState<SleepPlan | null>(() =>
+    activePlanFromRows(initialPlans)
+  )
   // Local sleep plans for timeline display (tool-created + realtime)
   const [localSleepPlans, setLocalSleepPlans] = useState<SleepPlanRow[]>(initialPlans)
   // Track which tool-created sleep plans we've already processed (by plan ID)

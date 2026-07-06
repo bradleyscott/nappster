@@ -282,6 +282,7 @@ describe('services', () => {
       const { data, error } = await saveChatMessage(mockSupabase as unknown as Parameters<typeof saveChatMessage>[0], {
         baby_id: 'baby-1',
         role: 'user',
+        message_id: 'msg-test-1',
         parts: [],
       })
 
