@@ -116,6 +116,7 @@ describe('Services integration against mock Supabase', () => {
       const { data: saved } = await saveChatMessage(supabase, {
         baby_id: 'baby-1',
         role: 'user',
+        message_id: 'msg-1',
         parts: message.parts as Record<string, unknown>[],
       })
       expect(saved?.message_id).toBe('msg-1')

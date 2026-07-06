@@ -142,7 +142,7 @@ export function getDashboardStateConfig(
         const wakeEvent = [...events].reverse().find(e => e.event_type === 'wake')
         return {
           accent: 'sunset',
-          icon: '🌆',
+          icon: '🌟',
           title: 'Awake & Ready',
           elevated: true,
           pills: [

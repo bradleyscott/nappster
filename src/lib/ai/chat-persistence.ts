@@ -95,6 +95,7 @@ export async function saveWithRetry(
   async function attempt(n: number): Promise<boolean> {
     const { error } = await saveChatMessage(supabase, {
       baby_id: data.baby_id,
+      message_id: data.message_id,
       role: data.role as 'user' | 'assistant',
       parts: data.parts as Record<string, unknown>[],
     })
