@@ -1,0 +1,276 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Bento Grid · theme: Coral · enrichment: none (typography only) · nav: N5 (floating pill) · footer: app chrome (bottom tab strip)
+ * Pre-emit critique: P5 H5 E5 S4 R4 V4
+ * Nappster dashboard prototype B — "The Quiet Card".
+ * Modern-minimal discipline: single accent as highlighter only, minimal motion,
+ * border-led cards, Geist + Geist Mono. No bounce, no gradient, no tinted rows.
+ */
+
+/* ── Reset & ground ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { overflow-x: clip; }
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Prototype chrome ───────────────────────────────────────── */
+.proto-bar {
+  border-bottom: 1px solid var(--color-rule);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.proto-bar__inner {
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.proto-bar a { color: var(--color-ink); text-decoration: none; border-bottom: 1px solid var(--color-rule-2); }
+.proto-bar a:hover { border-bottom-color: var(--color-accent); }
+
+/* ── App shell ──────────────────────────────────────────────── */
+.app {
+  max-width: 480px;
+  margin-inline: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px 96px;
+}
+
+/* ── App bar · hairline bottom ──────────────────────────────── */
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--color-rule);
+}
+.wordmark { font-weight: 600; font-size: 1.05rem; letter-spacing: -0.025em; }
+.app-bar__clock {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ── Bento grid · tiles ─────────────────────────────────────── */
+.bento {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.tile {
+  background: var(--color-paper);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  transition: transform 160ms ease-out, border-color 160ms ease-out;
+}
+.tile:hover { transform: translateY(-2px); border-color: var(--color-rule-2); }
+
+.tile--wide { grid-column: 1 / -1; }
+.tile--tall { grid-column: 1 / -1; }
+
+.tile__label {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* State tile */
+.tile--state { padding: 20px 16px; }
+.tile--state .tile__label { margin-bottom: 8px; }
+.state__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.state__title { font-size: var(--text-display-s); font-weight: 600; letter-spacing: -0.03em; }
+.state__now {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+.state__figure { font-size: var(--text-figure); font-weight: 600; letter-spacing: -0.035em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.state__figure small { font-size: 0.38em; font-weight: 500; color: var(--color-muted); letter-spacing: 0; }
+.state__sub { color: var(--color-ink-2); margin-top: 4px; }
+.progress { margin-top: 14px; height: 4px; background: var(--color-paper-3); border-radius: 2px; overflow: hidden; }
+.progress i {
+  display: block;
+  height: 100%;
+  width: 68%;
+  border-radius: 2px;
+  background: var(--color-accent);
+  opacity: 0.85;
+}
+.state__foot {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Small tiles */
+.tile__value { font-size: var(--text-lg); font-weight: 600; letter-spacing: -0.025em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.tile__value small { font-size: 0.5em; font-weight: 500; color: var(--color-muted); }
+.tile__hint { font-size: 0.82rem; color: var(--color-muted); margin-top: 2px; }
+
+.nap-dots { display: flex; gap: 6px; margin-top: 10px; }
+.nap-dots i {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-paper-3);
+}
+.nap-dots i.on { background: var(--color-accent); }
+
+/* Actions tile */
+.actions { display: grid; gap: 8px; }
+.btn {
+  min-height: 48px;
+  border-radius: var(--radius-pill);
+  padding: 0 1.2rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  transition: opacity 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.btn--primary { background: var(--color-ink); color: var(--color-paper); }
+.btn--primary:hover { background: oklch(30% 0.012 35); }
+.btn--outline {
+  background: transparent;
+  color: var(--color-ink-2);
+  border: 1px solid var(--color-rule-2);
+}
+.btn--outline:hover { border-color: var(--color-ink); color: var(--color-ink); }
+
+/* Timeline tile */
+.timeline-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.timeline-head h2 { font-size: var(--text-md); font-weight: 600; letter-spacing: -0.02em; }
+.timeline-head span { font-family: var(--font-label); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-muted); }
+.tl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-rule);
+}
+.tl-row:last-child { border-bottom: 0; }
+.tl-icon { color: var(--color-neutral); flex-shrink: 0; }
+.tl-row--now .tl-icon { color: var(--color-accent); }
+.tl-body { flex: 1; min-width: 0; }
+.tl-body h3 { font-size: 0.95rem; font-weight: 500; letter-spacing: -0.01em; }
+.tl-body h3 .now {
+  font-family: var(--font-label);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-left: 6px;
+}
+.tl-body p {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+.tl-meta { text-align: right; }
+.tl-meta b { display: block; font-size: 0.9rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.tl-meta span { font-family: var(--font-label); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
+
+/* ── Floating pill nav · N5 ─────────────────────────────────── */
+.pillnav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 16px;
+  width: min(calc(100% - 32px), 440px);
+  background: var(--color-paper);
+  border: 1px solid var(--color-rule-2);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-pill);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 6px;
+  gap: 4px;
+}
+.pillnav button {
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  min-height: 44px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: color 120ms ease-out;
+}
+.pillnav button:hover { color: var(--color-ink); }
+.pillnav button[aria-current="page"] { color: var(--color-ink); }
+.pillnav button[aria-current="page"] i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+/* ── Motion comfort ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+  .tile:hover { transform: none; }
+}

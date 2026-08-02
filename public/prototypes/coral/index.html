@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nappster · Prototype B — The Quiet Card (Coral)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="proto-bar">
+  <div class="proto-bar__inner">
+    <span>B · The Quiet Card — Coral</span>
+    <span><a href="../index.html">All concepts</a></span>
+  </div>
+</div>
+
+<div class="app">
+  <header class="app-bar">
+    <div class="wordmark">Nappster</div>
+    <div class="app-bar__clock" id="clock">Tue · 2:28 PM</div>
+  </header>
+
+  <main class="bento">
+    <!-- State · wide tile -->
+    <section class="tile tile--wide tile--state" id="state-tile">
+      <div class="tile__label">Sleep · Nap 02</div>
+      <div class="state__head">
+        <h1 class="state__title">Napping</h1>
+        <span class="state__now">● now</span>
+      </div>
+      <div class="state__figure" id="figure">1h 24m<small> asleep</small></div>
+      <p class="state__sub">Since 1:04 pm. On track.</p>
+      <div class="progress"><i id="progress"></i></div>
+      <div class="state__foot">
+        <span>Next wake ≈ 3:10 pm</span>
+        <span>from your plan</span>
+      </div>
+    </section>
+
+    <!-- Tonight · half tile -->
+    <section class="tile">
+      <div class="tile__label">Tonight</div>
+      <div class="tile__value">≈ 7:45<small> pm</small></div>
+      <p class="tile__hint">expected bedtime</p>
+    </section>
+
+    <!-- Naps today · half tile -->
+    <section class="tile">
+      <div class="tile__label">Naps today</div>
+      <div class="tile__value">2<small> of 3</small></div>
+      <div class="nap-dots"><i class="on"></i><i class="on"></i><i></i></div>
+    </section>
+
+    <!-- Actions · wide tile -->
+    <section class="tile tile--wide">
+      <div class="tile__label">Now</div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn btn--primary" id="nap-ended" type="button">Nap ended</button>
+        <button class="btn btn--outline" id="log-past" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Log past event
+        </button>
+      </div>
+    </section>
+
+    <!-- Timeline · wide tall tile -->
+    <section class="tile tile--wide tile--tall">
+      <div class="timeline-head">
+        <h2>Today</h2>
+        <span>4 events</span>
+      </div>
+      <div class="tl-row tl-row--now" id="row-nap2">
+        <span class="tl-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 17.5a3.5 3.5 0 0 1-.35-6.98A4.75 4.75 0 0 1 15 8.6a3.9 3.9 0 0 1 .5 7.77"/><path d="M9 17.5h8"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Nap 2 · started <span class="now">now</span></h3>
+          <p>1:04 PM · home</p>
+        </div>
+        <div class="tl-meta"><b id="row-duration">1h 24m</b><span>so far</span></div>
+      </div>
+      <div class="tl-row">
+        <span class="tl-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Wake 2</h3>
+          <p>11:47 AM · home</p>
+        </div>
+        <div class="tl-meta"><b>1h 17m</b><span>awake</span></div>
+      </div>
+      <div class="tl-row">
+        <span class="tl-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 17.5a3.5 3.5 0 0 1-.35-6.98A4.75 4.75 0 0 1 15 8.6a3.9 3.9 0 0 1 .5 7.77"/><path d="M9 17.5h8"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Nap 1 · ended</h3>
+          <p>9:05 AM → 10:12 AM · home</p>
+        </div>
+        <div class="tl-meta"><b>1h 07m</b><span>nap</span></div>
+      </div>
+      <div class="tl-row">
+        <span class="tl-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Morning wake</h3>
+          <p>6:52 AM · home</p>
+        </div>
+        <div class="tl-meta"><b>11h 32m</b><span>in bed</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Floating pill nav · N5 -->
+<nav class="pillnav" aria-label="Primary">
+  <button type="button" aria-current="page"><i></i>Today</button>
+  <button type="button"><i></i>Trends</button>
+  <button type="button"><i></i>Family</button>
+</nav>
+
+<script>
+(function () {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var clock = document.getElementById('clock');
+  function tickClock() {
+    var d = new Date();
+    var h = d.getHours() % 12 || 12;
+    var m = String(d.getMinutes()).padStart(2, '0');
+    var ampm = d.getHours() < 12 ? 'AM' : 'PM';
+    clock.textContent = 'Tue · ' + h + ':' + m + ' ' + ampm;
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  var figure = document.getElementById('figure');
+  var rowDuration = document.getElementById('row-duration');
+  var napMin = 84;
+
+  function fmt(min) {
+    var h = Math.floor(min / 60), m = min % 60;
+    return (h ? h + 'h ' : '') + String(m).padStart(2, '0') + 'm';
+  }
+  function fmtDur(min) { return (Math.floor(min / 60) ? Math.floor(min / 60) + 'h ' : '') + (min % 60) + 'm'; }
+
+  function render(min) {
+    figure.innerHTML = fmt(min) + '<small> asleep</small>';
+    rowDuration.textContent = fmtDur(min);
+  }
+
+  if (reduced) {
+    render(napMin);
+  } else {
+    var t0 = performance.now(), dur = 1000;
+    (function step(now) {
+      var p = Math.min((now - t0) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      render(Math.round(napMin * eased));
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  /* Nap ended — quiet state change, no celebration. */
+  var ended = false;
+  document.getElementById('nap-ended').addEventListener('click', function () {
+    if (ended) return;
+    ended = true;
+    document.getElementById('state-tile').querySelector('.state__title').textContent = 'Awake';
+    document.getElementById('state-tile').querySelector('.state__sub').textContent = 'Since 2:31 pm. Wake window 1h 47m.';
+    document.getElementById('progress').style.width = '12%';
+    document.getElementById('row-duration').textContent = '1h 27m';
+    var row = document.getElementById('row-nap2');
+    row.querySelector('h3').innerHTML = 'Nap 2 · ended <span class="now">now</span>';
+    row.querySelector('p').textContent = '1:04 PM → 2:31 PM · home';
+    row.querySelector('.tl-meta span').textContent = 'nap';
+    var wake = document.createElement('div');
+    wake.className = 'tl-row tl-row--now';
+    wake.innerHTML =
+      '<span class="tl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg></span>' +
+      '<div class="tl-body"><h3>Wake 3<span class="now">now</span></h3><p>2:31 PM · home</p></div>' +
+      '<div class="tl-meta"><b>0m</b><span>awake</span></div>';
+    row.after(wake);
+    this.textContent = 'Log bedtime';
+  });
+
+  /* Log past event — placeholder toast is not in this concept's register; keep it silent. */
+  var btn = document.getElementById('log-past');
+  btn.addEventListener('click', function () {
+    btn.textContent = 'Sheet opens here — kept quiet in this register';
+    btn.style.color = 'var(--color-muted)';
+    setTimeout(function () { btn.textContent = 'Log past event'; btn.style.color = ''; }, 1600);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nappster · Hallmark Prototypes</title>
+<style>
+  :root {
+    --paper: oklch(96% 0.006 90);
+    --ink: oklch(22% 0.015 250);
+    --muted: oklch(50% 0.012 250);
+    --rule: oklch(88% 0.008 90);
+    --card: oklch(99% 0.004 90);
+    --accent: oklch(60% 0.16 28);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: clip; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 640px; margin-inline: auto; padding: 48px 24px 64px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 12px; }
+  .kicker {
+    font-family: ui-monospace, monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); letter-spacing: -0.03em; margin-top: 8px; }
+  .lede { color: var(--muted); max-width: 56ch; margin-top: 8px; }
+  .cards { display: grid; gap: 14px; margin-top: 28px; }
+  .card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 160ms ease-out, transform 160ms ease-out;
+  }
+  .card:hover { border-color: var(--ink); transform: translateY(-2px); }
+  .card h2 { font-size: 1.15rem; letter-spacing: -0.02em; }
+  .card .meta { font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+  .card p { font-size: 0.92rem; color: var(--muted); margin-top: 8px; }
+  .chip {
+    align-self: center;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: var(--accent);
+    border-radius: 999px;
+    padding: 8px 14px;
+    white-space: nowrap;
+  }
+  .note { margin-top: 28px; border-top: 1px solid var(--rule); padding-top: 16px; color: var(--muted); font-size: 0.85rem; }
+  .note code { font-size: 0.8em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Nappster · design prototypes</div>
+    <h1>Three sleeps, three rooms.</h1>
+    <p class="lede">
+      Three redesign concepts for the Nappster dashboard, each built with the Hallmark
+      anti-slop skill — a different macrostructure, theme, and genre per concept, all
+      carrying the same app: buttons-first logging, a state hero, and a timeline.
+      Sample moment: Tuesday 2:28 pm — Luna napping, asleep since 1:04 pm.
+    </p>
+  </header>
+
+  <div class="cards">
+    <a class="card" href="hum/index.html">
+      <div>
+        <h2>A · The Sun &amp; Moon</h2>
+        <div class="meta">playful · Stat-Led · Hum</div>
+        <p>Cream paper, pear / cyan / coral multi-accent, rounded sans. The countdown is a
+        giant counter that ticks up, the moon breathes, logging a nap fires a coral star-burst.
+        For parents who want the app to feel alive.</p>
+      </div>
+      <span class="chip">Open →</span>
+    </a>
+
+    <a class="card" href="coral/index.html">
+      <div>
+        <h2>B · The Quiet Card</h2>
+        <div class="meta">modern-minimal · Bento Grid · Coral</div>
+        <p>Warm-grey paper, one restrained coral accent, Geist throughout. A bento of tiles —
+        state, tonight, naps, actions, timeline — with hairline borders and no bounce.
+        For parents who want the app to stay out of the way.</p>
+      </div>
+      <span class="chip">Open →</span>
+    </a>
+
+    <a class="card" href="newsprint/index.html">
+      <div>
+        <h2>C · The Sleep Daybook</h2>
+        <div class="meta">editorial · Long Document · Newsprint</div>
+        <p>Warm cream, Playfair + Crimson serifs, hairlines instead of cards. The timeline is
+        the day's record, written like a journal with marginal notes. Calm by design —
+        a sleep log that reads like a broadsheet.</p>
+      </div>
+      <span class="chip">Open →</span>
+    </a>
+  </div>
+
+  <p class="note">
+    Full rationale, slop-gate compliance, and the mapping back to the Next.js app:
+    <code>public/prototypes/README.md</code>.
+  </p>
+</div>
+</body>
+</html>

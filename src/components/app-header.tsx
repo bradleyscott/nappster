@@ -47,7 +47,7 @@ export function AppHeader({ baby }: AppHeaderProps) {
         <Link
           href="/sleep-trends"
           onClick={handleTrendsClick}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--card-surface)] text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
           aria-label="Sleep trends"
         >
           {isNavigatingToTrends ? (
@@ -59,7 +59,7 @@ export function AppHeader({ baby }: AppHeaderProps) {
         <Link
           href="/settings"
           onClick={handleSettingsClick}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--card-surface)] text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform"
           aria-label="Profile and family"
         >
           {isNavigatingToSettings ? (
@@ -71,7 +71,7 @@ export function AppHeader({ baby }: AppHeaderProps) {
       </div>
 
       {/* Rounded card header */}
-      <div className="flex w-full min-h-[84px] items-center justify-center gap-3.5 rounded-[22px] bg-white px-14 py-3 text-center shadow-[var(--shadow-sm)]">
+      <div className="flex w-full min-h-[84px] items-center justify-center gap-3.5 rounded-[22px] bg-[var(--card-surface)] px-14 py-3 text-center shadow-[var(--shadow-sm)]">
         <div className="page-header-logo rounded-full bg-[var(--lavender-bg)]">
           <NappsterLogo size={60} />
         </div>

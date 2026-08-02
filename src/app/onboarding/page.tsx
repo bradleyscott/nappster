@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Baby, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { NappsterLogo } from '@/components/nappster-logo'
 import { createBaby } from '@/lib/services/babies'
@@ -120,10 +121,10 @@ export default function OnboardingPage() {
         <div className="mt-6 w-full max-w-xs space-y-3">
           <button
             onClick={() => setStep('create')}
-            className="flex w-full items-center gap-4 rounded-2xl border-2 border-[var(--lavender-light)] bg-white p-4 text-left shadow-[var(--shadow-sm)] transition-colors active:bg-[var(--lavender-bg)]"
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-[var(--lavender-light)] bg-[var(--card-surface)] p-4 text-left shadow-[var(--shadow-sm)] transition-colors active:bg-[var(--lavender-bg)]"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--lavender-bg)] text-2xl">
-              👶
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--lavender-bg)] text-[var(--lavender)]">
+              <Baby size={24} strokeWidth={2} />
             </span>
             <div>
               <div className="text-sm font-extrabold text-[var(--text)]">Add a new baby</div>
@@ -133,10 +134,10 @@ export default function OnboardingPage() {
 
           <button
             onClick={() => setStep('join')}
-            className="flex w-full items-center gap-4 rounded-2xl border-2 border-[var(--lavender-light)] bg-white p-4 text-left shadow-[var(--shadow-sm)] transition-colors active:bg-[var(--lavender-bg)]"
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-[var(--lavender-light)] bg-[var(--card-surface)] p-4 text-left shadow-[var(--shadow-sm)] transition-colors active:bg-[var(--lavender-bg)]"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--peach-bg)] text-2xl">
-              👨‍👩‍👧
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--peach-bg)] text-[var(--peach)]">
+              <Users size={24} strokeWidth={2} />
             </span>
             <div>
               <div className="text-sm font-extrabold text-[var(--text)]">I am family</div>
@@ -158,7 +159,7 @@ export default function OnboardingPage() {
           ← Back
         </button>
 
-        <div className="w-full max-w-xs rounded-[24px] bg-white p-6 shadow-[var(--shadow-md)]">
+        <div className="w-full max-w-xs rounded-[24px] bg-[var(--card-surface)] p-6 shadow-[var(--shadow-md)]">
           <h1 className="text-center text-2xl font-black text-[var(--text)]">I&apos;m family</h1>
           <p className="mt-1 text-center text-sm font-bold text-[var(--text-secondary)]">
             Enter the 6-digit invite code from your partner
@@ -181,13 +182,13 @@ export default function OnboardingPage() {
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               required
-              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-4 text-center font-mono text-2xl font-bold tracking-[0.5em] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+              className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-4 text-center font-mono text-2xl font-bold tracking-[0.5em] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
             />
 
             <button
               type="submit"
               disabled={loading || inviteCode.length !== 6}
-              className="w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97] disabled:opacity-60"
+              className="w-full rounded-2xl btn-solid w-full text-sm disabled:opacity-60"
             >
               {loading ? 'Joining...' : 'Join'}
             </button>
@@ -207,7 +208,7 @@ export default function OnboardingPage() {
         ← Back
       </button>
 
-      <div className="w-full max-w-xs rounded-[24px] bg-white p-6 shadow-[var(--shadow-md)]">
+      <div className="w-full max-w-xs rounded-[24px] bg-[var(--card-surface)] p-6 shadow-[var(--shadow-md)]">
         <h1 className="text-center text-2xl font-black text-[var(--text)]">Set up profile</h1>
         <p className="mt-1 text-center text-sm font-bold text-[var(--text-secondary)]">
           This helps us give personalized sleep recommendations
@@ -231,7 +232,7 @@ export default function OnboardingPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+              className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
             />
           </div>
 
@@ -245,7 +246,7 @@ export default function OnboardingPage() {
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
               required
-              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+              className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
             />
           </div>
 
@@ -260,7 +261,7 @@ export default function OnboardingPage() {
               placeholder="e.g., 30-minute naps are normal, doesn't do well with early bedtime"
               value={patternNotes}
               onChange={(e) => setPatternNotes(e.target.value)}
-              className="min-h-[80px] w-full resize-none overflow-hidden rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+              className="min-h-[80px] w-full resize-none overflow-hidden rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
             />
             <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)] leading-tight">
               Include any patterns the AI should know about
@@ -270,7 +271,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97] disabled:opacity-60"
+            className="w-full rounded-2xl btn-solid w-full text-sm disabled:opacity-60"
           >
             {loading ? 'Setting up...' : 'Continue'}
           </button>

@@ -1,0 +1,467 @@
+/* Hallmark · genre: playful · macrostructure: Stat-Led · theme: Hum · enrichment: Tier B (hand-built SVG) · nav: N7 (top bar) · footer: app chrome (bottom tab strip)
+ * Pre-emit critique: P5 H4 E5 S4 R4 V4
+ * Nappster dashboard prototype A — "The Sun & Moon".
+ * Signature moves: button system (push/soft/outline) · multi-accent bands ·
+ * color-shift rows · counter tick-up · character moment (moon) · big rounded · star-burst.
+ */
+
+/* ── Reset & ground ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { overflow-x: clip; }
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--color-focus) 70%, var(--color-paper));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Prototype chrome (not the app) ─────────────────────────── */
+.proto-bar {
+  background: var(--color-paper-3);
+  border-bottom: 2px solid var(--color-ink);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+.proto-bar__inner {
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.proto-bar a {
+  color: var(--color-ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-accent-2);
+}
+.proto-bar a:hover { border-bottom-width: 2px; }
+
+/* ── App shell ──────────────────────────────────────────────── */
+.app {
+  max-width: 480px;
+  margin-inline: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px 24px;
+}
+
+/* ── Top bar · N7 brutal-slab nod ───────────────────────────── */
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 0 14px;
+  border-bottom: 2px solid var(--color-ink);
+}
+.wordmark {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+.wordmark b {
+  font-weight: 700;
+  color: var(--color-accent-3); /* one coral moment lives in the mark */
+}
+.app-bar__clock {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+
+/* ── Stat-led hero · pear band ──────────────────────────────── */
+.hero {
+  background: var(--color-paper-2);
+  border-radius: var(--radius-card);
+  margin-top: 16px;
+  padding: 24px 22px 20px;
+  box-shadow: var(--shadow-card);
+  display: grid;
+  gap: 14px;
+}
+.eyebrow {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+.hero__main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.hero__figure {
+  font-size: var(--text-figure);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.hero__figure small { font-size: 0.42em; font-weight: 600; letter-spacing: 0; }
+.hero__statement {
+  font-size: var(--text-md);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-ink-2);
+  margin-top: 2px;
+}
+
+/* Character moment — the moon. Pear, breathing, built in CSS. */
+.moon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  color: var(--color-accent-deep);
+  animation: moon-breathe 4s var(--ease-spring) infinite;
+  transform-origin: 50% 50%;
+}
+.moon.is-awake { animation: none; transform: rotate(180deg); }
+@keyframes moon-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+/* Pills — event first, then state */
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.pill--event { background: var(--color-accent); color: var(--color-ink); }
+.pill--state { background: color-mix(in oklch, var(--color-accent-2) 18%, var(--color-paper)); color: var(--color-ink-2); }
+
+.hero__expected {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  border-top: 1px dashed var(--color-ink-2);
+  padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.hero__expected b { font-weight: 600; color: var(--color-ink-2); }
+
+/* ── Actions ────────────────────────────────────────────────── */
+.actions { display: grid; gap: 10px; margin-top: 14px; }
+
+/* The Hum button system — push (primary). Press is the feedback. */
+.btn {
+  --btn-face: var(--color-accent);
+  --btn-ink: var(--color-ink);
+  --btn-edge: var(--color-accent-deep);
+  --btn-cast: oklch(76% 0.20 95 / 0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 54px;
+  padding: 0.8rem 1.4rem;
+  font-weight: 600;
+  font-size: 1rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--btn-ink);
+  background: var(--btn-face);
+  cursor: pointer;
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 4px 0 0 var(--btn-edge), 0 6px 12px -3px var(--btn-cast);
+  transform: translateY(0);
+  transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out), background-color 160ms;
+}
+.btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 0 var(--btn-edge), 0 12px 22px -4px var(--btn-cast); }
+.btn:active { transform: translateY(3px);  box-shadow: 0 1px 0 0 var(--btn-edge), 0 2px 6px -2px var(--btn-cast); transition-duration: 70ms; }
+.btn__arrow { transition: transform 140ms var(--ease-out); }
+.btn:hover .btn__arrow { transform: translateX(3px); }
+
+/* Secondary — soft (flat-lift, no colour edge) */
+.btn--soft {
+  --btn-face: color-mix(in oklch, var(--color-accent-2) 14%, var(--color-paper));
+  --btn-ink: var(--color-ink-2);
+  --btn-edge: transparent;
+  --btn-cast: transparent;
+  box-shadow: 0 2px 6px -2px oklch(20% 0.012 250 / 0.10);
+}
+.btn--soft:hover { box-shadow: 0 4px 12px -2px oklch(20% 0.012 250 / 0.14); }
+
+/* ── Timeline · color-shift rows ────────────────────────────── */
+.timeline { margin-top: 26px; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.section-head h2 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.section-head span {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.tl-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: color-mix(in oklch, var(--color-accent) 6%, var(--color-paper));
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 8px 20px -14px oklch(20% 0.012 250 / 0.18);
+  transition: background-color 220ms var(--ease-spring), transform 220ms var(--ease-spring), box-shadow 220ms;
+}
+.tl-row:hover {
+  background: color-mix(in oklch, var(--color-accent) 12%, var(--color-paper));
+  transform: translateY(-3px);
+  box-shadow: 0 14px 26px -14px oklch(20% 0.012 250 / 0.24);
+}
+.tl-row--active {
+  background: color-mix(in oklch, var(--color-accent-2) 10%, var(--color-paper));
+}
+.tl-row--active:hover {
+  background: color-mix(in oklch, var(--color-accent-2) 16%, var(--color-paper));
+}
+.tl-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-ink-2);
+  background: var(--color-paper);
+  box-shadow: inset 0 0 0 1px oklch(20% 0.012 250 / 0.08);
+}
+.tl-row--active .tl-icon { color: var(--color-accent-2); }
+.tl-body { flex: 1; min-width: 0; }
+.tl-body h3 { font-size: 0.98rem; font-weight: 600; letter-spacing: -0.01em; }
+.tl-body p {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+.tl-duration {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-2);
+  white-space: nowrap;
+}
+.now-pill {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-paper);
+  background: var(--color-accent-2);
+  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  margin-left: 6px;
+}
+
+/* ── Tonight card · lavender surface ────────────────────────── */
+.tonight {
+  margin-top: 18px;
+  background: color-mix(in oklch, var(--color-lavender) 16%, var(--color-paper));
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tonight b {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  display: block;
+}
+.tonight span { font-size: var(--text-md); font-weight: 600; letter-spacing: -0.01em; }
+.tonight small {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  display: block;
+  margin-top: 2px;
+}
+
+/* ── FAB · coral push — the one high-energy moment ──────────── */
+.fab {
+  position: fixed;
+  right: max(16px, calc(50vw - 224px));
+  bottom: 92px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--color-accent-3);
+  color: var(--color-paper);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 0 0 oklch(58% 0.22 18), var(--shadow-fab);
+  transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
+}
+.fab:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 0 oklch(58% 0.22 18), 0 14px 26px -6px oklch(68% 0.24 18 / 0.5); }
+.fab:active { transform: translateY(3px);  box-shadow: 0 1px 0 0 oklch(58% 0.22 18); transition-duration: 70ms; }
+.fab svg { width: 26px; height: 26px; }
+
+/* ── Bottom tab strip ───────────────────────────────────────── */
+.tabbar {
+  margin-top: auto;
+  padding-top: 24px;
+}
+.tabbar__inner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: var(--color-paper-2);
+  border-radius: var(--radius-pill);
+  padding: 6px;
+}
+.tab {
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  min-height: 48px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  transition: background-color 160ms, color 160ms;
+}
+.tab:hover { color: var(--color-ink); }
+.tab[aria-current="page"] {
+  background: var(--color-accent);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+/* ── Bottom sheet (log past event) ──────────────────────────── */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet.is-open { display: flex; }
+.sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(20% 0.012 250 / 0.35);
+}
+.sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-paper);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  padding: 22px 20px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 40px -12px oklch(20% 0.012 250 / 0.25);
+  transform: translateY(100%);
+  transition: transform 320ms var(--ease-snap);
+}
+.sheet.is-open .sheet__panel { transform: translateY(0); }
+.sheet__grip {
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-paper-3);
+  margin: 0 auto 16px;
+}
+.field { margin-bottom: 14px; }
+.field label {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  display: block;
+  margin-bottom: 6px;
+}
+.field input, .field select {
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--radius-input);
+  border: 2px solid var(--color-paper-3);
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+  padding: 0 14px;
+  font: inherit;
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--color-accent-2);
+}
+
+/* ── Star burst · coral, fires once ─────────────────────────── */
+.star-burst {
+  position: fixed;
+  z-index: 60;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 47%, var(--color-accent-3) 47% 53%, transparent 53%),
+    linear-gradient(0deg,  transparent 47%, var(--color-accent-3) 47% 53%, transparent 53%);
+  animation: star-burst 420ms ease-out forwards;
+}
+@keyframes star-burst {
+  0%   { transform: scale(0) rotate(0deg);   opacity: 1; }
+  60%  { transform: scale(1.2) rotate(35deg); opacity: 0.9; }
+  100% { transform: scale(1.4) rotate(45deg); opacity: 0; }
+}
+
+/* ── Motion comfort ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .moon { animation: none; }
+  .tl-row:hover, .btn:hover, .fab:hover { transform: none; }
+}
+
+/* ── Responsive — verified 320 / 375 / 414 / 768 ────────────── */
+@media (min-width: 768px) {
+  .app { padding-top: 8px; }
+}

@@ -2,20 +2,21 @@
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { SleepIcon } from './sleep-icons'
 import type { SleepEvent, EventType, Context } from '@/types/database'
 
 const eventTypeOptions: { type: EventType; icon: string; label: string }[] = [
-  { type: 'wake', icon: '☀️', label: 'Wake Up' },
-  { type: 'nap_start', icon: '😴', label: 'Nap Start' },
-  { type: 'nap_end', icon: '🌤️', label: 'Nap End' },
-  { type: 'bedtime', icon: '🌙', label: 'Bedtime' },
-  { type: 'night_wake', icon: '👀', label: 'Night Wake' },
+  { type: 'wake', icon: 'sun', label: 'Wake Up' },
+  { type: 'nap_start', icon: 'cloud-sun', label: 'Nap Start' },
+  { type: 'nap_end', icon: 'cloud-moon', label: 'Nap End' },
+  { type: 'bedtime', icon: 'moon', label: 'Bedtime' },
+  { type: 'night_wake', icon: 'eye', label: 'Night Wake' },
 ]
 
 const contextOptions: { value: Context; icon: string; label: string }[] = [
-  { value: 'home', icon: '🏠', label: 'Home' },
-  { value: 'daycare', icon: '🏫', label: 'Daycare' },
-  { value: 'travel', icon: '✈️', label: 'Travel' },
+  { value: 'home', icon: 'home', label: 'Home' },
+  { value: 'daycare', icon: 'school', label: 'Daycare' },
+  { value: 'travel', icon: 'plane', label: 'Travel' },
 ]
 
 export interface EventSheetData {
@@ -137,12 +138,12 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
       />
 
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 max-h-[80vh] overflow-y-auto rounded-t-[var(--radius-xl)] bg-white px-5 pb-8 pt-3 shadow-[0_-8px_40px_rgba(45,43,58,0.15)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 max-h-[80vh] overflow-y-auto rounded-t-[var(--radius-xl)] bg-[var(--card-surface)] px-5 pb-8 pt-3 shadow-[0_-8px_40px_rgba(45,43,58,0.15)]">
         {/* Handle */}
-        <div className="mx-auto mb-5 h-1 w-10 shrink-0 rounded-full bg-[#DDD]" />
+        <div className="mx-auto mb-5 h-1 w-10 shrink-0 rounded-full bg-[var(--line-soft)]" />
 
         {/* Title */}
-        <h3 className="mb-5 text-center text-lg font-extrabold text-[var(--text)]">
+        <h3 className="font-display mb-5 text-center text-lg font-extrabold text-[var(--text)]">
           {mode === 'add' ? 'Log Past Event' : 'Edit Event'}
         </h3>
 
@@ -156,13 +157,14 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
               key={opt.type}
               onClick={() => setEventType(opt.type)}
               className={cn(
-                'rounded-full border-2 px-4 py-2 text-sm font-bold transition-all duration-100 active:scale-95',
+                'inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-bold transition-colors duration-100 active:opacity-70',
                 eventType === opt.type
                   ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
-                  : 'border-[#EEE] bg-white text-[var(--text-muted)]'
+                  : 'border-[var(--line-soft)] bg-[var(--card-surface)] text-[var(--text-muted)]'
               )}
             >
-              {opt.icon} {opt.label}
+              <SleepIcon name={opt.icon} size={16} strokeWidth={2.5} />
+              {opt.label}
             </button>
           ))}
         </div>
@@ -181,7 +183,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
                   'rounded-full border-2 px-4 py-2 text-sm font-bold transition-all duration-100 active:scale-95',
                   dateMode === modeOption
                     ? 'border-[var(--lavender)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
-                    : 'border-[#EEE] bg-white text-[var(--text-muted)]'
+                    : 'border-[var(--line-soft)] bg-[var(--card-surface)] text-[var(--text-muted)]'
                 )}
               >
                 {modeOption === 'today' && 'Today'}
@@ -196,7 +198,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
               type="date"
               value={customDate}
               onChange={(e) => handleCustomDateChange(e.target.value)}
-              className="date-input w-full rounded-xl border-2 border-[#EEE] bg-white px-4 py-3 text-lg font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
+              className="date-input w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-lg font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
             />
           )}
         </div>
@@ -210,7 +212,7 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="time-input mb-4 w-full rounded-xl border-2 border-[#EEE] bg-white px-4 py-3 text-lg font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
+          className="time-input mb-4 w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-lg font-bold text-[var(--text)] outline-none focus:border-[var(--lavender)]"
         />
 
         {/* Context */}
@@ -223,13 +225,14 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
               key={opt.value}
               onClick={() => setContext(opt.value === context ? null : opt.value)}
               className={cn(
-                'rounded-full border-2 px-4 py-2 text-sm font-bold transition-all duration-100 active:scale-95',
+                'inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-bold transition-colors duration-100 active:opacity-70',
                 context === opt.value
                   ? 'border-[var(--mint)] bg-[var(--mint-bg)] text-[var(--mint)]'
-                  : 'border-[#EEE] bg-white text-[var(--text-muted)]'
+                  : 'border-[var(--line-soft)] bg-[var(--card-surface)] text-[var(--text-muted)]'
               )}
             >
-              {opt.icon} {opt.label}
+              <SleepIcon name={opt.icon} size={16} strokeWidth={2.5} />
+              {opt.label}
             </button>
           ))}
         </div>
@@ -243,28 +246,28 @@ function EventSheetInner({ mode, event, onSave, onDelete, onClose }: Omit<EventS
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Optional notes..."
           rows={2}
-          className="mb-6 w-full resize-none rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-semibold text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+          className="mb-6 w-full resize-none rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-sm font-semibold text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
         />
 
         {/* Footer */}
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded-2xl border-2 border-[#EEE] bg-white py-3.5 text-sm font-bold text-[var(--text-secondary)] active:bg-[#F8F5FF] transition-colors duration-100"
+            className="flex-1 rounded-2xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] py-3.5 text-sm font-bold text-[var(--text-secondary)] transition-colors duration-100 active:bg-[var(--lavender-bg)]"
           >
             Cancel
           </button>
           {mode === 'edit' && onDelete && (
             <button
               onClick={onDelete}
-              className="rounded-2xl border-2 border-[var(--rose-light)] bg-white px-6 py-3.5 text-sm font-bold text-[var(--rose)] active:bg-[var(--rose-bg)] transition-colors duration-100"
+              className="rounded-2xl border-2 border-[var(--rose-light)] bg-[var(--card-surface)] px-6 py-3.5 text-sm font-bold text-[var(--rose)] transition-colors duration-100 active:bg-[var(--rose-bg)]"
             >
               Delete
             </button>
           )}
           <button
             onClick={handleSave}
-            className="flex-1 rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] active:scale-[0.97] transition-all duration-100"
+            className="btn-solid flex-1 text-sm"
           >
             {mode === 'add' ? 'Log Event' : 'Save Changes'}
           </button>

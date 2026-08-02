@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { AlertTriangle, Cake, Check, Clock, Copy, FileText, KeyRound, RefreshCw, Save, Sparkles, Star, User, UserPlus, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Baby, type FamilyMemberWithIdentity } from '@/types/database'
@@ -118,8 +119,8 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
       <div className="flex-1 overflow-y-auto min-h-0">
       <div className="mx-auto max-w-md px-4 pt-2 pb-6 md:max-w-xl lg:max-w-2xl">
         {/* ===== PROFILE CARD ===== */}
-        <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
-          <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
+        <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-[var(--card-surface)] shadow-[var(--shadow-sm)]">
+          <div className="h-1 bg-[var(--lavender)]" />
           <div className="px-5 pb-5 pt-6">
           {error && (
             <div className="mb-4 rounded-xl bg-[var(--rose-bg)] px-4 py-3 text-sm font-bold text-[var(--rose)]">
@@ -131,14 +132,15 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
             {/* Name */}
             <div className="form-field-in mb-4">
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
-                👤 Baby&apos;s name
+                <User size={14} strokeWidth={2.5} />
+                Baby&apos;s name
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-bold text-[var(--text)] outline-none transition-colors focus:border-[var(--lavender)]"
+                className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3.5 text-sm font-bold text-[var(--text)] outline-none transition-colors focus:border-[var(--lavender)]"
                 placeholder="Luna"
               />
             </div>
@@ -146,21 +148,23 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
             {/* Birth date */}
             <div className="form-field-in mb-4">
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
-                🎂 Birth date
+                <Cake size={14} strokeWidth={2.5} />
+                Birth date
               </label>
               <input
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
                 required
-                className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-bold text-[var(--text)] outline-none transition-colors focus:border-[var(--lavender)]"
+                className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3.5 text-sm font-bold text-[var(--text)] outline-none transition-colors focus:border-[var(--lavender)]"
               />
             </div>
 
             {/* Pattern notes */}
             <div className="form-field-in mb-5">
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.4px]">
-                📝 Known patterns
+                <FileText size={14} strokeWidth={2.5} />
+                Known patterns
               </label>
               <textarea
                 ref={patternTextareaRef}
@@ -171,7 +175,7 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
                 }}
                 placeholder="e.g., 30-minute naps are normal, doesn't do well with early bedtime"
                 rows={1}
-                className="min-h-[88px] w-full resize-none overflow-hidden rounded-xl border-2 border-[#EEE] px-4 py-3.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+                className="min-h-[88px] w-full resize-none overflow-hidden rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3.5 text-sm font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
               />
               <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)] leading-tight">
                 The AI coach uses these notes for personalised recommendations
@@ -183,22 +187,23 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
               type="submit"
               disabled={loading}
               className={cn(
-                'action-entrance action-shimmer w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-4 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97]',
+                'action-entrance btn-solid w-full',
                 loading && 'opacity-70'
               )}
             >
-              {loading ? '💾 Saving...' : '💾 Save Changes'}
+              <Save size={16} strokeWidth={2.5} />
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
           </div>
         </div>
 
         {/* ===== FAMILY CARD ===== */}
-        <div className="card-rise mb-4 rounded-[var(--radius-lg)] bg-white px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]" style={{ animationDelay: '0.12s' }}>
+        <div className="card-rise mb-4 rounded-[var(--radius-lg)] bg-[var(--card-surface)] px-5 pb-5 pt-6 shadow-[var(--shadow-sm)]" style={{ animationDelay: '0.12s' }}>
           {/* Header */}
           <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-xl">
-              👨‍👩‍👧‍👧
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-[var(--lavender)]">
+              <Users size={20} strokeWidth={2} />
             </div>
             <div>
               <div className="text-base font-extrabold text-[var(--text)]">Family</div>
@@ -216,18 +221,18 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
               </div>
             )}
             {familyMembers.length === 0 && (
-              <div className="rounded-xl bg-white/70 px-4 py-3 text-center text-sm font-semibold text-[var(--text-muted)]">
+              <div className="rounded-xl bg-[var(--card-surface)]/70 px-4 py-3 text-center text-sm font-semibold text-[var(--text-muted)]">
                 No family members yet
               </div>
             )}
             {familyMembers.map((member, i) => (
               <div
                 key={member.id}
-                className="member-row-in flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm"
+                className="member-row-in flex items-center gap-3 rounded-xl bg-[var(--card-surface)] px-4 py-3 shadow-sm"
                 style={{ animationDelay: `${0.1 + i * 0.08}s` }}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-sm font-extrabold text-[var(--lavender)]">
-                  {member.is_you ? '⭐' : member.role === 'parent' ? '👤' : '🤝'}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lavender-bg)] text-[var(--lavender)]">
+                  {member.is_you ? <Star size={16} strokeWidth={2} /> : member.role === 'parent' ? <User size={16} strokeWidth={2} /> : <Users size={16} strokeWidth={2} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="truncate text-sm font-bold text-[var(--text)]">
@@ -244,12 +249,13 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
             ))}
           </div>
 
-          <div className="mb-4 h-px bg-gradient-to-r from-[var(--lavender-light)] to-transparent" />
+          <div className="mb-4 h-px bg-[var(--line-soft)]" />
 
           {/* Invite section */}
           <div className="text-center">
             <div className="mb-3 flex items-center justify-center gap-1.5 text-sm font-bold text-[var(--text)]">
-              🤝 Invite a caregiver
+              <UserPlus size={16} strokeWidth={2.5} />
+              Invite a caregiver
             </div>
 
             {inviteError && (
@@ -264,43 +270,47 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
                   onClick={handleGenerateCode}
                   disabled={inviteLoading}
                   className={cn(
-                    'w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.2)] transition-all active:scale-[0.97]',
+                    'btn-solid w-full text-sm',
                     inviteLoading && 'opacity-70'
                   )}
                 >
-                  {inviteLoading ? '✨ Generating...' : '✨ Generate Invite Code'}
+                  <Sparkles size={15} strokeWidth={2.5} />
+                  {inviteLoading ? 'Generating...' : 'Generate Invite Code'}
                 </button>
                 <p className="mt-2 text-xs font-semibold text-[var(--text-muted)] leading-tight">
                   Share this code with anyone who helps care for {baby.name}. They&apos;ll enter it during sign-up.
                 </p>
               </>
             ) : (
-              <div className="invite-reveal rounded-2xl border-2 border-dashed border-[var(--lavender-light)] bg-gradient-to-br from-[var(--lavender-bg)] to-[#F0EAFF] px-4 py-5">
-                <div className="mb-2 text-2xl">🔑</div>
-                <div className="code-pop mb-1 text-2xl font-black tracking-[0.15em] text-[#5B2ED9]">
+              <div className="invite-reveal rounded-2xl border-2 border-dashed border-[var(--lavender-light)] bg-[var(--lavender-bg)] px-4 py-5">
+                <div className="mb-2 flex justify-center">
+                  <KeyRound size={26} strokeWidth={2} className="text-[var(--lavender-deep)]" />
+                </div>
+                <div className="code-pop mb-1 text-center text-2xl font-black tracking-[0.15em] text-[var(--lavender-deep)]">
                   {inviteCode}
                 </div>
-                <div className="mb-3 text-[11px] font-semibold text-[var(--text-secondary)]">
-                  ⏰ Expires in 24 hours · One-time use
+                <div className="mb-3 flex items-center justify-center gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
+                  <Clock size={12} strokeWidth={2.5} />
+                  Expires in 24 hours · One-time use
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleGenerateCode}
                     disabled={inviteLoading}
-                    className="flex-1 rounded-xl border-2 border-[var(--lavender-light)] bg-white py-2.5 text-xs font-bold text-[var(--text-secondary)] active:bg-[var(--lavender-bg)] transition-colors"
+                    className="flex-1 rounded-xl border-2 border-[var(--lavender-light)] bg-[var(--card-surface)] py-2.5 text-xs font-bold text-[var(--text-secondary)] transition-colors duration-100 active:bg-[var(--lavender-bg)]"
                   >
-                    ↻ New Code
+                    <RefreshCw size={13} strokeWidth={2.5} className="mr-1 inline-block align-[-2px]" />
+                    New Code
                   </button>
                   <button
                     onClick={handleCopyCode}
                     className={cn(
-                      'flex-1 rounded-xl py-2.5 text-xs font-bold text-white transition-all active:scale-[0.97]',
-                      inviteCopied
-                        ? 'bg-gradient-to-br from-[var(--mint)] to-[#4CAF74] shadow-[0_4px_12px_rgba(111,207,151,0.2)]'
-                        : 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] shadow-[0_4px_12px_rgba(124,77,255,0.2)]'
+                      'btn-solid flex-1 py-2.5 text-xs',
+                      inviteCopied ? 'btn-solid--mint' : ''
                     )}
                   >
-                    {inviteCopied ? '✅ Copied!' : '📋 Copy Code'}
+                    {inviteCopied ? <Check size={14} strokeWidth={3} /> : <Copy size={14} strokeWidth={2.5} />}
+                    {inviteCopied ? 'Copied!' : 'Copy Code'}
                   </button>
                 </div>
               </div>
@@ -309,15 +319,15 @@ export function SettingsForm({ baby, familyMembers, familyMembersError }: Settin
         </div>
 
         {/* ===== DANGER ZONE ===== */}
-        <div className="rounded-[var(--radius-lg)] border-[1.5px] border-[var(--rose-light)] bg-white px-5 pb-5 pt-4 shadow-[var(--shadow-sm)]">
+        <div className="rounded-[var(--radius-lg)] border-[1.5px] border-[var(--rose-light)] bg-[var(--card-surface)] px-5 pb-5 pt-4 shadow-[var(--shadow-sm)]">
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-lg">⚠️</span>
+            <AlertTriangle size={17} strokeWidth={2.25} className="text-[var(--rose)]" />
             <span className="text-sm font-extrabold text-[var(--rose)]">Danger Zone</span>
           </div>
           <button
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="mb-3 flex w-full items-center justify-center rounded-xl border-2 border-[#EEE] bg-white py-3 text-sm font-bold text-[var(--text-secondary)] transition-colors active:bg-[var(--bg)] disabled:opacity-60"
+            className="mb-3 flex w-full items-center justify-center rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] py-3 text-sm font-bold text-[var(--text-secondary)] transition-colors active:bg-[var(--bg)] disabled:opacity-60"
           >
             {isSigningOut ? (
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--lavender)] border-t-transparent" />

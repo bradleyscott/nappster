@@ -23,11 +23,11 @@ afterAll(() => {
 
 const defaultProps = {
   accentColor: 'peach' as const,
-  icon: '☀️',
+  icon: 'sun',
   title: 'Awake & Playing',
   pills: [] as { label: string }[],
   countdown: { progress: 0.4, timeRemaining: '1h 12m', timeLabel: 'until next nap' },
-  expectedLabel: { icon: '😴', text: 'Next nap', time: '9:30am' },
+  expectedLabel: { icon: 'cloud-sun', text: 'Next nap', time: '9:30am' },
 }
 
 describe('StateHero', () => {

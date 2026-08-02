@@ -21,6 +21,7 @@ import {
   ChainOfThoughtStep,
 } from '@/components/ai-elements/chain-of-thought'
 import { SleepPlanCard } from '@/components/sleep-plan-card'
+import { SleepIcon } from '@/components/sleep/sleep-icons'
 import { Search, Database, History, MessageSquare, FileEdit, Calendar, Moon } from 'lucide-react'
 import type { SleepPlan } from '@/lib/ai/schemas/sleep-plan'
 
@@ -53,12 +54,13 @@ function isToolUpdateSleepPlanPart(part: RawMessagePart): part is ToolUpdateSlee
 export type { TimelineItem }
 
 // Event display configuration
+// Colors stay as Tailwind palette chips (chat context) — icons come from the shared semantic set.
 export const eventConfig: Record<string, { icon: string; label: string; color: string }> = {
-  wake: { icon: '☀️', label: 'Woke up', color: 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800' },
-  nap_start: { icon: '😴', label: 'Nap started', color: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800' },
-  nap_end: { icon: '🌤️', label: 'Nap ended', color: 'bg-sky-50 dark:bg-sky-950 border-sky-200 dark:border-sky-800' },
-  bedtime: { icon: '🌙', label: 'Bedtime', color: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800' },
-  night_wake: { icon: '👀', label: 'Night wake', color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800' },
+  wake: { icon: 'sun', label: 'Woke up', color: 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800' },
+  nap_start: { icon: 'cloud-sun', label: 'Nap started', color: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800' },
+  nap_end: { icon: 'cloud-moon', label: 'Nap ended', color: 'bg-sky-50 dark:bg-sky-950 border-sky-200 dark:border-sky-800' },
+  bedtime: { icon: 'moon', label: 'Bedtime', color: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800' },
+  night_wake: { icon: 'eye', label: 'Night wake', color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800' },
 }
 
 // Tool descriptions for chain-of-thought display
@@ -223,7 +225,7 @@ function renderMessageParts(message: { parts: unknown }, isStreaming: boolean) {
       if (state === 'output-available' && output?.success) {
         return (
           <div key={index} className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 py-2 px-3 bg-blue-50 dark:bg-blue-950 rounded-lg my-2">
-            <span>📅</span>
+            <Calendar size={15} strokeWidth={2.25} />
             {output.message || 'Schedule updated'}
           </div>
         )
@@ -327,7 +329,7 @@ export function TimelineRenderer({
         if (item.kind === 'sleep_event') {
           const { event } = item
           const config = eventConfig[event.event_type] || {
-            icon: '•',
+            icon: 'moon',
             label: event.event_type,
             color: 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
           }
@@ -354,7 +356,9 @@ export function TimelineRenderer({
                   onClick={() => onEventClick(event)}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs border shadow-sm ${config.color} hover:shadow-md active:scale-95 transition-all duration-200 cursor-pointer`}
                 >
-                  <span className="text-base">{config.icon}</span>
+                  <span className="flex items-center justify-center">
+                    <SleepIcon name={config.icon} size={16} strokeWidth={2.5} />
+                  </span>
                   <span className="font-medium">{config.label}</span>
                   <span className="text-muted-foreground">
                     {formatTime(event.event_time)}

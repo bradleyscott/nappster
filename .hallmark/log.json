@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-08-02",
+    "macrostructure": "Stat-Led",
+    "theme": "Hum",
+    "enrichment": "Tier B hand-built SVG (moon) + star-burst",
+    "brief": "Nappster dashboard prototype A — The Sun & Moon (playful)"
+  },
+  {
+    "date": "2026-08-02",
+    "macrostructure": "Bento Grid",
+    "theme": "Coral",
+    "enrichment": "none (typography only)",
+    "brief": "Nappster dashboard prototype B — The Quiet Card (modern-minimal)"
+  },
+  {
+    "date": "2026-08-02",
+    "macrostructure": "Long Document",
+    "theme": "Newsprint",
+    "enrichment": "Tier B hand-built SVG (crescent)",
+    "brief": "Nappster dashboard prototype C — The Sleep Daybook (editorial)"
+  }
+]

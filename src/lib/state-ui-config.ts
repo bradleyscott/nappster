@@ -35,22 +35,22 @@ export function getQuickEntryButtons(
 ): QuickEntryButton[] {
   switch (currentState) {
     case 'awaiting_morning_wake':
-      return [{ eventType: 'bedtime', label: 'Log Bedtime', icon: '🌙' }]
+      return [{ eventType: 'bedtime', label: 'Log Bedtime', icon: 'moon' }]
 
     case 'overnight_sleep':
       return [
-        { eventType: 'wake', label: 'End Night', icon: '☀️' },
-        { eventType: 'night_wake', label: 'Night Wake', icon: '👀' },
+        { eventType: 'wake', label: 'End Night', icon: 'sun' },
+        { eventType: 'night_wake', label: 'Night Wake', icon: 'eye' },
       ]
 
     case 'daytime_awake':
       if (options?.showBedtimeOverNap) {
-        return [{ eventType: 'bedtime', label: 'Bedtime', icon: '🌙' }]
+        return [{ eventType: 'bedtime', label: 'Bedtime', icon: 'moon' }]
       }
-      return [{ eventType: 'nap_start', label: 'Start Nap', icon: '😴' }]
+      return [{ eventType: 'nap_start', label: 'Start Nap', icon: 'cloud-sun' }]
 
     case 'daytime_napping':
-      return [{ eventType: 'nap_end', label: 'End Nap', icon: '🌤️' }]
+      return [{ eventType: 'nap_end', label: 'End Nap', icon: 'cloud-moon' }]
 
     default:
       return []

@@ -116,11 +116,11 @@ export function getDashboardStateConfig(
         : events.filter(e => e.event_type === 'night_wake').length
       return {
         accent: 'lavender',
-        icon: '🌙',
+        icon: 'moon',
         title: 'Sleeping Soundly',
         elevated: false,
         pills: [
-          { icon: '🌙', label: `Bedtime ${bedtimeTime}`, color: 'lavender', eventId: bedtimeEvent?.id },
+          { icon: 'moon', label: `Bedtime ${bedtimeTime}`, color: 'lavender', eventId: bedtimeEvent?.id },
           { dot: true, label: `Sleeping for ${sleepingFor}`, color: 'lavender' },
         ],
         countdown,
@@ -128,8 +128,8 @@ export function getDashboardStateConfig(
         explanation,
         source,
         buttons: [
-          { icon: '☀️', label: 'Log Wake Up', eventType: 'wake', accent: 'purple' as const },
-          { icon: '👀', label: 'Night Wake', subtitle: nightWakeCount > 0 ? `${nightWakeCount} already` : undefined, eventType: 'night_wake', variant: 'secondary' as const },
+          { icon: 'sun', label: 'Log Wake Up', eventType: 'wake', accent: 'purple' as const },
+          { icon: 'eye', label: 'Night Wake', subtitle: nightWakeCount > 0 ? `${nightWakeCount} already` : undefined, eventType: 'night_wake', variant: 'secondary' as const },
         ],
       }
     }
@@ -142,11 +142,11 @@ export function getDashboardStateConfig(
         const wakeEvent = [...events].reverse().find(e => e.event_type === 'wake')
         return {
           accent: 'sunset',
-          icon: '🌟',
+          icon: 'sparkle',
           title: 'Awake & Ready',
           elevated: true,
           pills: [
-            { icon: '🌤️', label: napEndTime ? `Nap ended ${napEndTime}` : 'Awake', color: 'peach', eventId: napEndEvent?.id ?? wakeEvent?.id },
+            { icon: 'cloud-moon', label: napEndTime ? `Nap ended ${napEndTime}` : 'Awake', color: 'peach', eventId: napEndEvent?.id ?? wakeEvent?.id },
             { dot: true, label: `Awake for ${awakeFor}`, color: 'peach' },
           ],
           countdown,
@@ -154,7 +154,7 @@ export function getDashboardStateConfig(
           explanation,
           source,
           buttons: [
-            { icon: '🌙', label: 'Start Bedtime', subtitle: 'Nighttime sleep', eventType: 'bedtime', accent: 'sunset' as const },
+            { icon: 'moon', label: 'Start Bedtime', subtitle: 'Nighttime sleep', eventType: 'bedtime', accent: 'sunset' as const },
           ],
         }
       }
@@ -170,11 +170,11 @@ export function getDashboardStateConfig(
       const awakeFor = getDurationSince(events, pillAnchorType, now)
       return {
         accent: 'peach',
-        icon: '☀️',
+        icon: 'sun',
         title: 'Awake & Playing',
         elevated: false,
         pills: [
-          { icon: '☀️', label: pillLabel, color: 'peach', eventId: pillAnchor?.id },
+          { icon: 'sun', label: pillLabel, color: 'peach', eventId: pillAnchor?.id },
           { dot: true, label: `Awake for ${awakeFor}`, color: 'peach' },
         ],
         countdown,
@@ -182,7 +182,7 @@ export function getDashboardStateConfig(
         explanation,
         source,
         buttons: [
-          { icon: '😴', label: 'Log Nap', subtitle: 'Start a nap', eventType: 'nap_start', accent: 'green' as const },
+          { icon: 'cloud-sun', label: 'Log Nap', subtitle: 'Start a nap', eventType: 'nap_start', accent: 'green' as const },
         ],
       }
     }
@@ -193,11 +193,11 @@ export function getDashboardStateConfig(
       const napStartEvent = [...events].reverse().find(e => e.event_type === 'nap_start')
       return {
         accent: 'mint',
-        icon: '😴',
+        icon: 'cloud-sun',
         title: 'Taking a Nap',
         elevated: false,
         pills: [
-          { icon: '😴', label: napStartTime ? `Nap started ${napStartTime}` : 'Napping', color: 'mint', eventId: napStartEvent?.id },
+          { icon: 'cloud-sun', label: napStartTime ? `Nap started ${napStartTime}` : 'Napping', color: 'mint', eventId: napStartEvent?.id },
           { dot: true, label: `Napping for ${nappingFor}`, color: 'mint' },
         ],
         countdown,
@@ -205,7 +205,7 @@ export function getDashboardStateConfig(
         explanation,
         source,
         buttons: [
-          { icon: '🌤️', label: 'End Nap', subtitle: 'Wake baby up', eventType: 'nap_end', accent: 'green' as const },
+          { icon: 'cloud-moon', label: 'End Nap', subtitle: 'Wake baby up', eventType: 'nap_end', accent: 'green' as const },
         ],
       }
     }
@@ -214,7 +214,7 @@ export function getDashboardStateConfig(
     default: {
       return {
         accent: 'lavender',
-        icon: '👋',
+        icon: 'wave',
         title: `Welcome, ${baby.name}`,
         elevated: false,
         pills: [],
@@ -223,7 +223,7 @@ export function getDashboardStateConfig(
         explanation,
         source,
         buttons: [
-          { icon: '🌙', label: 'Log Bedtime', subtitle: 'Start overnight sleep', eventType: 'bedtime', accent: 'purple' as const },
+          { icon: 'moon', label: 'Log Bedtime', subtitle: 'Start overnight sleep', eventType: 'bedtime', accent: 'purple' as const },
         ],
       }
     }

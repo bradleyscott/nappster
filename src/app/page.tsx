@@ -28,21 +28,21 @@ export default async function Home() {
         </p>
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">🌙 Sleep tracking</span>
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">🤖 AI coach</span>
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">👨‍👩‍👧 Family sync</span>
+          <span className="rounded-full bg-[var(--card-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">Sleep tracking</span>
+          <span className="rounded-full bg-[var(--card-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">AI coach</span>
+          <span className="rounded-full bg-[var(--card-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--text-secondary)] shadow-[var(--shadow-sm)]">Family sync</span>
         </div>
 
         <div className="mt-8 w-full max-w-xs space-y-3">
           <Link
             href="/auth/signup"
-            className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-4 text-base font-extrabold text-white shadow-[0_4px_16px_rgba(124,77,255,0.3)] transition-transform active:scale-[0.97]"
+            className="flex w-full items-center justify-center rounded-2xl btn-solid w-full text-base"
           >
             Get Started
           </Link>
           <Link
             href="/auth/login"
-            className="flex w-full items-center justify-center rounded-2xl border-2 border-[var(--lavender-light)] bg-white py-4 text-base font-extrabold text-[var(--text)] transition-colors active:bg-[var(--lavender-bg)]"
+            className="flex w-full items-center justify-center rounded-2xl border-2 border-[var(--lavender-light)] bg-[var(--card-surface)] py-4 text-base font-extrabold text-[var(--text)] transition-colors active:bg-[var(--lavender-bg)]"
           >
             Sign In
           </Link>

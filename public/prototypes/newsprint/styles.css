@@ -1,0 +1,309 @@
+/* Hallmark · genre: editorial · macrostructure: Long Document · theme: Newsprint · enrichment: Tier B (hand-built SVG) · nav: N6 (newspaper masthead) · footer: app chrome (hairline tab strip)
+ * Pre-emit critique: P5 H4 E5 S4 R4 V4
+ * Nappster dashboard prototype C — "The Sleep Daybook".
+ * Editorial discipline: hairlines not card borders, asymmetric, quiet motion,
+ * one orchestrated entrance, serif + mono outlier. The timeline is the document.
+ */
+
+/* ── Reset & ground ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { overflow-x: clip; }
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: oldstyle-nums;
+}
+
+button { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ── Prototype chrome ───────────────────────────────────────── */
+.proto-bar {
+  border-bottom: 1px solid var(--color-rule-2);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.proto-bar__inner {
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.proto-bar a { color: var(--color-ink); text-decoration: none; border-bottom: 1px solid var(--color-accent); }
+.proto-bar a:hover { border-bottom-width: 2px; }
+
+/* ── App shell ──────────────────────────────────────────────── */
+.app {
+  max-width: 480px;
+  margin-inline: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px 24px;
+}
+
+/* ── Masthead · N6 newspaper ────────────────────────────────── */
+.masthead {
+  text-align: center;
+  padding: 26px 0 18px;
+  border-bottom: 2px solid var(--color-ink);
+  position: relative;
+}
+.masthead::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -4px;
+  border-bottom: 1px solid var(--color-ink);
+}
+.masthead .crescent {
+  width: 30px;
+  height: 30px;
+  color: var(--color-accent-ink);
+  margin: 0 auto 8px;
+  display: block;
+}
+.masthead__title {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 1.625rem;
+  letter-spacing: var(--tracking-display);
+}
+.masthead__issue {
+  margin-top: 6px;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ── Opening · the day's first line ─────────────────────────── */
+.opening { padding: 28px 0 6px; }
+.opening__label {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: 10px;
+}
+.opening h1 {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-display);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.1;
+}
+.opening .figure {
+  font-family: var(--font-label);
+  font-size: var(--text-figure);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-rule);
+  display: inline-block;
+}
+.opening .figure small {
+  font-size: 0.32em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.opening p.lede {
+  font-size: var(--text-md);
+  color: var(--color-ink-2);
+  max-width: var(--measure);
+  margin-top: 12px;
+  line-height: 1.55;
+}
+.opening .marginal {
+  margin-top: 10px;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.opening .marginal b { color: var(--color-accent-ink); font-weight: 500; }
+
+/* ── Actions · editorial buttons ────────────────────────────── */
+.actions { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding: 18px 0 22px; }
+.btn {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule-2);
+  border-radius: 0;
+  padding: 12px 20px;
+  cursor: pointer;
+  min-height: 48px;
+  transition: background-color 200ms ease-out, color 200ms ease-out;
+}
+.btn:hover { background: var(--color-ink); color: var(--color-paper); }
+.link {
+  font-size: 1rem;
+  color: var(--color-ink-2);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--color-rule);
+  text-underline-offset: 4px;
+  min-height: 48px;
+  padding: 0 2px;
+}
+.link:hover { text-decoration-color: var(--color-accent-ink); color: var(--color-ink); }
+
+/* ── The record · Long Document ─────────────────────────────── */
+.record { border-top: 1px solid var(--color-rule-2); }
+.record__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 20px 0 8px;
+}
+.record__head h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-display);
+}
+.record__head span {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.entry {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-rule);
+  position: relative;
+}
+.entry--now { border-left: 2px solid var(--color-accent); padding-left: 12px; }
+.entry__time {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-2);
+  padding-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.entry__body h3 {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: 3px;
+}
+.entry--now .entry__body h3 { color: var(--color-accent-ink); }
+.entry__body p { font-size: 1rem; color: var(--color-ink-2); max-width: var(--measure); }
+.entry__body .now-mark {
+  font-family: var(--font-label);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent-ink);
+  margin-left: 8px;
+}
+
+/* ── Tonight footnote ───────────────────────────────────────── */
+.footnote {
+  padding: 18px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.footnote span {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.footnote b {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-md);
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Bottom tab strip · hairline ────────────────────────────── */
+.tabstrip {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-rule-2);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.tabstrip button {
+  background: none;
+  border: 0;
+  min-height: 52px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  cursor: pointer;
+  border-top: 2px solid transparent;
+  transition: color 200ms ease-out;
+}
+.tabstrip button:hover { color: var(--color-ink); }
+.tabstrip button[aria-current="page"] {
+  color: var(--color-ink);
+  border-top-color: var(--color-accent);
+}
+
+/* ── One orchestrated entrance · quiet ──────────────────────── */
+.entry { opacity: 0; transform: translateY(8px); animation: entry-in 600ms var(--ease-in) forwards; }
+.entry:nth-child(2) { animation-delay: 60ms; }
+.entry:nth-child(3) { animation-delay: 120ms; }
+.entry:nth-child(4) { animation-delay: 180ms; }
+:root { --ease-in: cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes entry-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .entry { opacity: 1; transform: none; }
+}
+
+/* ── Responsive — verified 320 / 375 / 414 / 768 ────────────── */
+@media (max-width: 360px) {
+  .app { padding-inline: 18px; }
+  .entry { grid-template-columns: 56px minmax(0, 1fr); gap: 10px; }
+  .actions { gap: 12px; }
+}

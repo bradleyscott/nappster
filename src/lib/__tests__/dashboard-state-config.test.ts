@@ -47,7 +47,7 @@ describe('getDashboardStateConfig', () => {
       NOW,
     )
     expect(config.accent).toBe('lavender')
-    expect(config.icon).toBe('👋')
+    expect(config.icon).toBe('wave')
     expect(config.title).toContain('Welcome')
     expect(config.title).toContain('Luna')
     expect(config.pills).toEqual([])
@@ -71,11 +71,11 @@ describe('getDashboardStateConfig', () => {
       NOW,
     )
     expect(config.accent).toBe('lavender')
-    expect(config.icon).toBe('🌙')
+    expect(config.icon).toBe('moon')
     expect(config.title).toBe('Sleeping Soundly')
     expect(config.elevated).toBe(false)
     expect(config.pills).toHaveLength(2)
-    expect(config.pills[0]).toHaveProperty('icon', '🌙')
+    expect(config.pills[0]).toHaveProperty('icon', 'moon')
     expect(config.pills[0].label).toMatch(/Bedtime/)
     expect(config.pills[1].label).toMatch(/Sleeping for/)
     expect(config.buttons).toHaveLength(2)
@@ -99,7 +99,7 @@ describe('getDashboardStateConfig', () => {
       NOW,
     )
     expect(config.accent).toBe('peach')
-    expect(config.icon).toBe('☀️')
+    expect(config.icon).toBe('sun')
     expect(config.title).toBe('Awake & Playing')
     expect(config.elevated).toBe(false)
     expect(config.pills[0].label).toMatch(/Woke at/)
@@ -147,7 +147,7 @@ describe('getDashboardStateConfig', () => {
       { timezone: 'UTC' },
     )
     expect(config.accent).toBe('sunset')
-    expect(config.icon).toBe('🌟')
+    expect(config.icon).toBe('sparkle')
     expect(config.title).toBe('Awake & Ready')
     expect(config.elevated).toBe(true)
     expect(config.buttons).toHaveLength(1)
@@ -169,7 +169,7 @@ describe('getDashboardStateConfig', () => {
       NOW,
     )
     expect(config.accent).toBe('mint')
-    expect(config.icon).toBe('😴')
+    expect(config.icon).toBe('cloud-sun')
     expect(config.title).toBe('Taking a Nap')
     expect(config.elevated).toBe(false)
     expect(config.pills[0].label).toMatch(/Nap started/)

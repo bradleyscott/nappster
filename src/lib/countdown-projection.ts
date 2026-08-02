@@ -72,7 +72,7 @@ const EMPTY: CountdownContext = {
   progress: 0,
   timeRemaining: '--',
   timeLabel: 'start',
-  expectedIcon: '✨',
+  expectedIcon: 'sparkle',
   expectedText: 'Log your first event to begin',
   expectedTime: '',
   mode: 'welcome',
@@ -548,7 +548,7 @@ export function getCountdownContext(
     case 'overnight_sleep': {
       const bedtime = lastEvent(sorted, 'bedtime')
       if (!bedtime) {
-        return { ...EMPTY, mode: 'overnight', expectedIcon: '☀️', expectedText: 'Expected wake', expectedTime: '—', timeLabel: 'until wake' }
+        return { ...EMPTY, mode: 'overnight', expectedIcon: 'sun', expectedText: 'Expected wake', expectedTime: '—', timeLabel: 'until wake' }
       }
       const startedAt = new Date(bedtime.event_time)
       let target: Date
@@ -575,7 +575,7 @@ export function getCountdownContext(
         progress,
         timeRemaining: formatCountdown(remaining),
         timeLabel: 'until wake',
-        expectedIcon: '☀️',
+        expectedIcon: 'sun',
         expectedText,
         expectedTime,
         mode: 'overnight',
@@ -611,7 +611,7 @@ export function getCountdownContext(
         progress,
         timeRemaining: formatCountdown(remaining),
         timeLabel: 'remaining',
-        expectedIcon: '🌤️',
+        expectedIcon: 'cloud-moon',
         expectedText: 'Expected end',
         expectedTime,
         mode: 'nap_end',
@@ -654,7 +654,7 @@ export function getCountdownContext(
           progress,
           timeRemaining: formatCountdown(remaining),
           timeLabel: 'until bedtime',
-          expectedIcon: '🌙',
+          expectedIcon: 'moon',
           expectedText: 'Target bedtime',
           expectedTime,
           mode: 'bedtime',
@@ -694,7 +694,7 @@ export function getCountdownContext(
         progress,
         timeRemaining: formatCountdown(remaining),
         timeLabel: 'until next nap',
-        expectedIcon: '😴',
+        expectedIcon: 'cloud-sun',
         expectedText,
         expectedTime,
         mode: 'nap',

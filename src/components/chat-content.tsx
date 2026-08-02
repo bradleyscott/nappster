@@ -5,6 +5,7 @@ import { useChat } from '@ai-sdk/react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { logWarn } from '@/lib/error-reporting'
+import { MessageCircle, Sparkles } from 'lucide-react'
 import { Baby, SleepEvent, SleepSession, ChatMessage, EventType, Context } from '@/types/database'
 import { isValidEvent } from '@/lib/state-machine'
 import { mergeEvents } from '@/lib/merge-data'
@@ -308,13 +309,13 @@ export function ChatContent({
         if (item.kind !== 'sleep_event') return null
         const e = item.event
         const config: Record<string, { icon: string; label: string }> = {
-          wake: { icon: '☀️', label: 'Woke up' },
-          nap_start: { icon: '😴', label: 'Nap started' },
-          nap_end: { icon: '🌤️', label: 'Nap ended' },
-          bedtime: { icon: '🌙', label: 'Bedtime' },
-          night_wake: { icon: '👀', label: 'Night wake' },
+          wake: { icon: 'sun', label: 'Woke up' },
+          nap_start: { icon: 'cloud-sun', label: 'Nap started' },
+          nap_end: { icon: 'cloud-moon', label: 'Nap ended' },
+          bedtime: { icon: 'moon', label: 'Bedtime' },
+          night_wake: { icon: 'eye', label: 'Night wake' },
         }
-        const cfg = config[e.event_type] ?? { icon: '•', label: e.event_type }
+        const cfg = config[e.event_type] ?? { icon: 'moon', label: e.event_type }
         const d = new Date(e.event_time)
         const zonedEvent = toZonedTime(d, timezone)
         const zonedNow = toZonedTime(new Date(), timezone)
@@ -394,7 +395,7 @@ export function ChatContent({
     if (groupedMessages.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <span className="text-3xl mb-3">💬</span>
+          <MessageCircle size={34} strokeWidth={1.6} className="mb-3 text-[var(--text-muted)]" />
           <p className="text-sm font-700 text-[var(--text-muted)]">No messages yet</p>
           <p className="text-xs font-600 text-[var(--text-muted)] mt-1">Ask about sleep advice or tips</p>
         </div>
@@ -406,11 +407,11 @@ export function ChatContent({
         {groupedMessages.map((group, groupIndex) => (
           <div key={groupIndex} className="flex flex-col">
             <div className="my-4 flex items-center gap-3">
-              <div className="h-px flex-1 bg-[#F0EDF5]" />
+              <div className="h-px flex-1 bg-[var(--line-soft)]" />
               <span className="text-[0.65rem] font-extrabold uppercase tracking-[0.5px] text-[var(--text-muted)]">
                 {group.label}
               </span>
-              <div className="h-px flex-1 bg-[#F0EDF5]" />
+              <div className="h-px flex-1 bg-[var(--line-soft)]" />
             </div>
 
             {group.messages.map((msg, msgIndex) => {
@@ -433,7 +434,7 @@ export function ChatContent({
                     <Message from={msg.role}>
                       <MessageContent
                         className={isUser
-                          ? 'bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] !text-white shadow-sm'
+                          ? 'bg-[var(--lavender)] text-[var(--text)] shadow-sm'
                           : 'bg-[var(--lavender-bg)] text-[var(--text)] shadow-sm'
                         }
                       >
@@ -555,14 +556,14 @@ function ToolCallCard({ parts, isStreaming }: { parts: ToolPart[]; isStreaming?:
   const hasPending = parts.some(p => p.state !== 'output-available')
 
   return (
-    <div className="mb-2 max-w-[90%] rounded-2xl border-[1.5px] border-[var(--lavender-light)] bg-gradient-to-br from-white to-[var(--lavender-bg)] px-4 py-3 shadow-[0_2px_10px_rgba(124,77,255,0.06)]">
+    <div className="mb-2 max-w-[90%] rounded-2xl border-[1.5px] border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 shadow-[var(--shadow-sm)]">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between text-left"
       >
         <span className="flex items-center gap-2 text-sm font-extrabold text-[var(--text)]">
-          <span className="text-base">🧠</span>
+          <Sparkles size={16} strokeWidth={2.25} className="text-[var(--lavender)]" />
           {isStreaming && hasPending ? 'Thinking' : `Used ${parts.length} tool${parts.length === 1 ? '' : 's'}`}
         </span>
         <span className={cn('text-lg text-[var(--text-muted)] transition-transform', isOpen && 'rotate-180')}>

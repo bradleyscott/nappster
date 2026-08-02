@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { BarChart3, CalendarDays, ChevronRight, Eye, Home, School } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SleepIcon } from './sleep-icons'
 import {
   buildDayRows,
   computeExpectedDays,
@@ -99,36 +101,39 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
       <div className="mx-auto max-w-md px-4 pt-2 pb-6 md:max-w-xl lg:max-w-2xl">
         {/* ===== AVERAGE DAY CARD ===== */}
       {activeExpected && expectedStats && (
-        <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-sm)]">
-          <div className="h-1 bg-gradient-to-r from-[var(--lavender)] via-[var(--mint)] to-[var(--peach)]" />
+        <div className="card-rise mb-4 overflow-hidden rounded-[var(--radius-lg)] bg-[var(--card-surface)] shadow-[var(--shadow-sm)]">
+          <div className="h-1 bg-[var(--lavender)]" />
           <div className="px-5 pb-5 pt-4">
             {/* Header with pill nav */}
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-[16px] font-extrabold text-[var(--text)]">
-                📋 Typical Day
+              <h3 className="font-display flex items-center gap-2 text-[16px] font-extrabold text-[var(--text)]">
+                <CalendarDays size={18} strokeWidth={2.25} className="text-[var(--text-secondary)]" />
+                Typical Day
               </h3>
               <div className="flex gap-1.5">
                 <button
                   onClick={() => setContextFilter('home')}
                   className={cn(
-                    'rounded-full border px-3 py-1 text-[11px] font-bold transition-all active:scale-95',
+                    'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold transition-colors duration-100 active:opacity-70',
                     contextFilter === 'home'
                       ? 'border-[var(--lavender-light)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
-                      : 'border-[#EEE] bg-white text-[var(--text-muted)]'
+                      : 'border-[var(--line-soft)] bg-[var(--card-surface)] text-[var(--text-muted)]'
                   )}
                 >
-                  🏠 Home
+                  <Home size={12} strokeWidth={2.5} />
+                  Home
                 </button>
                 <button
                   onClick={() => setContextFilter('daycare')}
                   className={cn(
-                    'rounded-full border px-3 py-1 text-[11px] font-bold transition-all active:scale-95',
+                    'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold transition-colors duration-100 active:opacity-70',
                     contextFilter === 'daycare'
                       ? 'border-[var(--lavender-light)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
-                      : 'border-[#EEE] bg-white text-[var(--text-muted)]'
+                      : 'border-[var(--line-soft)] bg-[var(--card-surface)] text-[var(--text-muted)]'
                   )}
                 >
-                  🏫 Daycare
+                  <School size={12} strokeWidth={2.5} />
+                  Daycare
                 </button>
               </div>
             </div>
@@ -146,7 +151,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
                   })
                 }
               }}
-              className="relative mb-3 h-14 cursor-pointer overflow-hidden rounded-2xl bg-[repeating-linear-gradient(90deg,#F8F5FF_0px,#F8F5FF_calc(100%/24-1px),rgba(0,0,0,0.015)_calc(100%/24-1px),rgba(0,0,0,0.015)_calc(100%/24))] active:scale-[0.98] transition-transform"
+              className="relative mb-3 h-14 cursor-pointer overflow-hidden rounded-2xl bg-[repeating-linear-gradient(90deg,var(--hour-rule)_0px,var(--hour-rule)_calc(100%/24-1px),var(--hour-gap)_calc(100%/24-1px),var(--hour-gap)_calc(100%/24))] transition-opacity duration-100 active:opacity-80"
             >
               {activeExpected.blocks.map((block, i) => (
                 <div
@@ -171,16 +176,16 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
 
             {/* Stats pills */}
             <div className="flex gap-2">
-              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
-                <div className="text-sm font-extrabold text-[var(--lavender)]">{expectedStats.nightDuration}</div>
+              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--lavender-bg)] px-3 py-2.5 text-center">
+                <div className="font-display text-sm font-extrabold text-[var(--lavender)]">{expectedStats.nightDuration}</div>
                 <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Night</div>
               </div>
-              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
-                <div className="text-sm font-extrabold text-[var(--mint)]">{expectedStats.napDuration}</div>
+              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--mint-bg)] px-3 py-2.5 text-center">
+                <div className="font-display text-sm font-extrabold text-[var(--mint)]">{expectedStats.napDuration}</div>
                 <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Naps</div>
               </div>
-              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-center">
-                <div className="text-sm font-extrabold text-[var(--peach)]">{expectedStats.awakeDuration}</div>
+              <div className="stat-pill-pop flex-1 rounded-xl bg-[var(--peach-bg)] px-3 py-2.5 text-center">
+                <div className="font-display text-sm font-extrabold text-[var(--peach)]">{expectedStats.awakeDuration}</div>
                 <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">Awake</div>
               </div>
             </div>
@@ -192,7 +197,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
       {expectedStats && (
         <div className="mb-4 flex gap-2">
           <TrendCard
-            emoji="😴"
+            icon="cloud-sun"
             value={String(expectedStats.napCount)}
             label="Avg Naps"
             trend="steady"
@@ -200,7 +205,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
             color="lavender"
           />
           <TrendCard
-            emoji="🌙"
+            icon="moon"
             value={expectedStats.avgBedtime || '--'}
             label="Avg Bedtime"
             trend="down"
@@ -208,7 +213,7 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
             color="mint"
           />
           <TrendCard
-            emoji="☀️"
+            icon="sun"
             value={expectedStats.avgWakeTime || '--'}
             label="Avg Wake"
             trend="up"
@@ -220,8 +225,9 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
 
       {/* ===== HISTORY ===== */}
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[15px] font-extrabold text-[var(--text)]">
-          📅 Sleep History
+        <h3 className="font-display flex items-center gap-1.5 text-[15px] font-extrabold text-[var(--text)]">
+          <CalendarDays size={17} strokeWidth={2.25} className="text-[var(--text-secondary)]" />
+          Sleep History
         </h3>
         <div className="flex gap-1.5">
           {([7, 14] as const).map((days) => (
@@ -229,10 +235,10 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
               key={days}
               onClick={() => setTimeRange(days)}
               className={cn(
-                'rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition-all active:scale-95',
+                'rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition-colors duration-100 active:opacity-70',
                 timeRange === days
                   ? 'border-[var(--lavender-light)] bg-[var(--lavender-bg)] text-[var(--lavender)]'
-                  : 'border-[#EEE] bg-white text-[var(--text-muted)]'
+                  : 'border-[var(--line-soft)] bg-[var(--card-surface)] text-[var(--text-muted)]'
               )}
             >
               {days}d
@@ -243,8 +249,8 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
 
       <div className="flex flex-col gap-1.5">
         {rows.length === 0 && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-[#F0EDF5] py-12 text-center">
-            <span className="text-3xl">📊</span>
+          <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-[var(--line-soft)] py-12 text-center">
+            <BarChart3 size={30} strokeWidth={1.8} className="text-[var(--text-muted)]" />
             <p className="text-sm font-bold text-[var(--text-muted)]">No sleep data yet</p>
             <p className="text-xs font-semibold text-[var(--text-muted)]">Start tracking to see patterns</p>
           </div>
@@ -291,9 +297,9 @@ export function TrendsView({ events, timezone, babyName, babyId }: TrendsViewPro
 // ---- Sub-components ----
 
 function TrendCard({
-  emoji, value, label, trend, trendLabel, color,
+  icon, value, label, trend, trendLabel, color,
 }: {
-  emoji: string; value: string; label: string; trend: string; trendLabel: string; color: string
+  icon: string; value: string; label: string; trend: string; trendLabel: string; color: string
 }) {
   const colorMap: Record<string, string> = {
     lavender: 'text-[var(--lavender)]',
@@ -306,9 +312,11 @@ function TrendCard({
     steady: 'bg-[var(--lavender-bg)] text-[var(--lavender)]',
   }
   return (
-    <div className="trend-card-up flex-1 rounded-2xl bg-white px-3 py-3.5 text-center shadow-[var(--shadow-sm)]">
-      <div className="mb-0.5 text-lg">{emoji}</div>
-      <div className={cn('text-lg font-black leading-tight', colorMap[color])}>{value}</div>
+    <div className="trend-card-up flex-1 rounded-2xl bg-[var(--card-surface)] px-3 py-3.5 text-center shadow-[var(--shadow-sm)]">
+      <div className="mb-1 flex justify-center">
+        <SleepIcon name={icon} size={20} strokeWidth={2.25} className="text-[var(--text-secondary)]" />
+      </div>
+      <div className={cn('font-display text-lg font-black leading-tight', colorMap[color])}>{value}</div>
       <div className="mt-0.5 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3px]">{label}</div>
       <div className={cn('mt-0.5 inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold', bgMap[trend] || 'bg-gray-100')}>
         {trendLabel}
@@ -326,19 +334,19 @@ function DayHistoryRow({ row, index, onClick }: { row: DayRow; index: number; on
   return (
     <button
       onClick={onClick}
-      className="timeline-row-animated flex items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-[var(--shadow-sm)] active:scale-[0.98] transition-transform"
+      className="timeline-row-animated flex items-center gap-2.5 rounded-2xl bg-[var(--card-surface)] px-4 py-3 shadow-[var(--shadow-sm)] transition-opacity duration-100 active:opacity-70"
       style={{ animationDelay: `${0.1 + index * 0.07}s` }}
     >
       {/* Day label */}
       <div className="w-[68px] shrink-0 text-left">
         <div className="flex items-center gap-1">
           <span className="text-sm font-extrabold text-[var(--text)] leading-tight">{label}</span>
-          {hasDaycare && <span className="text-[10px]">🏫</span>}
+          {hasDaycare && <School size={12} strokeWidth={2.5} className="text-[var(--peach)]" />}
         </div>
       </div>
 
       {/* Mini bar */}
-      <div className="relative h-[30px] flex-1 overflow-hidden rounded-[10px] bg-[#F8F5FF]">
+      <div className="relative h-[30px] flex-1 overflow-hidden rounded-[10px] bg-[var(--hour-rule)]">
         {overnight.map((block, i) => (
           <div
             key={i}
@@ -376,7 +384,7 @@ function DayHistoryRow({ row, index, onClick }: { row: DayRow; index: number; on
         ))}
       </div>
 
-      <span className="shrink-0 text-sm text-[var(--text-muted)]">›</span>
+      <ChevronRight size={16} strokeWidth={2.5} className="shrink-0 text-[var(--text-muted)]" />
     </button>
   )
 }
@@ -411,7 +419,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
     .sort((a, b) => a.startHour - b.startHour)
 
   type TimelineItem = {
-    emoji: string
+    icon: string
     label: string
     timeLabel: string
     durationLabel: string | null
@@ -421,7 +429,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
   const timelineItems: TimelineItem[] = []
   if (wakeBlock) {
     timelineItems.push({
-      emoji: '☀️',
+      icon: 'sun',
       label: 'Wake',
       timeLabel: fmtHour(wakeBlock.endHour),
       durationLabel: null,
@@ -431,7 +439,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
   }
   for (const nap of napBlocks) {
     timelineItems.push({
-      emoji: '😴',
+      icon: 'cloud-sun',
       label: 'Nap',
       timeLabel: `${fmtHour(nap.startHour)} – ${fmtHour(nap.endHour)}`,
       durationLabel: fmtMin(Math.round((nap.endHour - nap.startHour) * 60)),
@@ -441,7 +449,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
   }
   if (bedtimeBlock) {
     timelineItems.push({
-      emoji: '🌙',
+      icon: 'moon',
       label: 'Bedtime',
       timeLabel: fmtHour(bedtimeBlock.startHour),
       durationLabel: null,
@@ -457,16 +465,17 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
 
   return (
     <>
-      <div className="fixed inset-0 z-20 bg-black/20" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-30 max-h-[75vh] overflow-y-auto rounded-t-[var(--radius-xl)] bg-white px-5 pb-8 pt-3 shadow-[0_-8px_40px_rgba(45,43,58,0.15)]">
-        <div className="mx-auto mb-4 h-1 w-10 shrink-0 rounded-full bg-[#DDD]" />
+      <div className="fixed inset-0 z-30 bg-black/20" onClick={onClose} />
+      <div className="fixed bottom-0 left-0 right-0 z-40 max-h-[75vh] overflow-y-auto rounded-t-[var(--radius-xl)] bg-[var(--card-surface)] px-5 pb-8 pt-3 shadow-[0_-8px_40px_rgba(45,43,58,0.15)]">
+        <div className="mx-auto mb-4 h-1 w-10 shrink-0 rounded-full bg-[var(--line-soft)]" />
 
         {/* Header */}
         <div className="mb-4 flex items-center gap-2">
-          <span className="text-lg font-extrabold text-[var(--text)]">{row.label}</span>
+          <span className="font-display text-lg font-extrabold text-[var(--text)]">{row.label}</span>
           {hasDaycare && (
-            <span className="ml-auto rounded-full bg-[var(--peach-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--peach)]">
-              🏫 Daycare
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--peach-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--peach)]">
+              <School size={11} strokeWidth={2.5} />
+              Daycare
             </span>
           )}
         </div>
@@ -478,7 +487,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
               <div className="flex w-6 shrink-0 flex-col items-center">
                 <div className={cn('z-10 mt-1.5 h-3 w-3 rounded-full', item.dotClass)} />
                 {i < timelineItems.length - 1 && (
-                  <div className="w-0.5 flex-1 rounded-full bg-[#E8E5F0]" />
+                  <div className="w-0.5 flex-1 rounded-full bg-[var(--line-soft)]" />
                 )}
               </div>
               <button
@@ -487,9 +496,9 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
                   if (event) onEditEvent(event)
                 }}
                 disabled={!item.eventId}
-                className="flex min-w-0 flex-1 items-center gap-2 rounded-xl pb-3 text-left active:scale-[0.98] transition-transform disabled:active:scale-100"
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-xl pb-3 text-left transition-opacity duration-100 active:opacity-70"
               >
-                <span className="text-sm">{item.emoji}</span>
+                <SleepIcon name={item.icon} size={17} strokeWidth={2.25} className="text-[var(--text-secondary)]" />
                 <div className="flex-1">
                   <span className="text-sm font-bold text-[var(--text)]">{item.label}</span>
                   <span className="ml-2 text-xs font-bold text-[var(--text-muted)]">{item.timeLabel}</span>
@@ -497,7 +506,7 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
                 {item.durationLabel && (
                   <span className="text-xs font-bold text-[var(--text-secondary)]">{item.durationLabel}</span>
                 )}
-                {item.eventId && <span className="text-xs text-[var(--text-muted)]">›</span>}
+                {item.eventId && <ChevronRight size={15} strokeWidth={2.5} className="shrink-0 text-[var(--text-muted)]" />}
               </button>
             </div>
           ))}
@@ -508,11 +517,11 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
               <div className="flex w-6 shrink-0 flex-col items-center">
                 <div className="z-10 mt-1.5 h-3 w-3 rounded-full bg-[var(--rose)] opacity-50" />
                 {i < row.nightWakes.length - 1 && (
-                  <div className="w-0.5 flex-1 rounded-full bg-[#E8E5F0]" />
+                  <div className="w-0.5 flex-1 rounded-full bg-[var(--line-soft)]" />
                 )}
               </div>
               <div className="flex min-w-0 flex-1 items-center gap-2 pb-3">
-                <span className="text-sm">👀</span>
+                <Eye size={17} strokeWidth={2.25} className="text-[var(--rose)]" />
                 <span className="text-sm font-bold text-[var(--text-muted)]">Night wake</span>
                 <span className="ml-auto text-xs font-bold text-[var(--text-muted)]">
                   {fmtHour(wake.hour)}
@@ -525,15 +534,15 @@ function DayDetailSheet({ row, events, onClose, onEditEvent }: { row: DayRow; ev
         {/* Summary */}
         <div className="mb-4 flex gap-2 rounded-xl bg-[var(--bg)] p-3">
           <div className="flex-1 text-center">
-            <div className="text-sm font-extrabold text-[var(--lavender)]">{fmtMin(nightMin)}</div>
+            <div className="font-display text-sm font-extrabold text-[var(--lavender)]">{fmtMin(nightMin)}</div>
             <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Night</div>
           </div>
           <div className="flex-1 text-center">
-            <div className="text-sm font-extrabold text-[var(--mint)]">{fmtMin(napMin)}</div>
+            <div className="font-display text-sm font-extrabold text-[var(--mint)]">{fmtMin(napMin)}</div>
             <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Naps</div>
           </div>
           <div className="flex-1 text-center">
-            <div className="text-sm font-extrabold text-[var(--text)]">{fmtMin(awakeMin)}</div>
+            <div className="font-display text-sm font-extrabold text-[var(--text)]">{fmtMin(awakeMin)}</div>
             <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Awake</div>
           </div>
         </div>

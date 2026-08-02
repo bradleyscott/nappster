@@ -166,10 +166,10 @@ export function UnifiedEditDialog({
   const getDialogTitle = () => {
     if (!item) return 'Edit Event'
     if (isSession(item)) {
-      return item.type === 'nap' ? '😴 Edit Nap' : '🌙 Edit Overnight Sleep'
+      return item.type === 'nap' ? 'Edit Nap' : 'Edit Overnight Sleep'
     }
-    if (item.event_type === 'night_wake') return '👀 Edit Night Wake'
-    return '✏️ Edit Event'
+    if (item.event_type === 'night_wake') return 'Edit Night Wake'
+    return 'Edit Event'
   }
 
   return (

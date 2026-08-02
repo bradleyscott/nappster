@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { SleepIcon } from './sleep-icons'
 
 const colorMap = {
   lavender: { bg: 'bg-[var(--lavender-bg)]', text: 'text-[var(--lavender)]', border: 'border-[var(--lavender)]/20' },
@@ -41,22 +42,16 @@ export function SubtitlePills({ pills, className, onPillTap }: SubtitlePillsProp
             className={cn(
               'subtitle-pill-animated inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-bold leading-tight',
               c.bg, c.text, c.border,
-              isTappable && 'cursor-pointer active:scale-95 active:opacity-70 transition-all duration-100'
+              isTappable && 'cursor-pointer active:opacity-70 transition-opacity duration-100'
             )}
           >
             {pill.dot && (
-              <span className="relative flex h-2 w-2">
-                <span className={cn(
-                  'absolute inline-flex h-full w-full animate-ping rounded-full opacity-40',
-                  c.text.replace('text-', 'bg-')
-                )} />
-                <span className={cn(
-                  'relative inline-flex h-2 w-2 rounded-full',
-                  c.text.replace('text-', 'bg-')
-                )} />
-              </span>
+              <span className={cn(
+                'h-2 w-2 shrink-0 rounded-full',
+                c.text.replace('text-', 'bg-')
+              )} />
             )}
-            {pill.icon && <span>{pill.icon}</span>}
+            {pill.icon && <SleepIcon name={pill.icon} size={15} strokeWidth={2.5} />}
             {pill.label}
           </Tag>
         )

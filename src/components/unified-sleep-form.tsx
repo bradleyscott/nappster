@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Context } from '@/types/database'
 import { formatDuration, calculateDurationMinutes } from '@/lib/sleep-utils'
@@ -105,7 +105,7 @@ export function UnifiedSleepForm({
         onNotesChange={setNotes}
         inProgressText={
           mode === 'edit' && !endTime && initialStartTime
-            ? `⏱️ Currently sleeping for ${formatDuration(calculateDurationMinutes(initialStartTime, new Date().toISOString()))}`
+            ? `Currently sleeping for ${formatDuration(calculateDurationMinutes(initialStartTime, new Date().toISOString()))}`
             : undefined
         }
       />
@@ -123,7 +123,7 @@ export function UnifiedSleepForm({
             {isDeleting ? (
               <><Loader2 className="size-4 animate-spin mr-2" />Deleting...</>
             ) : (
-              '🗑️ Delete Sleep'
+              <><Trash2 className="size-4 mr-2" />Delete Sleep</>
             )}
           </Button>
         )}

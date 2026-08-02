@@ -1,0 +1,52 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Bento Grid · theme: Coral · enrichment: none (typography only) · nav: N5 (floating pill) · footer: app chrome (bottom tab strip)
+ * Pre-emit critique: P5 H5 E5 S4 R4 V4
+ *
+ * Nappster — dashboard prototype B "The Quiet Card".
+ * Theme tokens: Coral (warm-grey paper · one restrained coral accent · Geist).
+ * Locked tokens — every color and font-family in styles.css references these.
+ */
+
+:root {
+  /* Paper — warm-grey, modern-minimal loosens pure-white but we keep the tint */
+  --color-paper:    oklch(96.5% 0.005 50);
+  --color-paper-2:  oklch(94%   0.006 50);
+  --color-paper-3:  oklch(91%   0.008 50);
+
+  /* Rules & neutrals */
+  --color-rule:     oklch(86%   0.008 50);
+  --color-rule-2:   oklch(72%   0.010 50);
+  --color-muted:    oklch(52%   0.012 50);
+  --color-neutral:  oklch(38%   0.012 45);
+
+  /* Ink */
+  --color-ink:      oklch(20%   0.010 35);
+  --color-ink-2:    oklch(26%   0.012 40);
+
+  /* Accent — one. Used as highlighter, never a flood. */
+  --color-accent:     oklch(64%   0.165 28);
+  --color-accent-ink: oklch(98%   0.005 50);
+  --color-focus:      oklch(64%   0.165 28);
+
+  /* Type — Geist throughout + Geist Mono labels */
+  --font-display: "Geist", "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body:    "Geist", "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-label:   "Geist Mono", ui-monospace, monospace;
+
+  /* Radii — tight. Borders do the work, not shadows. */
+  --radius-card:  8px;
+  --radius-pill:  999px;
+  --radius-input: 6px;
+
+  /* Elevation — single soft layer */
+  --shadow-card: 0 1px 2px oklch(20% 0.01 35 / 0.05), 0 10px 24px -14px oklch(20% 0.01 35 / 0.10);
+  --shadow-pill: 0 6px 20px -8px oklch(20% 0.01 35 / 0.18);
+
+  /* Type scale — major third from 16px */
+  --text-xs:  0.8rem;
+  --text-sm:  0.9rem;
+  --text-base: 1rem;
+  --text-md:  1.25rem;
+  --text-lg:  1.5625rem;
+  --text-display-s: clamp(1.75rem, 4vw + 0.5rem, 2.5rem);
+  --text-figure:    clamp(2.5rem, 5vw + 0.5rem, 3.75rem);
+}

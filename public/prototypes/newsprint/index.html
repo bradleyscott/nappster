@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nappster · Prototype C — The Sleep Daybook (Newsprint)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="proto-bar">
+  <div class="proto-bar__inner">
+    <span>C · The Sleep Daybook — Newsprint</span>
+    <span><a href="../index.html">All concepts</a></span>
+  </div>
+</div>
+
+<div class="app">
+  <!-- Masthead · N6 -->
+  <header class="masthead">
+    <svg class="crescent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+      <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" />
+    </svg>
+    <div class="masthead__title">Nappster</div>
+    <div class="masthead__issue">Tuesday · 28 July · Vol. 4 · No. 2</div>
+  </header>
+
+  <main>
+    <!-- Opening line -->
+    <section class="opening">
+      <div class="opening__label">Today's record · 2:28 pm</div>
+      <h1>Luna is napping.</h1>
+      <div class="figure" id="figure">1H 24M<small> asleep</small></div>
+      <p class="lede">Asleep at 1:04 in the afternoon. An hour and a quarter in, and the house is quiet.</p>
+      <p class="marginal">Next wake <b>≈ 3:10 pm</b> · from your sleep plan</p>
+    </section>
+
+    <!-- Actions -->
+    <section class="actions">
+      <button class="btn" id="nap-ended" type="button">Nap ended</button>
+      <button class="link" id="log-past" type="button">+ log a past event</button>
+    </section>
+
+    <!-- The record · Long Document -->
+    <section class="record" aria-label="Today's sleep record">
+      <div class="record__head">
+        <h2>The record</h2>
+        <span>4 entries</span>
+      </div>
+
+      <div class="entry entry--now" id="entry-nap2">
+        <div class="entry__time">13:04</div>
+        <div class="entry__body">
+          <h3>Nap 02 <span class="now-mark">now</span></h3>
+          <p>Fell asleep at home shortly after one. Sleeping since.</p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry__time">11:47</div>
+        <div class="entry__body">
+          <h3>Wake 02</h3>
+          <p>Up from the morning nap, bright-eyed. An hour and a quarter of awake time before the next sleep.</p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry__time">09:05</div>
+        <div class="entry__body">
+          <h3>Nap 01 · 1h 07m</h3>
+          <p>The morning nap, ended at 10:12. A solid start to the day.</p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry__time">06:52</div>
+        <div class="entry__body">
+          <h3>Wake 01</h3>
+          <p>Morning wake with the light. Eleven and a half hours in bed overnight.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tonight -->
+    <section class="footnote">
+      <span>Tonight · expected</span>
+      <b>≈ 7:45 pm</b>
+    </section>
+  </main>
+
+  <nav class="tabstrip" aria-label="Primary">
+    <button type="button" aria-current="page">Today</button>
+    <button type="button">Trends</button>
+    <button type="button">Family</button>
+  </nav>
+</div>
+
+<script>
+(function () {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var figure = document.getElementById('figure');
+  var napMin = 84;
+
+  function fmt(min) {
+    var h = Math.floor(min / 60), m = min % 60;
+    return h + 'H ' + String(m).padStart(2, '0') + 'M';
+  }
+
+  function render(min) {
+    figure.innerHTML = fmt(min) + '<small> asleep</small>';
+  }
+
+  if (reduced) {
+    render(napMin);
+  } else {
+    var t0 = performance.now(), dur = 1400;
+    (function step(now) {
+      var p = Math.min((now - t0) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      render(Math.round(napMin * eased));
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  /* Nap ended — the record gains one line. Quiet. */
+  var ended = false;
+  document.getElementById('nap-ended').addEventListener('click', function () {
+    if (ended) return;
+    ended = true;
+    var entry = document.getElementById('entry-nap2');
+    entry.querySelector('h3').innerHTML = 'Nap 02 · 1h 27m';
+    entry.querySelector('p').textContent = 'Fell asleep at home shortly after one. Woke at 2:31, calm.';
+    var wake = document.createElement('div');
+    wake.className = 'entry entry--now';
+    wake.innerHTML =
+      '<div class="entry__time">14:31</div>' +
+      '<div class="entry__body"><h3>Wake 03 <span class="now-mark">now</span></h3>' +
+      '<p>Up and awake. The afternoon begins.</p></div>';
+    entry.after(wake);
+    this.textContent = 'Log bedtime';
+  });
+
+  document.getElementById('log-past').addEventListener('click', function () {
+    this.textContent = 'Sheet opens here — kept quiet in this register';
+    var self = this;
+    setTimeout(function () { self.textContent = '+ log a past event'; }, 1600);
+  });
+})();
+</script>
+</body>
+</html>

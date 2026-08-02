@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { TimezoneProvider } from "@/components/timezone-provider";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
@@ -13,6 +13,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Rounded display face for headings, big numerals and buttons — pairs with Geist body.
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -47,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
+        className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} antialiased min-h-screen bg-background`}
       >
         <ServiceWorkerRegister />
         <MockUserToggle />

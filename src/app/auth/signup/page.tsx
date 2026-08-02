@@ -53,7 +53,7 @@ export default function SignupPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] p-6">
       <NappsterLogo size={100} />
 
-      <div className="mt-6 w-full max-w-xs rounded-[24px] bg-white p-6 shadow-[var(--shadow-md)]">
+      <div className="mt-6 w-full max-w-xs rounded-[24px] bg-[var(--card-surface)] p-6 shadow-[var(--shadow-md)]">
         <h1 className="text-center text-2xl font-black text-[var(--text)]">Create account</h1>
         <p className="mt-1 text-center text-sm font-bold text-[var(--text-secondary)]">
           Start tracking your baby&apos;s sleep
@@ -82,7 +82,7 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+              className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
             />
           </div>
 
@@ -98,7 +98,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+              className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
             />
           </div>
 
@@ -114,14 +114,14 @@ export default function SignupPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full rounded-xl border-2 border-[#EEE] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
+              className="w-full rounded-xl border-2 border-[var(--line-soft)] bg-[var(--card-surface)] px-4 py-3 text-sm font-bold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--lavender)]"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-gradient-to-br from-[var(--lavender)] to-[#7C4DFF] py-3.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(124,77,255,0.25)] transition-all active:scale-[0.97] disabled:opacity-60"
+            className="w-full rounded-2xl btn-solid w-full text-sm disabled:opacity-60"
           >
             {loading ? 'Creating account...' : 'Sign up'}
           </button>

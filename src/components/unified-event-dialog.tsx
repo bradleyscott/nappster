@@ -194,11 +194,11 @@ export function UnifiedEventDialog({
   // Determine dialog title
   const getDialogTitle = () => {
     if (completingSession) {
-      return completingSession.type === 'nap' ? '😴 Complete Nap' : '☀️ Log Morning Wake'
+      return completingSession.type === 'nap' ? 'Complete Nap' : 'Log Morning Wake'
     }
-    if (selectedCategory === 'nap') return '😴 Log Nap'
-    if (selectedCategory === 'sleep') return '🌙 Log Overnight Sleep'
-    if (selectedCategory === 'night_wake') return '👀 Log Night Wake'
+    if (selectedCategory === 'nap') return 'Log Nap'
+    if (selectedCategory === 'sleep') return 'Log Overnight Sleep'
+    if (selectedCategory === 'night_wake') return 'Log Night Wake'
     return 'Add Sleep Event'
   }
 

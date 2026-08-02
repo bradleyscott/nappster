@@ -1,0 +1,57 @@
+/* Hallmark · genre: editorial · macrostructure: Long Document · theme: Newsprint · enrichment: Tier B (hand-built SVG) · nav: N6 (newspaper masthead) · footer: app chrome (hairline tab strip)
+ * Pre-emit critique: P5 H4 E5 S4 R4 V4
+ *
+ * Nappster — dashboard prototype C "The Sleep Daybook".
+ * Theme tokens: Newsprint (warm cream · ink-brown accent · serif).
+ * 2+1 type discipline: Playfair Display (display) · Crimson Pro (body) · IBM Plex Mono (outlier: labels + figures only).
+ * Locked tokens — every color and font-family in styles.css references these.
+ */
+
+:root {
+  /* Paper — warm cream, never pure white */
+  --color-paper:    oklch(92%  0.045 50);
+  --color-paper-2:  oklch(89%  0.050 50);
+  --color-paper-3:  oklch(84%  0.054 45);
+
+  /* Rules & neutrals */
+  --color-rule:     oklch(68%  0.030 40);
+  --color-rule-2:   oklch(35%  0.020 35);
+  --color-muted:    oklch(46%  0.022 35);
+  --color-neutral:  oklch(30%  0.025 30);
+
+  /* Ink */
+  --color-ink:      oklch(15%  0.030 25);
+  --color-ink-2:    oklch(20%  0.030 28);
+
+  /* Accent — single warm ink-brown, used as highlighter */
+  --color-accent:     oklch(32%  0.10 28);
+  --color-accent-ink: oklch(45%  0.13 30);
+  --color-focus:      oklch(48%  0.18 30);
+
+  /* Type — serif display, serif body, mono outlier (labels + figures only) */
+  --font-display: "Playfair Display", "Crimson Pro", ui-serif, Georgia, serif;
+  --font-body:    "Crimson Pro", "Newsreader", ui-serif, Georgia, serif;
+  --font-label:   "IBM Plex Mono", ui-monospace, monospace;
+
+  --display-weight: 700;
+  --tracking-display: -0.022em;
+  --tracking-label: 0.06em;
+
+  /* Radii — editorial is hairline-led; corners stay nearly square */
+  --radius-card: 4px;
+
+  /* Elevation — flat. No shadows in the daybook. */
+  --shadow-card: none;
+
+  /* Measure — body copy line length */
+  --measure: 58ch;
+
+  /* Type scale — major third from 17px body */
+  --text-base: 1.0625rem;
+  --text-sm:   0.95rem;
+  --text-md:   1.1875rem;
+  --text-lg:   1.375rem;
+  --text-2xl:  2rem;
+  --text-display:   clamp(2rem, 4vw + 0.75rem, 3rem);
+  --text-figure:    clamp(2.5rem, 6vw + 0.5rem, 3.5rem);
+}

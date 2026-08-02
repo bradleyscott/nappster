@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nappster · Prototype A — The Sun &amp; Moon (Hum)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="proto-bar">
+  <div class="proto-bar__inner">
+    <span>A · The Sun &amp; Moon — Hum</span>
+    <span><a href="../index.html">All concepts</a></span>
+  </div>
+</div>
+
+<div class="app">
+  <header class="app-bar">
+    <div class="wordmark">napp<b>ster</b></div>
+    <div class="app-bar__clock" id="clock">Tue · 2:28 PM</div>
+  </header>
+
+  <main>
+    <!-- Stat-led hero -->
+    <section class="hero">
+      <div class="eyebrow">Sleep · Nap 02</div>
+      <div class="hero__main">
+        <svg class="moon" id="moon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M30.5 34.5A13 13 0 1 1 15 19a10.5 10.5 0 0 0 15.5 15.5Z"
+                fill="currentColor" opacity="0.9" />
+          <circle cx="17.5" cy="12" r="1.6" fill="currentColor" opacity="0.55" />
+          <circle cx="14" cy="17" r="1.1" fill="currentColor" opacity="0.4" />
+        </svg>
+        <div>
+          <div class="hero__figure" id="figure">0h 00m</div>
+          <p class="hero__statement" id="statement">Napping since 1:04 pm.</p>
+        </div>
+      </div>
+      <div class="pills">
+        <span class="pill pill--event">Nap started · 1:04 pm</span>
+        <span class="pill pill--state" id="state-pill">Napping for 1h 24m</span>
+      </div>
+      <div class="hero__expected">
+        <span>Next wake <b>≈ 3:10 pm</b></span>
+        <span>from your sleep plan</span>
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <section class="actions">
+      <button class="btn" id="nap-ended" type="button">
+        Nap ended
+        <svg class="btn__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <button class="btn btn--soft" id="log-past" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Log past event
+      </button>
+    </section>
+
+    <!-- Timeline · color-shift rows -->
+    <section class="timeline" aria-label="Today's timeline">
+      <div class="section-head">
+        <h2>Timeline</h2>
+        <span>Today · 4 events</span>
+      </div>
+
+      <div class="tl-row tl-row--active" id="row-nap2">
+        <span class="tl-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 17.5a3.5 3.5 0 0 1-.35-6.98A4.75 4.75 0 0 1 15 8.6a3.9 3.9 0 0 1 .5 7.77"/><path d="M9 17.5h8"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Nap 2 · started <span class="now-pill">now</span></h3>
+          <p>1:04 PM · home</p>
+        </div>
+        <span class="tl-duration" id="row-duration">1h 24m</span>
+      </div>
+
+      <div class="tl-row">
+        <span class="tl-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Wake 2</h3>
+          <p>11:47 AM · home</p>
+        </div>
+        <span class="tl-duration">awake 1h 17m</span>
+      </div>
+
+      <div class="tl-row">
+        <span class="tl-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 17.5a3.5 3.5 0 0 1-.35-6.98A4.75 4.75 0 0 1 15 8.6a3.9 3.9 0 0 1 .5 7.77"/><path d="M9 17.5h8"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Nap 1 · ended</h3>
+          <p>9:05 AM → 10:12 AM · home</p>
+        </div>
+        <span class="tl-duration">1h 07m</span>
+      </div>
+
+      <div class="tl-row">
+        <span class="tl-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
+        </span>
+        <div class="tl-body">
+          <h3>Morning wake</h3>
+          <p>6:52 AM · home</p>
+        </div>
+        <span class="tl-duration">11h 32m in bed</span>
+      </div>
+    </section>
+
+    <!-- Tonight -->
+    <section class="tonight">
+      <div>
+        <b>Tonight</b>
+        <small>expected from your plan</small>
+      </div>
+      <span>≈ 7:45 pm</span>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Primary">
+    <div class="tabbar__inner">
+      <button class="tab" type="button" aria-current="page">Today</button>
+      <button class="tab" type="button">Trends</button>
+      <button class="tab" type="button">Family</button>
+    </div>
+  </nav>
+</div>
+
+<!-- Chat FAB — coral, the one high-energy moment -->
+<button class="fab" id="fab" type="button" aria-label="Ask the sleep coach">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/></svg>
+</button>
+
+<!-- Bottom sheet -->
+<div class="sheet" id="sheet" aria-hidden="true">
+  <div class="sheet__backdrop" data-close></div>
+  <div class="sheet__panel" role="dialog" aria-label="Log a past event">
+    <div class="sheet__grip"></div>
+    <div class="eyebrow">Log a past event</div>
+    <div class="field">
+      <label for="ev-type">Event</label>
+      <select id="ev-type">
+        <option>Nap started</option>
+        <option>Nap ended</option>
+        <option>Bedtime</option>
+        <option>Morning wake</option>
+        <option>Night wake</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="ev-date">Date</label>
+      <input id="ev-date" type="date" value="2026-08-02" />
+    </div>
+    <div class="field">
+      <label for="ev-time">Time</label>
+      <input id="ev-time" type="time" value="13:04" />
+    </div>
+    <button class="btn" type="button" id="sheet-save" style="width:100%">
+      Add to timeline
+      <svg class="btn__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Clock ── */
+  var clock = document.getElementById('clock');
+  function tickClock() {
+    var d = new Date();
+    var h = d.getHours() % 12 || 12;
+    var m = String(d.getMinutes()).padStart(2, '0');
+    var ampm = d.getHours() < 12 ? 'AM' : 'PM';
+    clock.textContent = h + ':' + m + ' ' + ampm;
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  /* ── Counter tick-up: 0:00 → 1:24 on load ── */
+  var figure = document.getElementById('figure');
+  var statePill = document.getElementById('state-pill');
+  var rowDuration = document.getElementById('row-duration');
+  var napMin = 84; /* 1h 24m */
+  var awakeSince = null; /* minutes since nap ended */
+
+  function fmt(min) {
+    var h = Math.floor(min / 60), m = min % 60;
+    return (h ? h + 'h ' : '') + String(m).padStart(2, '0') + 'm';
+  }
+  function fmtDur(min) {
+    var h = Math.floor(min / 60), m = min % 60;
+    return (h ? h + 'h ' : '') + m + 'm';
+  }
+
+  function renderNap(min) {
+    figure.textContent = fmt(min);
+    statePill.textContent = 'Napping for ' + fmtDur(min);
+    rowDuration.textContent = fmtDur(min);
+  }
+
+  if (reduced) {
+    renderNap(napMin);
+  } else {
+    var t0 = performance.now(), dur = 1200;
+    (function step(now) {
+      var p = Math.min((now - t0) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      renderNap(Math.round(napMin * eased));
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  /* ── Star burst ── */
+  function burst(x, y) {
+    if (reduced) return;
+    var s = document.createElement('span');
+    s.className = 'star-burst';
+    s.style.left = (x - 12) + 'px';
+    s.style.top = (y - 12) + 'px';
+    document.body.appendChild(s);
+    setTimeout(function () { s.remove(); }, 450);
+  }
+
+  /* ── Nap ended ── */
+  var ended = false;
+  var btn = document.getElementById('nap-ended');
+  var statement = document.getElementById('statement');
+  var moon = document.getElementById('moon');
+  var rowNap2 = document.getElementById('row-nap2');
+
+  btn.addEventListener('click', function (e) {
+    var r = btn.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2);
+    if (ended) return;
+    ended = true;
+    napMin = 87; /* 1h 27m at 2:31 pm */
+    awakeSince = 0;
+    statement.textContent = 'Awake since 2:31 pm.';
+    statePill.textContent = 'Awake for 0m';
+    moon.classList.add('is-awake');
+    rowNap2.querySelector('h3').innerHTML = 'Nap 2 · ended <span class="now-pill">now</span>';
+    rowNap2.querySelector('p').textContent = '1:04 PM → 2:31 PM · home';
+    rowDuration.textContent = '1h 27m';
+    btn.textContent = 'Log bedtime';
+    var wake = document.createElement('div');
+    wake.className = 'tl-row';
+    wake.innerHTML =
+      '<span class="tl-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg></span>' +
+      '<div class="tl-body"><h3>Wake 3</h3><p>2:31 PM · home</p></div>' +
+      '<span class="tl-duration">now</span>';
+    rowNap2.after(wake);
+    var head = document.querySelector('.section-head span');
+    head.textContent = 'Today · 5 events';
+    /* continue counting awake time */
+    setInterval(function () {
+      if (awakeSince === null) return;
+      awakeSince += 1;
+      statePill.textContent = 'Awake for ' + fmtDur(awakeSince);
+    }, 60000);
+  });
+
+  /* ── Sheet ── */
+  var sheet = document.getElementById('sheet');
+  function openSheet() { sheet.classList.add('is-open'); sheet.setAttribute('aria-hidden', 'false'); }
+  function closeSheet() { sheet.classList.remove('is-open'); sheet.setAttribute('aria-hidden', 'true'); }
+  document.getElementById('log-past').addEventListener('click', openSheet);
+  sheet.querySelector('[data-close]').addEventListener('click', closeSheet);
+  document.getElementById('sheet-save').addEventListener('click', function (e) {
+    var r = e.currentTarget.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2);
+    closeSheet();
+  });
+
+  /* ── FAB — sparks once per click ── */
+  var fab = document.getElementById('fab');
+  fab.addEventListener('click', function (e) {
+    var r = fab.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2);
+  });
+})();
+</script>
+</body>
+</html>

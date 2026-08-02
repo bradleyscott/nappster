@@ -2,6 +2,7 @@
 
 import { useMemo, type Dispatch, type SetStateAction } from 'react'
 import { X } from 'lucide-react'
+import { SleepIcon } from '@/components/sleep/sleep-icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -22,10 +23,10 @@ export function toLocalDateTimeString(date: Date): string {
 // Location / context selector
 // ---------------------------------------------------------------------------
 
-const CONTEXT_OPTIONS: { value: Context; label: string; emoji: string }[] = [
-  { value: 'home', label: 'Home', emoji: '🏠' },
-  { value: 'daycare', label: 'Daycare', emoji: '🏫' },
-  { value: 'travel', label: 'Travel', emoji: '✈️' },
+const CONTEXT_OPTIONS: { value: Context; label: string; icon: string }[] = [
+  { value: 'home', label: 'Home', icon: 'home' },
+  { value: 'daycare', label: 'Daycare', icon: 'school' },
+  { value: 'travel', label: 'Travel', icon: 'plane' },
 ]
 
 export function ContextSelector({
@@ -45,7 +46,7 @@ export function ContextSelector({
           onClick={() => onChange(option.value)}
           className="flex-1 h-11"
         >
-          <span className="mr-1.5">{option.emoji}</span>
+          <SleepIcon name={option.icon} size={16} strokeWidth={2.25} className="mr-1.5" />
           {option.label}
         </Button>
       ))}

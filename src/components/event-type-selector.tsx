@@ -1,5 +1,6 @@
 'use client'
 
+import { CloudSun, Eye, Moon, Sun } from 'lucide-react'
 import { Context } from '@/types/database'
 import { Card } from '@/components/ui/card'
 import { formatDuration } from '@/lib/sleep-utils'
@@ -37,9 +38,11 @@ export function EventTypeSelector({
             onClick={() => onCompleteSession(inProgressSession)}
           >
             <div className="flex items-start gap-3">
-              <span className="text-2xl mt-0.5">
-                {inProgressSession.type === 'nap' ? '😴' : '☀️'}
-              </span>
+              {inProgressSession.type === 'nap' ? (
+                <CloudSun className="mt-0.5 text-[var(--mint)]" size={26} strokeWidth={2} />
+              ) : (
+                <Sun className="mt-0.5 text-[var(--peach)]" size={26} strokeWidth={2} />
+              )}
               <div className="flex-1 min-w-0">
                 <div className="font-medium">
                   {inProgressSession.type === 'nap' ? 'End current nap' : 'Log morning wake'}
@@ -67,7 +70,7 @@ export function EventTypeSelector({
             onClick={() => onSelectCategory('nap')}
           >
             <div className="flex flex-col items-center gap-2 text-center">
-              <span className="text-3xl">😴</span>
+              <CloudSun size={30} strokeWidth={1.8} className="text-[var(--mint)]" />
               <span className="font-medium">Nap</span>
             </div>
           </Card>
@@ -78,7 +81,7 @@ export function EventTypeSelector({
             onClick={() => onSelectCategory('sleep')}
           >
             <div className="flex flex-col items-center gap-2 text-center">
-              <span className="text-3xl">🌙</span>
+              <Moon size={30} strokeWidth={1.8} className="text-[var(--lavender)]" />
               <span className="font-medium">Sleep</span>
             </div>
           </Card>
@@ -90,7 +93,7 @@ export function EventTypeSelector({
           onClick={() => onSelectCategory('night_wake')}
         >
           <div className="flex items-center justify-center gap-2">
-            <span className="text-2xl">👀</span>
+            <Eye size={24} strokeWidth={1.8} className="text-[var(--rose)]" />
             <span className="font-medium">Night Wake</span>
           </div>
         </Card>

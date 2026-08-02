@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { calculateDurationMinutes } from '@/lib/sleep-utils'
 import { SleepEventFields, toLocalDateTimeString } from '@/components/sleep-event-fields'
@@ -109,7 +109,7 @@ export function NightWakeForm({
             {isDeleting ? (
               <><Loader2 className="size-4 animate-spin mr-2" />Deleting...</>
             ) : (
-              '🗑️ Delete Event'
+              <><Trash2 className="size-4 mr-2" />Delete Event</>
             )}
           </Button>
         )}

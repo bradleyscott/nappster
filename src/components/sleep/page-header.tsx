@@ -33,7 +33,7 @@ export function PageHeader({
           <button
             onClick={onBack}
             disabled={isNavigatingBack}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform disabled:opacity-60"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--card-surface)] text-[var(--text-secondary)] shadow-[var(--shadow-sm)] active:scale-90 transition-transform disabled:opacity-60"
             aria-label="Go back"
           >
             {isNavigatingBack ? (
@@ -55,7 +55,7 @@ export function PageHeader({
       {/* Rounded card header */}
       <div
         className={cn(
-          'flex w-full min-h-[84px] items-center justify-center gap-3.5 rounded-[22px] bg-white px-14 py-3 text-center shadow-[var(--shadow-sm)]',
+          'flex w-full min-h-[84px] items-center justify-center gap-3.5 rounded-[22px] bg-[var(--card-surface)] px-14 py-3 text-center shadow-[var(--shadow-sm)]',
           (!onBack && !rightActions) && 'px-5'
         )}
       >

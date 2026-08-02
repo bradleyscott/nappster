@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, Calendar, Share2, Check } from 'lucide-react'
+import { ChevronDown, Calendar, Share2, Check, Moon } from 'lucide-react'
 import { formatTime } from '@/lib/sleep-utils'
 import type { SleepPlanRow, ScheduleItem, NextAction } from '@/types/database'
 
@@ -212,7 +212,7 @@ export function SleepPlanCard({ plan, defaultOpen = false }: SleepPlanCardProps)
                 {/* Bedtime row */}
                 <div className="flex items-center gap-3 py-1.5 px-2 rounded bg-indigo-50 dark:bg-indigo-950 text-sm min-w-0">
                   <span className="w-4 text-center shrink-0 text-indigo-600 dark:text-indigo-400">
-                    🌙
+                    <Moon size={14} strokeWidth={2.25} />
                   </span>
                   <span className="flex-1 font-medium min-w-0 text-indigo-600 dark:text-indigo-400">
                     Bedtime
