@@ -64,16 +64,16 @@ describe('isPlanStaleForNaps', () => {
     const events = [
       makeEvent({
         event_type: 'nap_end',
-        event_time: '2024-06-15T09:30:00Z',
+        event_time: '2024-06-15T09:45:00Z',
       }),
     ]
     const plan = {
       schedule: makeSchedule([
-        { type: 'nap', status: 'completed' },
+        { type: 'nap', status: 'completed', timeWindow: '9:00 - 9:45am' },
         { type: 'nap', status: 'upcoming', timeWindow: '11:00 - 11:30am' },
       ]),
     }
-    const stale = isPlanStaleForNaps(plan, events, 'America/New_York', NOW)
+    const stale = isPlanStaleForNaps(plan, events, 'UTC', NOW)
     expect(stale, `plan=${JSON.stringify(plan)} now=${NOW.toISOString()}`).toBe(false)
   })
 
@@ -252,6 +252,7 @@ describe('getCountdownContext — daytime_awake (nap next)', () => {
       ]),
     }
     const ctx = getCountdownContext('daytime_awake', events, plan, undefined, NOW, {
+      timezone: 'UTC',
       trendsNextNapHours: [11.0], // 11:00am — ahead of 10:00 now
     })
     expect(ctx.mode).toBe('nap')
@@ -266,13 +267,17 @@ describe('getCountdownContext — daytime_awake (nap next)', () => {
         event_time: '2024-06-15T07:00:00Z',
       }),
       makeEvent({
+        event_type: 'nap_start',
+        event_time: '2024-06-15T09:00:00Z',
+      }),
+      makeEvent({
         event_type: 'nap_end',
         event_time: '2024-06-15T09:30:00Z',
       }),
     ]
     const plan = {
       schedule: makeSchedule([
-        { type: 'nap', status: 'completed' },
+        { type: 'nap', status: 'completed', timeWindow: '9:00 - 9:30am' },
         {
           type: 'nap',
           status: 'upcoming',
@@ -282,6 +287,7 @@ describe('getCountdownContext — daytime_awake (nap next)', () => {
       ]),
     }
     const ctx = getCountdownContext('daytime_awake', events, plan, undefined, NOW, {
+      timezone: 'UTC',
       trendsNextNapHours: [14.0], // 2pm — plan at 11am should win
     })
     expect(ctx.mode).toBe('nap')
@@ -302,8 +308,12 @@ describe('getCountdownContext — daytime_awake (bedtime next)', () => {
         event_time: '2024-06-15T07:00:00Z',
       }),
       makeEvent({
-        event_type: 'nap_end',
+        event_type: 'nap_start',
         event_time: '2024-06-15T09:00:00Z',
+      }),
+      makeEvent({
+        event_type: 'nap_end',
+        event_time: '2024-06-15T10:00:00Z',
       }),
       makeEvent({
         event_type: 'nap_start',
@@ -325,12 +335,14 @@ describe('getCountdownContext — daytime_awake (bedtime next)', () => {
     const plan = {
       schedule: makeSchedule([
         { type: 'nap', status: 'completed', timeWindow: '9:00 - 10:00am' },
-        { type: 'nap', status: 'completed', timeWindow: '11:00am - 12:30pm' },
-        { type: 'nap', status: 'completed', timeWindow: '2:00 - 3:30pm' },
+        { type: 'nap', status: 'completed', timeWindow: '11:00am - 12:00pm' },
+        { type: 'nap', status: 'completed', timeWindow: '2:00 - 3:00pm' },
       ]),
       targetBedtime: '7:00 - 7:30pm',
     }
-    const ctx = getCountdownContext('daytime_awake', events, plan, undefined, NOW)
+    const ctx = getCountdownContext('daytime_awake', events, plan, undefined, NOW, {
+      timezone: 'UTC',
+    })
     expect(ctx.mode).toBe('bedtime')
     expect(ctx.source).toBe('plan')
     expect(ctx.expectedText).toBe('Target bedtime')

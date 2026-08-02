@@ -11,8 +11,9 @@
  */
 
 import type { SleepEvent, EventType, ScheduleItem } from '@/types/database'
-import { calculateAgeInMonths } from '@/lib/sleep-utils'
+import { calculateAgeInMonths, groupEventsIntoSessions } from '@/lib/sleep-utils'
 import { getTodayBoundsForTimezone } from '@/lib/timezone'
+import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -310,25 +311,91 @@ function allNapsDone(plan: CountdownPlanInput | null): boolean {
 }
 
 /**
- * Count actual `nap_end` events that occurred today (in the given timezone).
- * Used to detect a stale plan whose schedule claims more completed naps than
- * actually happened today. When `timezone` is omitted, falls back to all events.
+ * Decimal wall-clock hour (0..24) of an absolute instant in a timezone.
  */
-function countNapEndsToday(
+function hourInTimezone(date: Date, timezone: string): number {
+  const z = toZonedTime(date, timezone)
+  return z.getHours() + z.getMinutes() / 60
+}
+
+/**
+ * Absolute instant of `hour` (a decimal wall-clock time, e.g. 9.5 = 9:30am) on
+ * `now`'s calendar day in `timezone`.
+ *
+ * Unlike `dateAtHour` (which builds a Date in the machine's local timezone),
+ * this is explicit about the sleep timezone so staleness comparisons against
+ * UTC-stored event timestamps are consistent everywhere (client, server, tests).
+ */
+function hourDateInTimezone(hour: number, now: Date, timezone: string): Date {
+  const zonedNow = toZonedTime(now, timezone)
+  const h = Math.floor(hour)
+  const m = Math.round((hour - h) * 60)
+  const local = new Date(
+    zonedNow.getFullYear(),
+    zonedNow.getMonth(),
+    zonedNow.getDate(),
+    h,
+    m,
+    0,
+    0
+  )
+  return fromZonedTime(local, timezone)
+}
+
+/**
+ * Resolve the timezone used for countdown targets. Prefers the explicitly
+ * provided sleep timezone (the user's cookie timezone); falls back to the
+ * environment's local zone to preserve the historical machine-local behavior
+ * when no timezone is supplied.
+ */
+function resolveTimezone(timezone: string | undefined): string {
+  if (timezone && timezone !== 'auto') return timezone
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
+/**
+ * Actual nap sessions that occurred today (in the given timezone), expressed as
+ * decimal wall-clock hours. A nap_start followed by a nap_end forms one session;
+ * unpaired nap_start/nap_end events are kept as single-sided sessions so counts
+ * remain accurate even when events are logged individually (e.g. EventSheet).
+ */
+function napSessionsToday(
   events: SleepEvent[],
   timezone: string | undefined,
-  now: Date = new Date()
-): number {
+  now: Date
+): Array<{ start: number | null; end: number | null }> {
+  const tz = timezone ?? 'UTC'
   let scoped = events
-  if (timezone) {
-    try {
-      const { start, end } = getTodayBoundsForTimezone(timezone, now)
-      scoped = events.filter((e) => e.event_time >= start && e.event_time < end)
-    } catch {
-      // getTodayBoundsForTimezone validates the tz; if it somehow fails, keep all events.
+  try {
+    const { start, end } = getTodayBoundsForTimezone(tz, now)
+    scoped = events.filter((e) => e.event_time >= start && e.event_time < end)
+  } catch {
+    // getTodayBoundsForTimezone validates the tz; if it somehow fails, keep all events.
+  }
+
+  const sorted = [...scoped].sort(
+    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+  ) as SleepEvent[]
+
+  const sessions: Array<{ start: number | null; end: number | null }> = []
+  for (const item of groupEventsIntoSessions(sorted)) {
+    if (item.kind === 'session' && item.session.type === 'nap') {
+      sessions.push({
+        start: hourInTimezone(new Date(item.session.startEvent.event_time), tz),
+        end: item.session.endEvent
+          ? hourInTimezone(new Date(item.session.endEvent.event_time), tz)
+          : null,
+      })
+    } else if (item.kind === 'standalone') {
+      const e = item.event
+      if (e.event_type === 'nap_start') {
+        sessions.push({ start: hourInTimezone(new Date(e.event_time), tz), end: null })
+      } else if (e.event_type === 'nap_end') {
+        sessions.push({ start: null, end: hourInTimezone(new Date(e.event_time), tz) })
+      }
     }
   }
-  return scoped.filter((e) => e.event_type === 'nap_end').length
+  return sessions
 }
 
 // ---------------------------------------------------------------------------
@@ -337,12 +404,16 @@ function countNapEndsToday(
 
 /**
  * Detect whether a sleep plan is stale for the purposes of projecting today's
- * next nap. A plan is stale when EITHER:
- *   1. Its schedule claims more `completed`/`in_progress` naps than the number of
- *      `nap_end` events actually logged today (the schedule was written for an
- *      earlier state and never regenerated), OR
- *   2. Its first `upcoming` nap's projected target time is already in the past
- *      (the window for that nap has come and gone).
+ * next nap. A plan is stale when reality has diverged from what it describes:
+ *
+ *   1. The plan claims more `completed` naps than have actually ended today.
+ *   2. More naps have actually ended than the plan accounts for (an extra or
+ *      off-schedule nap happened that the plan was never regenerated for).
+ *   3. The plan and reality disagree about whether a nap is in progress right
+ *      now — or the in-progress nap's planned end time has already passed.
+ *   4. The next `upcoming` nap's planned start time has already passed.
+ *   5. The actual nap times (start/end) drifted more than 30 minutes from the
+ *      plan's claimed times for the same naps.
  *
  * Returns `true` for an absent plan so callers treat "no plan" as "fall back to
  * trends" rather than trusting nothing.
@@ -355,20 +426,67 @@ export function isPlanStaleForNaps(
 ): boolean {
   if (!plan?.schedule) return true
 
-  const claimedDone = plan.schedule.filter(
-    (i) => i.type === 'nap' && (i.status === 'completed' || i.status === 'in_progress')
-  ).length
-  const actualDone = countNapEndsToday(events, timezone, now)
-  if (claimedDone > actualDone) return true
+  const tz = timezone ?? 'UTC'
+  const planNaps = plan.schedule.filter(
+    (i) => i.type === 'nap' && i.status !== 'skipped'
+  )
 
-  const nextNap = nextUpcomingNap(plan)
-  if (nextNap) {
-    const napHour = parseTimeWindowDual(nextNap.timeWindow).start
-    if (napHour != null) {
-      const target = dateAtHour(napHour, now)
-      if (target.getTime() <= now.getTime()) return true
+  const sessions = napSessionsToday(events, tz, now)
+  const napEnds = sessions.filter((s) => s.end != null).length
+  // A nap is actually in progress when a nap_start session has not yet ended
+  // (robust to orphaned nap_end events, which would unbalance start/end counts).
+  const actualInProgress = sessions.some((s) => s.start != null && s.end == null)
+
+  const claimedCompleted = planNaps.filter((i) => i.status === 'completed').length
+  const claimedInProgress = planNaps.filter((i) => i.status === 'in_progress').length
+  const planInProgressItem = planNaps.find((i) => i.status === 'in_progress')
+
+  // Rule 1: the plan claims completed naps that haven't actually ended today.
+  if (claimedCompleted > napEnds) return true
+
+  // Rule 2: more naps have ended today than the plan accounts for — an extra
+  // or off-schedule nap happened and the schedule was never regenerated.
+  if (napEnds > claimedCompleted + claimedInProgress) return true
+
+  // Rule 3: the plan and reality must agree on whether a nap is happening right
+  // now. When both agree a nap is in progress, the planned end must still be
+  // ahead of now (otherwise the nap has run past its planned window).
+  if (actualInProgress !== (claimedInProgress > 0)) return true
+  if (actualInProgress && planInProgressItem) {
+    const end = parseTimeWindowDual(planInProgressItem.timeWindow).end
+    if (end != null && hourDateInTimezone(end, now, tz).getTime() <= now.getTime()) {
+      return true
     }
   }
+
+  // Rule 4: the next upcoming nap's planned start has passed.
+  const nextUpcoming = planNaps.find((i) => i.status === 'upcoming')
+  if (nextUpcoming) {
+    const start = parseTimeWindowDual(nextUpcoming.timeWindow).start
+    if (start != null && hourDateInTimezone(start, now, tz).getTime() <= now.getTime()) {
+      return true
+    }
+  }
+
+  // Rule 5: actual nap times drifted from the plan's claimed times. Sessions are
+  // paired chronologically with the plan's completed/in-progress naps.
+  const claimedNaps = planNaps
+    .filter((i) => i.status === 'completed' || i.status === 'in_progress')
+    .map((i) => parseTimeWindowDual(i.timeWindow))
+
+  const DRIFT_TOLERANCE_HOURS = 30 / 60
+  const pairCount = Math.min(sessions.length, claimedNaps.length)
+  for (let i = 0; i < pairCount; i++) {
+    const claimed = claimedNaps[i]
+    const actual = sessions[i]
+    if (claimed.start != null && actual.start != null) {
+      if (Math.abs(actual.start - claimed.start) > DRIFT_TOLERANCE_HOURS) return true
+    }
+    if (claimed.end != null && actual.end != null) {
+      if (Math.abs(actual.end - claimed.end) > DRIFT_TOLERANCE_HOURS) return true
+    }
+  }
+
   return false
 }
 
@@ -378,11 +496,12 @@ export function isPlanStaleForNaps(
  */
 function firstTrendsNapAhead(
   trendsNextNapHours: number[] | undefined,
-  now: Date
+  now: Date,
+  tz: string
 ): Date | null {
   if (!trendsNextNapHours || trendsNextNapHours.length === 0) return null
   for (const hour of trendsNextNapHours) {
-    const target = dateAtHour(hour, now)
+    const target = hourDateInTimezone(hour, now, tz)
     if (target.getTime() > now.getTime()) return target
   }
   return null
@@ -395,10 +514,11 @@ function firstTrendsNapAhead(
  */
 function trendsBedtimeTarget(
   opts: CountdownOptions,
-  now: Date
+  now: Date,
+  tz: string
 ): Date | null {
   if (opts.trendsBedtimeHour == null) return null
-  const target = dateAtHour(opts.trendsBedtimeHour, now)
+  const target = hourDateInTimezone(opts.trendsBedtimeHour, now, tz)
   return target.getTime() > now.getTime() ? target : new Date(target.getTime() + 24 * 60 * 60 * 1000)
 }
 
@@ -421,7 +541,8 @@ export function getCountdownContext(
   const sorted = [...events].sort(
     (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
   )
-  const planStale = isPlanStaleForNaps(plan, sorted, opts.timezone, now)
+  const tz = resolveTimezone(opts.timezone)
+  const planStale = isPlanStaleForNaps(plan, sorted, tz, now)
 
   switch (state) {
     case 'overnight_sleep': {
@@ -436,7 +557,7 @@ export function getCountdownContext(
       const trendsWakeHour = opts.trendsWakeHour
       const wakeHour = planWakeHour ?? trendsWakeHour
       if (wakeHour != null) {
-        target = dateAtHour(wakeHour, startedAt)
+        target = hourDateInTimezone(wakeHour, startedAt, tz)
         if (target.getTime() <= startedAt.getTime()) {
           target = new Date(target.getTime() + 24 * 60 * 60 * 1000)
         }
@@ -474,7 +595,7 @@ export function getCountdownContext(
       const inProgress = inProgressNap(plan)
       const endHour = inProgress ? parseTimeWindowDual(inProgress.timeWindow).end : null
       if (endHour != null) {
-        target = dateAtHour(endHour, now)
+        target = hourDateInTimezone(endHour, now, tz)
         expectedTime = formatTime12h(target)
       } else {
         const totalMin = defaultNapMin(age)
@@ -509,19 +630,19 @@ export function getCountdownContext(
       const startedAt = new Date(starter.event_time)
       const ageDefaultWindowMin = defaultWakeWindowMin(age)
 
-      const trendsBedtime = trendsBedtimeTarget(opts, now)
+      const trendsBedtime = trendsBedtimeTarget(opts, now, tz)
       const bedtimeNext = !planStale
         ? allNapsDone(plan)
-        : !firstTrendsNapAhead(opts.trendsNextNapHours, now) && !!trendsBedtime
+        : !firstTrendsNapAhead(opts.trendsNextNapHours, now, tz) && !!trendsBedtime
 
       if (bedtimeNext) {
         let target: Date
         const bedtimeHour = !planStale && plan?.targetBedtime
           ? parseTimeWindowDual(plan.targetBedtime).start
           : null
-        if (bedtimeHour != null) target = dateAtHour(bedtimeHour, now)
+        if (bedtimeHour != null) target = hourDateInTimezone(bedtimeHour, now, tz)
         else if (trendsBedtime) target = trendsBedtime
-        else target = dateAtHour(19, now)
+        else target = hourDateInTimezone(19, now, tz)
         const expectedTime = formatTime12h(target)
         const totalMs = target.getTime() - startedAt.getTime()
         const remaining = target.getTime() - now.getTime()
@@ -549,8 +670,8 @@ export function getCountdownContext(
       let expectedText = 'Next nap'
       const nextNap = !planStale ? nextUpcomingNap(plan) : undefined
       const planNapHour = nextNap ? parseTimeWindowDual(nextNap.timeWindow).start : null
-      const planNapTarget = planNapHour != null ? dateAtHour(planNapHour, now) : null
-      const trendsNapTarget = firstTrendsNapAhead(opts.trendsNextNapHours, now)
+      const planNapTarget = planNapHour != null ? hourDateInTimezone(planNapHour, now, tz) : null
+      const trendsNapTarget = firstTrendsNapAhead(opts.trendsNextNapHours, now, tz)
 
       if (planNapTarget && planNapTarget.getTime() > now.getTime()) {
         target = planNapTarget

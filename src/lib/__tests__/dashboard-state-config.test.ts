@@ -144,6 +144,7 @@ describe('getDashboardStateConfig', () => {
       plan as unknown as SleepPlan,
       events,
       NOW,
+      { timezone: 'UTC' },
     )
     expect(config.accent).toBe('sunset')
     expect(config.icon).toBe('🌟')
