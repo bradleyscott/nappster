@@ -9,6 +9,7 @@ import { requireBabyAccess, authErrorResponse, apiError } from '@/lib/api'
 import { getActiveSleepPlan } from '@/lib/services/sleep-plans'
 import { getTodaySleepEvents } from '@/lib/services/sleep-events'
 import { logError } from '@/lib/error-reporting'
+import { cookies } from 'next/headers'
 
 // Schemas for validating JSON fields from database
 const nextActionSchema = sleepPlanSchema.shape.nextAction
@@ -71,8 +72,18 @@ export async function GET(
       )
     }
 
-    // Compute current events hash for staleness check
-    const { data: events, error: eventsError } = await getTodaySleepEvents(supabase, babyId, 'UTC')
+    // Compute current events hash for staleness check. Use the user's timezone
+    // (cookie) so "today" matches the window the updateSleepPlan tool used when
+    // it persisted the plan's events_hash — otherwise the hash never matches
+    // for non-UTC timezones and the plan is always reported stale.
+    let timezone = 'UTC'
+    try {
+      const cookieStore = await cookies()
+      timezone = cookieStore.get('timezone')?.value || 'UTC'
+    } catch {
+      // cookies() requires a request context (not available in unit tests).
+    }
+    const { data: events, error: eventsError } = await getTodaySleepEvents(supabase, babyId, timezone)
 
     if (eventsError) {
       logError('sleep-plan/[babyId]', 'Error fetching events for hash:', eventsError)

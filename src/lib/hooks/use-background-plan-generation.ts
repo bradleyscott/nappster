@@ -131,6 +131,9 @@ export function useBackgroundPlanGeneration({
           )
         }
       } catch (err) {
+        // Clear the cooldown so a later event change (or the next effect run)
+        // can retry instead of silently wedging generation on a failed request.
+        lastRequestedAtRef.current = 0
         if (mountedRef.current) {
           setError(err instanceof Error ? err : new Error(String(err)))
         }
@@ -141,7 +144,7 @@ export function useBackgroundPlanGeneration({
     }, debounceMs)
 
     return () => clearTimeout(id)
-  }, [shouldGenerate, babyId, timezone, debounceMs, cooldownMs])
+  }, [shouldGenerate, babyId, timezone, debounceMs, cooldownMs, sortedEvents])
 
   return { isGenerating, error }
 }

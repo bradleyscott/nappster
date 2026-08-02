@@ -339,7 +339,7 @@ describe('getCountdownContext', () => {
         { type: 'bedtime', label: 'Bedtime', timeWindow: '7:00 - 7:30pm', status: 'upcoming', notes: '' },
       ],
     })
-    const ctx = getCountdownContext(state, events, plan, '2023-06-01', new Date('2024-01-15T17:00:00Z'))
+    const ctx = getCountdownContext(state, events, plan, '2023-06-01', new Date('2024-01-15T17:00:00Z'), { timezone: 'UTC' })
     expect(ctx.mode).toBe('bedtime')
     expect(ctx.timeLabel).toBe('until bedtime')
     expect(ctx.expectedText).toBe('Target bedtime')
@@ -400,7 +400,7 @@ describe('getCountdownContext', () => {
       null,
       '2023-06-01',
       new Date('2024-01-15T01:00:00Z'),
-      { trendsWakeHour: 7.25 }
+      { timezone: 'UTC', trendsWakeHour: 7.25 }
     )
     expect(ctx.mode).toBe('overnight')
     expect(ctx.expectedText).toBe('Expected wake')
@@ -434,8 +434,8 @@ describe('isPlanStaleForNaps', () => {
     const p = plan([
       { type: 'nap', label: 'Nap 1', timeWindow: '5:30pm', status: 'upcoming', notes: '' },
     ])
-    // It is 18:30; the upcoming nap was scheduled for 17:30 — already past.
-    expect(isPlanStaleForNaps(p, [], undefined, new Date(2026, 5, 28, 18, 30))).toBe(true)
+    // It is 18:30 UTC; the upcoming nap was scheduled for 17:30 — already past.
+    expect(isPlanStaleForNaps(p, [], 'UTC', new Date('2026-06-28T18:30:00Z'))).toBe(true)
   })
 
   it('returns false when the schedule matches reality and the next nap is ahead of now', () => {
@@ -443,13 +443,58 @@ describe('isPlanStaleForNaps', () => {
       { type: 'nap', label: 'Nap 1', timeWindow: '8:30 - 9:00am', status: 'completed', notes: '' },
       { type: 'nap', label: 'Nap 2', timeWindow: '12:30 - 1:30pm', status: 'upcoming', notes: '' },
     ])
-    // One nap_end logged (matches the one "completed" nap) and it's 10:30, before the 12:30 nap.
+    // One nap_end logged (matches the one "completed" nap) and it's 10:30 UTC,
+    // before the 12:30 nap.
     const events = [
       makeEvent({ event_type: 'wake', event_time: '2026-06-28T06:45:00Z' }),
       makeEvent({ event_type: 'nap_start', event_time: '2026-06-28T08:30:00Z' }),
       makeEvent({ event_type: 'nap_end', event_time: '2026-06-28T09:00:00Z' }),
     ]
-    expect(isPlanStaleForNaps(p, events, undefined, new Date(2026, 5, 28, 10, 30))).toBe(false)
+    expect(isPlanStaleForNaps(p, events, 'UTC', new Date('2026-06-28T10:30:00Z'))).toBe(false)
+  })
+
+  it('returns true when a nap happened at a different time than the plan claims (drift)', () => {
+    // Plan was written when only the morning wake existed. The parent then
+    // logged a short off-schedule nap (11:30am–12:15pm) that the plan never saw.
+    const p = plan([
+      { type: 'nap', label: 'Nap 1', timeWindow: '9:00 - 10:00am', status: 'completed', notes: '' },
+      { type: 'nap', label: 'Nap 2', timeWindow: '1:00 - 2:00pm', status: 'upcoming', notes: '' },
+    ])
+    const events = [
+      makeEvent({ event_type: 'wake', event_time: '2026-06-28T07:00:00Z' }),
+      makeEvent({ event_type: 'nap_start', event_time: '2026-06-28T11:30:00Z' }),
+      makeEvent({ event_type: 'nap_end', event_time: '2026-06-28T12:15:00Z' }),
+    ]
+    expect(isPlanStaleForNaps(p, events, 'UTC', new Date('2026-06-28T12:20:00Z'))).toBe(true)
+  })
+
+  it('returns false mid-nap when a freshly generated plan marks the nap in_progress', () => {
+    // A plan generated right as the nap started marks it in_progress. The nap
+    // hasn't ended yet, so the plan must NOT be considered stale while napping.
+    const p = plan([
+      { type: 'nap', label: 'Nap 1', timeWindow: '9:00 - 10:30am', status: 'in_progress', notes: '' },
+      { type: 'nap', label: 'Nap 2', timeWindow: '1:00 - 2:00pm', status: 'upcoming', notes: '' },
+    ])
+    const events = [
+      makeEvent({ event_type: 'wake', event_time: '2026-06-28T07:00:00Z' }),
+      makeEvent({ event_type: 'nap_start', event_time: '2026-06-28T09:00:00Z' }),
+    ]
+    expect(isPlanStaleForNaps(p, events, 'UTC', new Date('2026-06-28T10:00:00Z'))).toBe(false)
+  })
+
+  it('returns true after the nap ends when the plan still marks it in_progress', () => {
+    // The nap ended at 10:45 but the plan still says in_progress with a 10:30
+    // planned end — reality and the plan disagree → stale.
+    const p = plan([
+      { type: 'nap', label: 'Nap 1', timeWindow: '9:00 - 10:30am', status: 'in_progress', notes: '' },
+      { type: 'nap', label: 'Nap 2', timeWindow: '1:00 - 2:00pm', status: 'upcoming', notes: '' },
+    ])
+    const events = [
+      makeEvent({ event_type: 'wake', event_time: '2026-06-28T07:00:00Z' }),
+      makeEvent({ event_type: 'nap_start', event_time: '2026-06-28T09:00:00Z' }),
+      makeEvent({ event_type: 'nap_end', event_time: '2026-06-28T10:45:00Z' }),
+    ]
+    expect(isPlanStaleForNaps(p, events, 'UTC', new Date('2026-06-28T10:50:00Z'))).toBe(true)
   })
 })
 
@@ -464,13 +509,12 @@ describe('getCountdownContext awake nap fallback chain', () => {
   const morningWake = makeEvent({ event_type: 'wake', event_time: '2026-06-28T06:45:00Z' })
 
   it('uses the fresh plan\'s upcoming nap when it is ahead of now', () => {
-    const ts = new Date(2026, 5, 28, 10, 30) // local 10:30am
-    const now = new Date(ts)
+    const now = new Date('2026-06-28T10:30:00Z') // 10:30am UTC
     // No naps completed in schedule and no nap_ends logged ⇒ not stale; upcoming 12:30pm nap is used.
     const p = plan([
       { type: 'nap', label: 'Nap 1', timeWindow: '12:30 - 1:30pm', status: 'upcoming', notes: '' },
     ])
-    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {})
+    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, { timezone: 'UTC' })
     expect(ctx.mode).toBe('nap')
     expect(ctx.timeLabel).toBe('until next nap')
     expect(ctx.targetTime!.getUTCHours()).toBe(12)
@@ -479,8 +523,7 @@ describe('getCountdownContext awake nap fallback chain', () => {
   })
 
   it('falls back to the trends nap hour when the plan is stale (claimed naps exceed actual)', () => {
-    const ts = new Date(2026, 5, 28, 10, 30) // local 10:30am
-    const now = new Date(ts)
+    const now = new Date('2026-06-28T10:30:00Z') // 10:30am UTC
     // Stale plan: marks Nap 1 "completed" but no nap_end was logged; lists a late 5:30pm Nap 2 upcoming.
     const p = plan([
       { type: 'nap', label: 'Nap 1', timeWindow: '8:30 - 9:00am', status: 'completed', notes: '' },
@@ -488,6 +531,7 @@ describe('getCountdownContext awake nap fallback chain', () => {
     ])
     // Trends say the typical first nap is ~12:49 (12.82).
     const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {
+      timezone: 'UTC',
       trendsNextNapHours: [12 + 49 / 60],
     })
     expect(ctx.mode).toBe('nap')
@@ -509,11 +553,11 @@ describe('getCountdownContext awake nap fallback chain', () => {
   })
 
   it('enters bedtime mode when the stale plan has no trends nap remaining ahead but a trends bedtime is ahead of now', () => {
-    // Local evening 6:00pm, all trends nap slots have passed, trends bedtime ~7:00pm is ahead.
-    const ts = new Date(2026, 5, 28, 18, 0) // local 6:00pm
-    const now = new Date(ts)
+    // 6:00pm UTC, all trends nap slots have passed, trends bedtime ~7:00pm is ahead.
+    const now = new Date('2026-06-28T18:00:00Z') // 6:00pm UTC
     const p = null
     const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {
+      timezone: 'UTC',
       trendsNextNapHours: [9, 12.5],
       trendsBedtimeHour: 19,
     })
@@ -527,8 +571,7 @@ describe('getCountdownContext awake nap fallback chain', () => {
     // Fresh plan (no stale trigger), all naps done, but NO targetBedtime — fall back to trends bedtime.
     // NB: built as a plain object (not via the `plan()` helper) so targetBedtime is genuinely
     // undefined, instead of being replaced by the helper's default '7:00 - 7:30pm'.
-    const ts = new Date(2026, 5, 28, 18, 0) // local 6:00pm
-    const now = new Date(ts)
+    const now = new Date('2026-06-28T18:00:00Z') // 6:00pm UTC
     // One nap_end logged to match the one "completed" nap ⇒ not stale; allNapsDone true.
     const events = [
       morningWake,
@@ -540,6 +583,7 @@ describe('getCountdownContext awake nap fallback chain', () => {
       schedule: [{ type: 'nap', label: 'Nap 1', timeWindow: '12:00 - 1:00pm', status: 'completed', notes: '' }],
     }
     const ctx = getCountdownContext('daytime_awake', events, p, '2025-12-01', now, {
+      timezone: 'UTC',
       trendsBedtimeHour: 19.5, // 7:30pm
     })
     expect(ctx.mode).toBe('bedtime')
@@ -552,7 +596,7 @@ describe('getCountdownContext explanations', () => {
   const morningWake = makeEvent({ event_type: 'wake', event_time: '2026-06-28T06:45:00Z' })
 
   it('returns schedule item notes as explanation when a fresh plan is used', () => {
-    const now = new Date(2026, 5, 28, 10, 30)
+    const now = new Date('2026-06-28T10:30:00Z')
     const p: CountdownPlanInput = {
       targetBedtime: '7:00 - 7:30pm',
       summary: 'A great day ahead.',
@@ -560,13 +604,13 @@ describe('getCountdownContext explanations', () => {
         { type: 'nap', label: 'Nap 1', timeWindow: '12:30 - 1:30pm', status: 'upcoming', notes: 'First nap pushed later to protect the wake window.' },
       ],
     }
-    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {})
+    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, { timezone: 'UTC' })
     expect(ctx.source).toBe('plan')
     expect(ctx.explanation).toBe('First nap pushed later to protect the wake window.')
   })
 
   it('falls back to plan summary when the target item has no notes', () => {
-    const now = new Date(2026, 5, 28, 10, 30)
+    const now = new Date('2026-06-28T10:30:00Z')
     const p: CountdownPlanInput = {
       targetBedtime: '7:00 - 7:30pm',
       summary: 'Keep wake windows short after the early wake.',
@@ -574,7 +618,7 @@ describe('getCountdownContext explanations', () => {
         { type: 'nap', label: 'Nap 1', timeWindow: '12:30 - 1:30pm', status: 'upcoming', notes: '' },
       ],
     }
-    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, {})
+    const ctx = getCountdownContext('daytime_awake', [morningWake], p, '2025-12-01', now, { timezone: 'UTC' })
     expect(ctx.source).toBe('plan')
     expect(ctx.explanation).toBe('Keep wake windows short after the early wake.')
   })
@@ -604,7 +648,7 @@ describe('getCountdownContext explanations', () => {
   })
 
   it('uses bedtime schedule item notes when in bedtime mode', () => {
-    const now = new Date(2026, 5, 28, 18, 0)
+    const now = new Date('2026-06-28T18:00:00Z')
     const events = [
       morningWake,
       makeEvent({ event_type: 'nap_start', event_time: '2026-06-28T12:00:00Z' }),
@@ -618,7 +662,7 @@ describe('getCountdownContext explanations', () => {
         { type: 'bedtime', label: 'Bedtime', timeWindow: '7:00 - 7:30pm', status: 'upcoming', notes: 'Early bedtime after a short final nap.' },
       ],
     }
-    const ctx = getCountdownContext('daytime_awake', events, p, '2025-12-01', now, {})
+    const ctx = getCountdownContext('daytime_awake', events, p, '2025-12-01', now, { timezone: 'UTC' })
     expect(ctx.mode).toBe('bedtime')
     expect(ctx.source).toBe('plan')
     expect(ctx.explanation).toBe('Early bedtime after a short final nap.')
