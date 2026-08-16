@@ -31,6 +31,7 @@ const createMockSupabase = () => {
       const response = nextResponses.shift() ?? { data: null, error: null }
       return Promise.resolve(response)
     }),
+    rpc: vi.fn(() => Promise.resolve({ data: true, error: null })),
     _lastInsert: () => lastInsert,
     _lastUpdate: () => lastUpdate,
     _lastDeleteId: () => lastDeleteId,

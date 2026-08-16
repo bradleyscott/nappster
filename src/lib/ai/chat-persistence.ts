@@ -5,9 +5,62 @@
  * unit-tested independently.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { z } from 'zod'
 import type { Json } from '@/types/database'
 import { saveChatMessage } from '@/lib/services/chat-messages'
 import { logError } from '@/lib/error-reporting'
+
+// ---------------------------------------------------------------------------
+// Message validation
+// ---------------------------------------------------------------------------
+
+const MAX_MESSAGE_TEXT_LENGTH = 10000
+const MAX_PARTS_PER_MESSAGE = 50
+
+const persistedPartSchema = z
+  .object({
+    type: z.string().max(64),
+  })
+  .catchall(z.unknown())
+  .refine(
+    (part) => {
+      if (typeof part.text === 'string' && part.text.length > MAX_MESSAGE_TEXT_LENGTH) {
+        return false
+      }
+      if (typeof part.reasoning === 'string' && part.reasoning.length > MAX_MESSAGE_TEXT_LENGTH) {
+        return false
+      }
+      return true
+    },
+    { message: 'Message part exceeds maximum allowed length' },
+  )
+
+const persistedUserMessageSchema = z.object({
+  id: z.string().max(128),
+  role: z.literal('user'),
+  parts: z.array(persistedPartSchema).max(MAX_PARTS_PER_MESSAGE),
+  createdAt: z.union([z.string(), z.date()]).optional(),
+})
+
+/**
+ * Validate that the last client-sent message is a well-formed user message.
+ * Returns the validated message or null if it should not be persisted.
+ */
+function validateLastUserMessage(
+  messages: unknown[],
+): { id: string; parts: Record<string, unknown>[] } | null {
+  if (messages.length === 0) return null
+  const last = messages[messages.length - 1]
+  const parsed = persistedUserMessageSchema.safeParse(last)
+  if (!parsed.success) {
+    logError('chat-persistence', 'Invalid last user message:', parsed.error.flatten())
+    return null
+  }
+  return {
+    id: parsed.data.id,
+    parts: parsed.data.parts as Record<string, unknown>[],
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Tool output condensing
@@ -26,6 +79,23 @@ export const READ_TOOL_NAMES = new Set([
 ])
 
 /**
+ * Schema for the fields condenseToolOutput reads from read-only tool outputs.
+ * The outputs are produced by our own tools, but they cross the AI SDK
+ * boundary as untyped values, so validate the shape before reading.
+ */
+const toolOutputSchema = z
+  .object({
+    success: z.unknown().optional(),
+    days_retrieved: z.unknown().optional(),
+    total_events: z.unknown().optional(),
+    message_count: z.unknown().optional(),
+    currentState: z.unknown().optional(),
+    events: z.unknown().optional(),
+    summary: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough()
+
+/**
  * Condense the output of a read-only tool for storage.
  * Keeps success/error status and a lightweight summary; drops bulky data.
  * Write-tool outputs are passed through unchanged.
@@ -37,7 +107,10 @@ export function condenseToolOutput(
   if (!READ_TOOL_NAMES.has(toolName)) return output
   if (typeof output !== 'object' || output === null) return output
 
-  const o = output as Record<string, unknown>
+  const parsed = toolOutputSchema.safeParse(output)
+  if (!parsed.success) return output
+  const o = parsed.data
+
   if (toolName === 'getSleepHistory') {
     return {
       success: o.success,
@@ -55,7 +128,7 @@ export function condenseToolOutput(
     }
   }
   if (toolName === 'getTodayEvents') {
-    const summary = (o.summary as Record<string, unknown>) ?? {}
+    const summary = o.summary ?? {}
     return {
       success: o.success,
       currentState: o.currentState,
@@ -189,16 +262,14 @@ export async function persistChatTurn(input: PersistChatTurnInput): Promise<void
   const { supabase, babyId, assistantMessageId, messages, result } = input
 
   try {
-    // Save user message
-    const lastUserMessage = messages[messages.length - 1] as
-      | { id?: string; role?: string; parts?: unknown[] }
-      | undefined
-    if (lastUserMessage?.role === 'user' && lastUserMessage.id) {
+    // Save user message only if it passes validation
+    const lastUserMessage = validateLastUserMessage(messages as unknown[])
+    if (lastUserMessage) {
       await saveWithRetry(supabase, {
         baby_id: babyId,
         message_id: lastUserMessage.id,
         role: 'user',
-        parts: JSON.parse(JSON.stringify(lastUserMessage.parts ?? [])),
+        parts: JSON.parse(JSON.stringify(lastUserMessage.parts)),
       })
     }
 

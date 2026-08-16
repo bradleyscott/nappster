@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SleepPlanRow } from '@/types/database'
+import { assertBabyAccess } from './auth'
 
 export interface CreateSleepPlanInput {
   baby_id: string
@@ -19,6 +20,8 @@ export async function getActiveSleepPlan(
   babyId: string,
   planDate?: string
 ): Promise<{ data: SleepPlanRow | null; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   let query = supabase
     .from('sleep_plans')
     .select('*')
@@ -41,6 +44,8 @@ export async function createSleepPlan(
   supabase: SupabaseClient,
   input: CreateSleepPlanInput
 ): Promise<{ data: SleepPlanRow | null; error: Error | null }> {
+  await assertBabyAccess(supabase, input.baby_id)
+
   const { data, error } = await supabase
     .from('sleep_plans')
     .insert({
@@ -66,6 +71,8 @@ export async function getRecentSleepPlans(
   babyId: string,
   limit: number
 ): Promise<{ data: SleepPlanRow[] | null; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { data, error } = await supabase
     .from('sleep_plans')
     .select('*')
@@ -81,6 +88,8 @@ export async function getSleepPlansSinceCreatedAt(
   babyId: string,
   from: string
 ): Promise<{ data: SleepPlanRow[] | null; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { data, error } = await supabase
     .from('sleep_plans')
     .select('*')
@@ -98,6 +107,8 @@ export async function getSleepPlansByCreatedAtRange(
   from: string,
   to: string
 ): Promise<{ data: SleepPlanRow[] | null; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { data, error } = await supabase
     .from('sleep_plans')
     .select('*')
@@ -114,6 +125,8 @@ export async function deactivatePreviousSleepPlans(
   babyId: string,
   planDate: string
 ): Promise<{ error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { error } = await supabase
     .from('sleep_plans')
     .update({ is_active: false })

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useBackgroundPlanGeneration } from '../use-background-plan-generation'
 import type { SleepEvent } from '@/types/database'
 import type { SleepPlan } from '@/lib/ai/schemas/sleep-plan'
@@ -48,7 +48,9 @@ describe('useBackgroundPlanGeneration', () => {
     )
 
     expect(mockFetch).not.toHaveBeenCalled()
-    await vi.advanceTimersByTimeAsync(2100)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2100)
+    })
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch).toHaveBeenCalledWith(
@@ -81,7 +83,9 @@ describe('useBackgroundPlanGeneration', () => {
       })
     )
 
-    await vi.advanceTimersByTimeAsync(5000)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000)
+    })
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
@@ -98,7 +102,9 @@ describe('useBackgroundPlanGeneration', () => {
       })
     )
 
-    await vi.advanceTimersByTimeAsync(5000)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000)
+    })
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
@@ -125,7 +131,9 @@ describe('useBackgroundPlanGeneration', () => {
       })
     )
 
-    await vi.advanceTimersByTimeAsync(2100)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2100)
+    })
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 })

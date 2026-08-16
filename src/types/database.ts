@@ -252,6 +252,34 @@ export type Database = {
         }
         Returns: Json
       }
+      upsert_sleep_plan: {
+        Args: {
+          p_baby_id: string
+          p_current_state: string
+          p_plan_date: string
+          p_next_action: unknown
+          p_schedule: unknown
+          p_target_bedtime: string
+          p_summary: string
+          p_events_hash: string
+          p_created_by?: string | null
+        }
+        Returns: Database['public']['Tables']['sleep_plans']['Row']
+      }
+      create_baby_profile: {
+        Args: {
+          p_name: string
+          p_birth_date: string
+          p_pattern_notes?: string | null
+        }
+        Returns: Database['public']['Tables']['babies']['Row']
+      }
+      check_baby_access: {
+        Args: {
+          p_baby_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

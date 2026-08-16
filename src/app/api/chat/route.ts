@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages, stepCountIs } from "ai";
+import type { UIMessage } from "@ai-sdk/react";
 import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -32,13 +33,53 @@ import {
 } from "@/lib/config";
 
 // Schema for validating critical request fields.
-// Messages are validated by the SDK itself.
 // babyProfile and todayEvents are NOT accepted from the client — they are
 // fetched server-side to avoid trust-boundary issues.
+
+const MAX_MESSAGE_TEXT_LENGTH = 10000
+const MAX_PARTS_PER_MESSAGE = 50
+
+/**
+ * Validate a single UI message part.
+ * Known part types are constrained; unknown types are accepted as objects
+ * with a type string for forward compatibility, but text-bearing fields are
+ * capped in length to prevent abuse.
+ */
+const uiMessagePartSchema = z
+  .object({
+    type: z.string().max(64),
+  })
+  .catchall(z.unknown())
+  .refine(
+    (part) => {
+      if (typeof part.text === 'string' && part.text.length > MAX_MESSAGE_TEXT_LENGTH) {
+        return false
+      }
+      if (typeof part.reasoning === 'string' && part.reasoning.length > MAX_MESSAGE_TEXT_LENGTH) {
+        return false
+      }
+      return true
+    },
+    { message: 'Message part exceeds maximum allowed length' },
+  )
+
+/**
+ * Validate client-sent chat messages.
+ * Only user and assistant roles are allowed; the server controls the system
+ * prompt. Messages are capped in size to limit abuse.
+ */
+const uiMessageSchema = z.object({
+  id: z.string().max(128),
+  role: z.enum(['user', 'assistant']),
+  parts: z.array(uiMessagePartSchema).max(MAX_PARTS_PER_MESSAGE),
+  createdAt: z.union([z.string(), z.date()]).optional(),
+})
+
 const requestFieldsSchema = z.object({
   babyId: z.string().uuid(),
   timezone: z.string().optional(),
   showThinking: z.boolean().optional(),
+  messages: z.array(uiMessageSchema).max(MAX_CONVERSATION_MESSAGES),
   recentMessages: z
     .array(
       z.object({
@@ -67,15 +108,11 @@ export async function POST(req: Request) {
     }
 
     // Extract fields with defaults
-    const messages = body.messages;
+    const messages = fieldsResult.data.messages;
     const babyId = fieldsResult.data.babyId;
     const timezone = validateTimezone(fieldsResult.data.timezone ?? "UTC");
     const showThinking = fieldsResult.data.showThinking ?? false;
     const recentMessages = fieldsResult.data.recentMessages;
-
-    if (!Array.isArray(messages)) {
-      return apiError("messages must be an array", 400);
-    }
 
     const supabase = await createClient();
 
@@ -169,7 +206,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: openai("gpt-5.4"),
       system: systemPrompt,
-      messages: await convertToModelMessages(windowedMessages),
+      messages: await convertToModelMessages(windowedMessages as UIMessage[]),
       tools: createChatTools(toolContext),
       stopWhen: stepCountIs(CHAT_MAX_TOOL_STEPS),
       // Always enable reasoning for quality — showThinking only controls
@@ -188,7 +225,7 @@ export async function POST(req: Request) {
         supabase,
         babyId,
         assistantMessageId,
-        messages: messages as unknown[],
+        messages: messages as unknown[], // cast preserved for persistChatTurn which accepts unknown[]
         result: {
           text: result.text,
           toolCalls: result.toolCalls,
@@ -200,7 +237,7 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       sendReasoning: showThinking,
-      originalMessages: messages,
+      originalMessages: messages as UIMessage[],
       generateMessageId: () => assistantMessageId,
     });
   } catch (error) {

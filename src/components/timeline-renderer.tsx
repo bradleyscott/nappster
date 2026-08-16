@@ -88,9 +88,28 @@ interface TimelineRendererProps {
   onEventClick: (event: SleepEvent) => void
 }
 
+// A message part is a plain object with a string `type` field.
+type MessagePart = { type: string; text?: string; [key: string]: unknown }
+
+/**
+ * Validate that `parts` is an array of well-formed message parts.
+ * Returns the validated array, or null if the shape is unexpected.
+ */
+function validateParts(parts: unknown): MessagePart[] | null {
+  if (!Array.isArray(parts)) return null
+  const valid = parts.filter(
+    (p): p is MessagePart =>
+      p !== null &&
+      typeof p === 'object' &&
+      'type' in p &&
+      typeof p.type === 'string',
+  )
+  return valid.length === parts.length ? valid : null
+}
+
 // Extract text content from message parts
 function getMessageText(message: { parts: unknown }): string {
-  const parts = message.parts as Array<{ type: string; text?: string }> | undefined
+  const parts = validateParts(message.parts)
   if (parts && parts.length > 0) {
     return parts
       .filter((part) => part.type === 'text')
@@ -102,7 +121,7 @@ function getMessageText(message: { parts: unknown }): string {
 
 // Render all message parts including tool invocations
 function renderMessageParts(message: { parts: unknown }, isStreaming: boolean) {
-  const parts = message.parts as Array<{ type: string; text?: string; [key: string]: unknown }> | undefined
+  const parts = validateParts(message.parts)
 
   const toolParts = parts?.filter(p => p.type.startsWith('tool-')) || []
   const hasToolCalls = toolParts.length > 0

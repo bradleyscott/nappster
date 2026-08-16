@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Baby } from '@/types/database'
+import { assertBabyAccess } from './auth'
 
 export interface CreateBabyInput {
   id?: string
@@ -18,6 +19,8 @@ export async function getBabyById(
   supabase: SupabaseClient,
   babyId: string
 ): Promise<{ data: Baby | null; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { data, error } = await supabase
     .from('babies')
     .select('*')
@@ -50,6 +53,8 @@ export async function updateBaby(
   babyId: string,
   input: UpdateBabyInput
 ): Promise<{ data: Baby | null; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { data, error } = await supabase
     .from('babies')
     .update({
@@ -74,6 +79,8 @@ export async function acquirePlanGenerationLock(
   babyId: string,
   ttlSeconds = 120
 ): Promise<{ acquired: boolean; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const now = new Date()
   const lockUntil = new Date(now.getTime() + ttlSeconds * 1000).toISOString()
   const nowIso = now.toISOString()
@@ -100,6 +107,8 @@ export async function releasePlanGenerationLock(
   supabase: SupabaseClient,
   babyId: string
 ): Promise<{ error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { error } = await supabase
     .from('babies')
     .update({
@@ -120,6 +129,8 @@ export async function isPlanGenerationCooldownActive(
   babyId: string,
   cooldownSeconds = 60
 ): Promise<{ active: boolean; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   const { data, error } = await supabase
     .from('babies')
     .select('last_plan_generated_at')

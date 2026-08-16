@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Baby, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { NappsterLogo } from '@/components/nappster-logo'
-import { createBaby } from '@/lib/services/babies'
-import { createFamilyMember } from '@/lib/services/family-members'
 
 type Step = 'choice' | 'create' | 'join'
 
@@ -45,29 +43,14 @@ export default function OnboardingPage() {
       return
     }
 
-    const babyId = crypto.randomUUID()
-
-    const { error: babyError } = await createBaby(supabase, {
-      id: babyId,
-      name,
-      birth_date: birthDate,
-      pattern_notes: patternNotes || null,
+    const { data: baby, error: createError } = await supabase.rpc('create_baby_profile', {
+      p_name: name,
+      p_birth_date: birthDate,
+      p_pattern_notes: patternNotes || null,
     })
 
-    if (babyError) {
-      setError(babyError.message)
-      setLoading(false)
-      return
-    }
-
-    const { error: linkError } = await createFamilyMember(supabase, {
-      user_id: user.id,
-      baby_id: babyId,
-      role: 'parent',
-    })
-
-    if (linkError) {
-      setError(linkError.message)
+    if (createError || !baby) {
+      setError(createError?.message ?? 'Failed to create baby profile')
       setLoading(false)
       return
     }
