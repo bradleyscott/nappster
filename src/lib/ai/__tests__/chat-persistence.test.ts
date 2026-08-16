@@ -202,6 +202,7 @@ describe('saveWithRetry', () => {
 
   it('returns true on first-successful save', async () => {
     const supabase = {
+      rpc: vi.fn(() => Promise.resolve({ data: true, error: null })),
       from: vi.fn(() => ({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
@@ -226,6 +227,7 @@ describe('saveWithRetry', () => {
     let callCount = 0
 
     const supabase = {
+      rpc: vi.fn(() => Promise.resolve({ data: true, error: null })),
       from: vi.fn(() => ({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
@@ -254,6 +256,7 @@ describe('saveWithRetry', () => {
     let fail = true
 
     const supabase = {
+      rpc: vi.fn(() => Promise.resolve({ data: true, error: null })),
       from: vi.fn(() => ({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({

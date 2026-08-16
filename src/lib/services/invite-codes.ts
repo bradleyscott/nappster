@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { assertBabyAccess } from './auth'
 
 export interface CreateInviteCodeInput {
   baby_id: string
@@ -20,6 +21,8 @@ export async function createInviteCode(
   supabase: SupabaseClient,
   input: CreateInviteCodeInput
 ): Promise<{ data: InviteCodeRow | null; error: Error | null }> {
+  await assertBabyAccess(supabase, input.baby_id)
+
   const { data, error } = await supabase
     .from('invite_codes')
     .insert({

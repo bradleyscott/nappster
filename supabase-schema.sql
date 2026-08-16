@@ -57,9 +57,42 @@ create policy "Users can view babies they are linked to"
   );
 
 drop policy if exists "Users can insert babies" on public.babies;
+-- Direct inserts are not allowed from clients. Baby creation must go through
+-- create_baby_profile(), which atomically creates the baby and the caller's
+-- family_members row inside a SECURITY DEFINER RPC.
 create policy "Users can insert babies"
   on public.babies for insert
-  with check (true);
+  with check (false);
+
+-- Atomic baby creation: inserts the baby and links the authenticated caller as
+-- a parent in family_members. SECURITY DEFINER bypasses RLS so the baby insert
+-- succeeds despite the restrictive insert policy above.
+create or replace function public.create_baby_profile(
+  p_name text,
+  p_birth_date date,
+  p_pattern_notes text default null
+) returns public.babies
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_baby public.babies%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+
+  insert into public.babies (name, birth_date, pattern_notes)
+  values (p_name, p_birth_date, p_pattern_notes)
+  returning * into v_baby;
+
+  insert into public.family_members (user_id, baby_id, role)
+  values (auth.uid(), v_baby.id, 'parent');
+
+  return v_baby;
+end;
+$$;
 
 drop policy if exists "Users can update their babies" on public.babies;
 create policy "Users can update their babies"
@@ -70,6 +103,22 @@ create policy "Users can update their babies"
       where user_id = auth.uid()
     )
   );
+
+-- Defense-in-depth helper: returns true if the authenticated caller is a member
+-- of the given baby. SECURITY DEFINER bypasses RLS so it always sees the real
+-- membership row, even when called from a service-role or bypass-RLS context.
+create or replace function public.check_baby_access(
+  p_baby_id uuid
+) returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.family_members
+    where user_id = auth.uid() and baby_id = p_baby_id
+  );
+$$;
 
 -- Helper: return the set of baby_ids the calling user belongs to.
 -- SECURITY DEFINER runs as the owner so the inner read on family_members skips RLS,
@@ -233,6 +282,74 @@ create policy "Users can update sleep plans for their babies"
       where user_id = auth.uid()
     )
   );
+
+-- Atomic upsert for sleep plans.
+-- Deactivates existing active plans for the baby/date and inserts a new active
+-- plan in a single transaction. SECURITY DEFINER bypasses RLS, so we explicitly
+-- verify the caller is a family member before writing.
+create or replace function public.upsert_sleep_plan(
+  p_baby_id uuid,
+  p_current_state text,
+  p_plan_date date,
+  p_next_action jsonb,
+  p_schedule jsonb,
+  p_target_bedtime text,
+  p_summary text,
+  p_events_hash text,
+  p_created_by uuid default null
+) returns public.sleep_plans
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_plan public.sleep_plans%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated' using errcode = '42501';
+  end if;
+
+  if not exists (
+    select 1 from public.family_members
+    where user_id = auth.uid() and baby_id = p_baby_id
+  ) then
+    raise exception 'Not authorized' using errcode = '42501';
+  end if;
+
+  update public.sleep_plans
+  set is_active = false
+  where baby_id = p_baby_id
+    and plan_date = p_plan_date
+    and is_active = true;
+
+  insert into public.sleep_plans (
+    baby_id,
+    current_state,
+    plan_date,
+    next_action,
+    schedule,
+    target_bedtime,
+    summary,
+    events_hash,
+    is_active,
+    created_by
+  ) values (
+    p_baby_id,
+    p_current_state,
+    p_plan_date,
+    p_next_action,
+    p_schedule,
+    p_target_bedtime,
+    p_summary,
+    p_events_hash,
+    true,
+    p_created_by
+  )
+  returning * into v_plan;
+
+  return v_plan;
+end;
+$$;
 
 -- Invite codes table (for sharing baby access with family members)
 create table if not exists public.invite_codes (

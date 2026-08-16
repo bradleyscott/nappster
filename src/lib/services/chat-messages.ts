@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ChatMessage } from '@/types/database'
+import { assertBabyAccess } from './auth'
 
 export interface SaveChatMessageInput {
   baby_id: string | null
@@ -19,6 +20,10 @@ export async function getChatMessages(
     ascending?: boolean
   }
 ): Promise<{ data: ChatMessage[] | null; error: Error | null }> {
+  if (filter.babyId) {
+    await assertBabyAccess(supabase, filter.babyId)
+  }
+
   let query = supabase.from('chat_messages').select('*')
 
   if (filter.babyId) {
@@ -51,6 +56,8 @@ export async function getChatMessagesSince(
   startDate: string,
   limit: number
 ): Promise<{ data: ChatMessage[] | null; error: Error | null }> {
+  await assertBabyAccess(supabase, babyId)
+
   return getChatMessages(supabase, {
     babyId,
     from: startDate,
@@ -63,6 +70,10 @@ export async function saveChatMessage(
   supabase: SupabaseClient,
   input: SaveChatMessageInput
 ): Promise<{ data: ChatMessage | null; error: Error | null }> {
+  if (input.baby_id) {
+    await assertBabyAccess(supabase, input.baby_id)
+  }
+
   const { data, error } = await supabase
     .from('chat_messages')
     .insert({

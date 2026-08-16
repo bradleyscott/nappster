@@ -175,9 +175,17 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // Validate the updateSleepPlan tool output shape before reading fields.
+    // The output crosses the AI SDK boundary as an untyped value.
+    const updatePlanOutputSchema = z.object({
+      persisted: z.boolean().optional(),
+      success: z.boolean().optional(),
+      error: z.string().optional(),
+    })
+
     const resultOutput =
       updatePlanResult && 'output' in updatePlanResult
-        ? (updatePlanResult.output as { persisted?: boolean; success?: boolean; error?: string })
+        ? updatePlanOutputSchema.safeParse(updatePlanResult.output).data
         : undefined
 
       if (resultOutput && !resultOutput.persisted && !resultOutput.success) {

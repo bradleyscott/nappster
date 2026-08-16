@@ -5,9 +5,8 @@ import { computeCurrentState } from '@/lib/state-machine'
 import { sleepPlanSchema } from '@/lib/ai/schemas/sleep-plan'
 import { format } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
-import type { SleepEvent } from '@/types/database'
+import type { SleepEvent, SleepPlanRow } from '@/types/database'
 import { getTodaySleepEvents } from '@/lib/services/sleep-events'
-import { deactivatePreviousSleepPlans, createSleepPlan } from '@/lib/services/sleep-plans'
 import { logError } from '@/lib/error-reporting'
 
 /**
@@ -56,23 +55,22 @@ Mark completed naps/events with status "completed", current activity as "in_prog
         // Get current user for created_by field
         const { data: { user } } = await supabase.auth.getUser()
 
-        // Deactivate existing plans instead of deleting, then insert.
-        // This avoids a window where no plan exists if the insert fails.
-        await deactivatePreviousSleepPlans(supabase, babyId, planDate)
-
-        // Insert the new plan
-        const { data: savedPlan, error } = await createSleepPlan(supabase, {
-          baby_id: babyId,
-          current_state: currentState,
-          next_action: plan.nextAction,
-          schedule: plan.schedule,
-          target_bedtime: plan.targetBedtime,
-          summary: plan.summary,
-          events_hash: eventsHash,
-          plan_date: planDate,
-          is_active: true,
-          created_by: user?.id ?? null,
-        })
+        // Use an atomic RPC to deactivate previous plans and insert the new one
+        // in a single transaction. This prevents a window where no active plan
+        // exists if the insert fails.
+        const { data: savedPlan, error } = await supabase
+          .rpc('upsert_sleep_plan', {
+            p_baby_id: babyId,
+            p_current_state: currentState,
+            p_plan_date: planDate,
+            p_next_action: plan.nextAction,
+            p_schedule: plan.schedule,
+            p_target_bedtime: plan.targetBedtime,
+            p_summary: plan.summary,
+            p_events_hash: eventsHash,
+            p_created_by: user?.id ?? null,
+          })
+          .single()
 
         if (error || !savedPlan) {
           logError('update-sleep-plan', 'Error persisting sleep plan from chat:', error)
@@ -86,7 +84,7 @@ Mark completed naps/events with status "completed", current activity as "in_prog
 
         return {
           success: true,
-          plan: savedPlan,
+          plan: savedPlan as SleepPlanRow,
           persisted: true,
           message: `Updated schedule: ${plan.nextAction.label} at ${plan.nextAction.timeWindow}`,
         }

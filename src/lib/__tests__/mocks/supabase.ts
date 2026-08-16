@@ -8,6 +8,7 @@ export function createMockSupabaseClient() {
   // Store for mock responses
   let mockInsertResponse: { data: unknown; error: unknown } = { data: null, error: null }
   let mockSelectResponse: { data: unknown; error: unknown } = { data: [], error: null }
+  let mockRpcResponse: { data: unknown; error: unknown } = { data: null, error: null }
 
   // Track calls for assertions
   const insertCalls: unknown[] = []
@@ -19,6 +20,7 @@ export function createMockSupabaseClient() {
 
   const resolveSelect = () => Promise.resolve(mockSelectResponse)
   const resolveInsert = () => Promise.resolve(mockInsertResponse)
+  const resolveRpc = () => Promise.resolve(mockRpcResponse)
 
   const createThenable = (resolve: () => Promise<{ data: unknown; error: unknown }>) => {
     const thenable = {
@@ -92,7 +94,21 @@ export function createMockSupabaseClient() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     rpc: vi.fn((fnName: string, _params?: unknown) => {
       rpcCalls.push(fnName)
-      return resolveSelect()
+
+      // Defense-in-depth auth helper: default to granting access in unit tests
+      // so service functions can be tested without setting up family_members rows.
+      if (fnName === 'check_baby_access') {
+        return Object.assign(createThenable(() => Promise.resolve({ data: true, error: null })), {
+          ...chainMethods,
+          single: vi.fn(() => Promise.resolve({ data: true, error: null })),
+        })
+      }
+
+      const rpcThenable = createThenable(resolveRpc)
+      return Object.assign(rpcThenable, {
+        ...chainMethods,
+        single: vi.fn(() => resolveRpc()),
+      })
     }),
     auth: {
       getUser: vi.fn(() =>
@@ -112,7 +128,7 @@ export function createMockSupabaseClient() {
       mockSelectResponse = response
     },
     _setRpcResponse: (response: { data: unknown; error: unknown }) => {
-      mockSelectResponse = response
+      mockRpcResponse = response
     },
 
     // Test helpers to inspect calls
@@ -133,6 +149,7 @@ export function createMockSupabaseClient() {
       rpcCalls.length = 0
       mockInsertResponse = { data: null, error: null }
       mockSelectResponse = { data: [], error: null }
+      mockRpcResponse = { data: null, error: null }
     },
   }
 

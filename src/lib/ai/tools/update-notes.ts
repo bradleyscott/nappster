@@ -2,6 +2,24 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { ToolContext } from './types'
 import { getBabyById, updateBaby } from '@/lib/services/babies'
+import { logInfo, logWarn } from '@/lib/error-reporting'
+
+// Maximum characters for a single LLM append to pattern notes.
+const MAX_APPEND_LENGTH = 300
+
+// Prompt-injection markers. If the LLM's proposed note contains any of these,
+// the append is rejected — the text would otherwise persist and re-enter
+// future system prompts for all family members.
+const INJECTION_PATTERNS = [
+  /ignore (all |any |previous |prior )?instructions/i,
+  /disregard (all |any |previous |prior )?instructions/i,
+  /forget (all |any |previous |prior )?(instructions|context|rules)/i,
+  /you are now/i,
+  /new (system )?prompt/i,
+  /override (your |the )?(instructions|prompt|rules)/i,
+  /system\s*:/i,
+  /<system/i,
+]
 
 /**
  * Creates a tool that updates the baby's pattern notes.
@@ -35,6 +53,29 @@ Do NOT use this for:
     execute: async ({ pattern_info }) => {
       const MAX_NOTES_LENGTH = 2000
 
+      // Reject appends that look like prompt-injection attempts. The note
+      // persists and re-enters future system prompts, so this is a hard gate.
+      const injectionMatch = INJECTION_PATTERNS.find((re) => re.test(pattern_info))
+      if (injectionMatch) {
+        logWarn(
+          'update-notes',
+          'Rejected pattern note append matching injection pattern',
+          { pattern: injectionMatch.source, babyId },
+        )
+        return {
+          success: false,
+          error: 'The proposed note was rejected because it contains instructions that could override the assistant. Please rephrase the note as a factual description of the baby\'s sleep pattern.',
+        }
+      }
+
+      // Per-append cap: prevents a single LLM turn from flooding the notes.
+      if (pattern_info.length > MAX_APPEND_LENGTH) {
+        return {
+          success: false,
+          error: `The proposed note is too long (${pattern_info.length}/${MAX_APPEND_LENGTH} chars). Please summarize it to the most important detail.`,
+        }
+      }
+
       // Fetch current baby to get pattern notes
       const { data: baby, error: fetchError } = await getBabyById(supabase, babyId)
 
@@ -65,6 +106,8 @@ Do NOT use this for:
       if (error) {
         return { success: false, error: error.message }
       }
+
+      logInfo('update-notes', 'Appended pattern note', { babyId, length: pattern_info.length })
 
       return {
         success: true,

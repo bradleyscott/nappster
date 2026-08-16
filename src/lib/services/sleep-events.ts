@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SleepEvent, EventType, Context } from '@/types/database'
 import { getTodayBoundsForTimezone, getYesterdayBoundsForTimezone } from '@/lib/timezone'
+import { assertBabyAccess } from './auth'
 
 export type SleepEventContext = Context | string | null
 
@@ -34,6 +35,8 @@ export async function getSleepEvents(
   supabase: SupabaseClient,
   filter: SleepEventsFilter
 ): Promise<{ data: SleepEvent[] | null; error: Error | null }> {
+  await assertBabyAccess(supabase, filter.babyId)
+
   let query = supabase
     .from('sleep_events')
     .select('*')
@@ -100,6 +103,8 @@ export async function createSleepEvent(
   supabase: SupabaseClient,
   input: CreateSleepEventInput
 ): Promise<{ data: SleepEvent | null; error: Error | null }> {
+  await assertBabyAccess(supabase, input.baby_id)
+
   const { data, error } = await supabase
     .from('sleep_events')
     .insert({

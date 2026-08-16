@@ -5,6 +5,7 @@ import { formatTime } from '@/lib/sleep-utils'
 import { computeCurrentState, isValidEvent, VALID_EVENTS } from '@/lib/state-machine'
 import type { SleepEvent, EventType } from '@/types/database'
 import { getTodaySleepEvents, createSleepEvent } from '@/lib/services/sleep-events'
+import { logWarn } from '@/lib/error-reporting'
 
 /**
  * Creates a tool that logs sleep events to the database.
@@ -59,6 +60,14 @@ Do NOT use this tool for questions or hypothetical scenarios.`,
               : 'No quick events available. Use the dialog to edit existing events.',
           }
         }
+      } else {
+        // Audit log: force bypasses the state machine. This is a data-integrity
+        // risk (inconsistent or backdated events), so record it prominently.
+        logWarn(
+          'create-event',
+          'force=true bypassed state validation',
+          { babyId, event_type, event_time, end_time, notes },
+        )
       }
 
       const { data, error } = await createSleepEvent(supabase, {
@@ -80,6 +89,9 @@ Do NOT use this tool for questions or hypothetical scenarios.`,
       }
       if (eventContext) {
         message += ` (${eventContext})`
+      }
+      if (force) {
+        message += ' (logged despite state inconsistency)'
       }
 
       return {
